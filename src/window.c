@@ -1,6 +1,9 @@
 #include "window.h"
 
-namespace game {
+#include <stdio.h>
+#include <stdlib.h>
+
+#include "exit.h"
 
 window create_window(const char *name, int width, int height) {
     window window = {};
@@ -9,10 +12,15 @@ window create_window(const char *name, int width, int height) {
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
     glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
+    window.handle = glfwCreateWindow(width, height, name, NULL, NULL);
+    if (window.handle == NULL) {
+        fprintf(stderr, "Failed to create GLFW window");
+        glfwTerminate();
+        exit(EXT_GLFW_WINDOW_CREATION);
+    }
     window.w = width;
     window.h = height;
 
-    window.handle = glfwCreateWindow(width, height, name, nullptr, nullptr);
     return window;
 }
 
@@ -22,5 +30,3 @@ void free_window(window *window) {
 }
 
 bool window_should_close(window window) { return glfwWindowShouldClose(window.handle); }
-
-} // namespace game

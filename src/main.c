@@ -1,11 +1,11 @@
-#include "exits.h"
+#include "exit.h"
 
 #include "window.h"
 #include <stdio.h>
 
 bool g_running = true;
 
-void process_input(game::window window) {
+void process_input(window window) {
     glfwPollEvents();
 
     if (glfwGetKey(window.handle, GLFW_KEY_ESCAPE) == GLFW_PRESS)
@@ -15,13 +15,13 @@ void process_input(game::window window) {
 int main(int argc, char **argv) {
     printf("Yo");
 
-    game::window window = game::create_window("yo", 800, 600);
+    window window = create_window("yo", 800, 600);
 
     while (g_running) {
         process_input(window);
     }
 
-    game::free_window(&window);
+    free_window(&window);
 
-    return exit_code::SUCCESS;
+    return EXT_SUCCESS;
 }
