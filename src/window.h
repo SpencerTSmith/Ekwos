@@ -1,11 +1,12 @@
-#pragma once
+#ifndef WINDOW_H
+#define WINDOW_H
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 #include <stdbool.h>
 
-typedef struct window window;
-struct window {
+typedef struct Window Window;
+struct Window {
 
     union {
         int width, w;
@@ -18,7 +19,9 @@ struct window {
     GLFWwindow *handle;
 };
 
-window create_window(const char *name, int width, int height);
-void free_window(window *window);
+Window window_create(const char *name, int width, int height);
+void window_free(Window *window);
 
-bool window_should_close(window window);
+bool window_should_close(Window window);
+
+#endif // WINDOW_H

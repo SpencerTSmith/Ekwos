@@ -1,5 +1,4 @@
+#ifndef EXIT_CODE_H
+#define EXIT_CODE_H
 
-enum exit_code {
-    EXT_SUCCESS,
-    EXT_GLFW_WINDOW_CREATION,
-};
+#endif // EXIT_CODE_H

@@ -3,10 +3,10 @@
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "exit.h"
+#include "common.h"
 
-window create_window(const char *name, int width, int height) {
-    window window = {};
+Window window_create(const char *name, int width, int height) {
+    Window window = {};
 
     glfwInit();
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -24,9 +24,9 @@ window create_window(const char *name, int width, int height) {
     return window;
 }
 
-void free_window(window *window) {
+void window_free(Window *window) {
     glfwDestroyWindow(window->handle);
     glfwTerminate();
 }
 
-bool window_should_close(window window) { return glfwWindowShouldClose(window.handle); }
+bool window_should_close(Window window) { return glfwWindowShouldClose(window.handle); }

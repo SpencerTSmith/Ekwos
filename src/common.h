@@ -1,3 +1,6 @@
+#ifndef PRIMITIVES_H
+#define PRIMITIVES_H
+
 #include <stdint.h>
 
 typedef int64_t i64;
@@ -12,3 +15,11 @@ typedef uint8_t u8;
 
 typedef float f32;
 typedef double f64;
+
+enum exit_code {
+    EXT_SUCCESS,
+    EXT_GLFW_WINDOW_CREATION,
+    EXT_ARENA_ALLOCATION,
+};
+
+#endif // PRIMITIVES_H

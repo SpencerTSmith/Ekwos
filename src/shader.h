@@ -1,11 +1,18 @@
+#ifndef SHADER_H
+#define SHADER_H
+
 #include <stdio.h>
 #include <stdlib.h>
 
-#include "primitives.h"
+#include "arena.h"
+#include "common.h"
 
-struct shader_data {
+typedef struct ShaderData ShaderData;
+struct ShaderData {
     u8 *data;
     u64 size;
 };
 
-void read_shader_file(const char &file_path, shader_data &shader_data);
+ShaderData read_shader_file(Arena *arena, const char *file_path);
+
+#endif // SHADER_H
