@@ -15,14 +15,13 @@ void process_input(Window window) {
 }
 
 int main(int argc, char **argv) {
-    printf("Yo");
-
-    Window window = window_create("yo", 800, 600);
-
     Arena arena = {0};
-    arena_create(&arena, 1024 * 5);
+    arena_create(&arena, 1024 * 10);
+
+    Window window = window_create(&arena, "yo", 800, 600);
+
     ShaderData frag_shader = read_shader_file(&arena, "./src/shaders/first_frag.frag.spv");
-    printf("Size of shader %lu\n", frag_shader.size);
+    ShaderData vert_shader = read_shader_file(&arena, "./src/shaders/first_vert.vert.spv");
 
     while (g_running) {
         process_input(window);
@@ -30,5 +29,6 @@ int main(int argc, char **argv) {
 
     window_free(&window);
 
+    arena_free(&arena);
     return EXT_SUCCESS;
 }
