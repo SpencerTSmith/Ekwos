@@ -1,6 +1,8 @@
-#ifndef PRIMITIVES_H
-#define PRIMITIVES_H
+#ifndef COMMON_H
+#define COMMON_H
 
+#define GLFW_INCLUDE_VULKAN
+#include <GLFW/glfw3.h>
 #include <stdint.h>
 
 typedef int64_t i64;
@@ -34,4 +36,4 @@ enum exit_code {
     NUM_EXT
 };
 
-#endif // PRIMITIVES_H
+#endif // COMMON_H

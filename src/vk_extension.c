@@ -1,4 +1,4 @@
-#include "vulkan_extension.h"
+#include "vk_extension.h"
 
 // Not loaded by default, extension so create a little wrapper
 VkResult vkCreateDebugUtilsMessengerEXT(VkInstance instance,
