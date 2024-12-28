@@ -1,4 +1,4 @@
-CFLAGS = -g -Wall -Wextra -lvulkan -lglfw
+CFLAGS = -g -Wall -Wextra -Wshadow -lvulkan -lglfw
 OUT_DIR = bin
 OUT_FILE = $(OUT_DIR)/game.x
 

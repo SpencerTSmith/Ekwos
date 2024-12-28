@@ -3,8 +3,6 @@
 #include "shader.h"
 #include "window.h"
 
-#include <stdio.h>
-
 bool g_running = true;
 
 void process_input(Window window) {
@@ -15,15 +13,14 @@ void process_input(Window window) {
 }
 
 int main(int argc, char **argv) {
-    Arena arena = {0};
-    arena_create(&arena, 1024 * 10);
+    Arena arena = arena_create(1024 * 100);
 
     Window window = window_create(&arena, "yo", 800, 600);
 
     ShaderData frag_shader = read_shader_file(&arena, "./src/shaders/first_frag.frag.spv");
     ShaderData vert_shader = read_shader_file(&arena, "./src/shaders/first_vert.vert.spv");
 
-    while (g_running) {
+    while (!window_should_close(window)) {
         process_input(window);
     }
 

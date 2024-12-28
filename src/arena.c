@@ -10,19 +10,22 @@
 // alignment... binary math
 #define ALIGN_ROUND_UP(x, b) (((x) + (b) - 1) & (~((b) - 1)))
 
-void arena_create(Arena *arena, u64 reserve_size) {
+Arena arena_create(u64 reserve_size) {
+    Arena arena = {0};
 
     // NOTE(spencer): this will return page-aligned memory (obviously) so I don't think it is
     // nessecary to make sure that the alignment suffices
-    arena->base_ptr = calloc(reserve_size, 1);
+    arena.base_ptr = calloc(reserve_size, 1);
 
-    if (arena->base_ptr == NULL) {
+    if (arena.base_ptr == NULL) {
         fprintf(stderr, "Failed to allocate arena memory\n");
         exit(EXT_ARENA_ALLOCATION);
     }
 
-    arena->capacity = reserve_size;
-    arena->offset = 0;
+    arena.capacity = reserve_size;
+    arena.offset = 0;
+
+    return arena;
 };
 
 void arena_free(Arena *arena) {
