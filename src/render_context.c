@@ -29,12 +29,12 @@ void render_context_init(Arena *arena, Render_Context *rndr_ctx, GLFWwindow *win
 }
 
 void render_context_free(Render_Context *rndr_ctx) {
-    for (u32 i = 0; i < rndr_ctx->swap.imgs_count; i++) {
-        vkDestroyImageView(rndr_ctx->logical.handle, rndr_ctx->swap.img_views[i], NULL);
+    for (u32 i = 0; i < rndr_ctx->swap.image_count; i++) {
+        vkDestroyImageView(rndr_ctx->logical.device, rndr_ctx->swap.image_views[i], NULL);
     }
-    vkDestroySwapchainKHR(rndr_ctx->logical.handle, rndr_ctx->swap.handle, NULL);
+    vkDestroySwapchainKHR(rndr_ctx->logical.device, rndr_ctx->swap.handle, NULL);
     vkDestroySurfaceKHR(rndr_ctx->instance, rndr_ctx->surface, NULL);
-    vkDestroyDevice(rndr_ctx->logical.handle, NULL);
+    vkDestroyDevice(rndr_ctx->logical.device, NULL);
     if (enable_val_layers) {
         vkDestroyDebugUtilsMessengerEXT(rndr_ctx->instance, rndr_ctx->debug_messenger, NULL);
     }
@@ -70,8 +70,8 @@ void create_instance(Arena *arena, Render_Context *rndr_ctx) {
             exit(EXT_VULKAN_LAYERS);
         }
         debug_create_info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
-        debug_create_info.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
-                                            VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+        // Add back in VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT if needed
+        debug_create_info.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
                                             VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
         debug_create_info.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
                                         VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
@@ -256,23 +256,23 @@ Swap_Chain_Info get_swap_chain_info(Arena *arena, VkPhysicalDevice device, VkSur
     Swap_Chain_Info info = {0};
     vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &info.capabilities);
 
-    vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &info.num_formats, NULL);
-    if (info.num_formats == 0) {
+    vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &info.format_count, NULL);
+    if (info.format_count == 0) {
         fprintf(stderr, "Swap chain support inadequate\n");
         exit(EXT_VULKAN_SWAP_CHAIN_INFO);
     }
 
-    info.formats = arena_calloc(arena, info.num_formats, VkSurfaceFormatKHR);
-    vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &info.num_formats, info.formats);
+    info.formats = arena_calloc(arena, info.format_count, VkSurfaceFormatKHR);
+    vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &info.format_count, info.formats);
 
-    vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &info.num_present_modes, NULL);
-    if (info.num_formats == 0) {
+    vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &info.present_mode_count, NULL);
+    if (info.format_count == 0) {
         fprintf(stderr, "Swap chain support inadequate\n");
         exit(EXT_VULKAN_SWAP_CHAIN_INFO);
     }
 
-    info.present_modes = arena_calloc(arena, info.num_present_modes, VkPresentModeKHR);
-    vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &info.num_present_modes,
+    info.present_modes = arena_calloc(arena, info.present_mode_count, VkPresentModeKHR);
+    vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &info.present_mode_count,
                                               info.present_modes);
 
     return info;
@@ -324,9 +324,9 @@ VkExtent2D choose_swap_extent(VkSurfaceCapabilitiesKHR capabilities, GLFWwindow 
 
 void create_swap_chain(Arena *arena, Render_Context *rndr_ctx, GLFWwindow *window) {
     Swap_Chain_Info info = get_swap_chain_info(arena, rndr_ctx->physical, rndr_ctx->surface);
-    VkSurfaceFormatKHR surface_format = choose_swap_surface_format(info.formats, info.num_formats);
+    VkSurfaceFormatKHR surface_format = choose_swap_surface_format(info.formats, info.format_count);
     VkPresentModeKHR present_mode =
-        choose_swap_present_mode(info.present_modes, info.num_present_modes);
+        choose_swap_present_mode(info.present_modes, info.present_mode_count);
     VkExtent2D extent = choose_swap_extent(info.capabilities, window);
 
     // Suggested to use at least one more
@@ -373,26 +373,26 @@ void create_swap_chain(Arena *arena, Render_Context *rndr_ctx, GLFWwindow *windo
     create_info.oldSwapchain = VK_NULL_HANDLE;
 
     VkResult result =
-        vkCreateSwapchainKHR(rndr_ctx->logical.handle, &create_info, NULL, &rndr_ctx->swap.handle);
+        vkCreateSwapchainKHR(rndr_ctx->logical.device, &create_info, NULL, &rndr_ctx->swap.handle);
     if (result != VK_SUCCESS) {
         fprintf(stderr, "Swap chain support inadequate\n");
         exit(EXT_VULKAN_SWAP_CHAIN_CREATE);
     }
 
-    vkGetSwapchainImagesKHR(rndr_ctx->logical.handle, rndr_ctx->swap.handle,
-                            &rndr_ctx->swap.imgs_count, NULL);
+    vkGetSwapchainImagesKHR(rndr_ctx->logical.device, rndr_ctx->swap.handle,
+                            &rndr_ctx->swap.image_count, NULL);
 
     // Grab handles to the swap images
-    if (rndr_ctx->swap.imgs_count > 0 && rndr_ctx->swap.imgs_count <= MAX_SWAP_IMGS) {
-        vkGetSwapchainImagesKHR(rndr_ctx->logical.handle, rndr_ctx->swap.handle,
-                                &rndr_ctx->swap.imgs_count, rndr_ctx->swap.imgs);
+    if (rndr_ctx->swap.image_count > 0 && rndr_ctx->swap.image_count <= MAX_SWAP_IMGS) {
+        vkGetSwapchainImagesKHR(rndr_ctx->logical.device, rndr_ctx->swap.handle,
+                                &rndr_ctx->swap.image_count, rndr_ctx->swap.images);
     }
 
     // Get image views
-    for (u32 i = 0; i < rndr_ctx->swap.imgs_count; i++) {
+    for (u32 i = 0; i < rndr_ctx->swap.image_count; i++) {
         VkImageViewCreateInfo iv_info = {
             .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-            .image = rndr_ctx->swap.imgs[i],
+            .image = rndr_ctx->swap.images[i],
             .viewType = VK_IMAGE_VIEW_TYPE_2D,
             .format = surface_format.format,
             .components.r = VK_COMPONENT_SWIZZLE_IDENTITY,
@@ -406,8 +406,8 @@ void create_swap_chain(Arena *arena, Render_Context *rndr_ctx, GLFWwindow *windo
             .subresourceRange.layerCount = 1,
         };
 
-        result = vkCreateImageView(rndr_ctx->logical.handle, &iv_info, NULL,
-                                   &rndr_ctx->swap.img_views[i]);
+        result = vkCreateImageView(rndr_ctx->logical.device, &iv_info, NULL,
+                                   &rndr_ctx->swap.image_views[i]);
         if (result != VK_SUCCESS) {
             fprintf(stderr, "Swap chain support inadequate\n");
             exit(EXT_VULKAN_SWAP_CHAIN_IMAGE_VIEW);
@@ -415,7 +415,7 @@ void create_swap_chain(Arena *arena, Render_Context *rndr_ctx, GLFWwindow *windo
     }
 
     rndr_ctx->swap.extent = extent;
-    rndr_ctx->swap.img_format = surface_format.format;
+    rndr_ctx->swap.format = surface_format.format;
 }
 
 Queue_Family_Indices get_queue_family_indices(Arena *arena, VkPhysicalDevice device,
@@ -519,7 +519,7 @@ void create_logical_device(Arena *arena, Render_Context *rndr_ctx) {
     vkGetDeviceQueue(device, q_fam_indxs.present, 0, &present_queue);
 
     rndr_ctx->logical = (Logical_Device){
-        .handle = device,
+        .device = device,
         .present_q = present_queue,
         .graphic_q = graphic_queue,
     };
@@ -530,7 +530,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(
     const VkDebugUtilsMessengerCallbackDataEXT *callback_data, void *user_data) {
 
     if (msg_severity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
-        fprintf(stderr, "\n\nValidation layer: %s\n\n", callback_data->pMessage);
+        fprintf(stderr, "Validation layer: %s\n\n", callback_data->pMessage);
     }
     return VK_FALSE;
 }

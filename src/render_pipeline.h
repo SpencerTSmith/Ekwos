@@ -4,9 +4,9 @@
 #include "common.h"
 #include "render_context.h"
 
-typedef struct Pipeline Pipeline;
-struct Pipeline {
-    VkPipelineLayout pipeline;
+typedef struct Render_Pipeline Render_Pipeline;
+struct Render_Pipeline {
+    VkPipeline handle;
 };
 
 typedef struct Pipeline_Config Pipeline_Config;
@@ -31,11 +31,13 @@ struct Shader_Code {
     u64 size;
 };
 
-void create_graphics_pipeline(Arena *arena, Render_Context *rc, const char *vert_shader_path,
-                              const char *frag_shader_path, Pipeline_Config config);
+Render_Pipeline graphics_pipeline_create(Arena *arena, Render_Context *rc,
+                                         const char *vert_shader_path, const char *frag_shader_path,
+                                         const Pipeline_Config *config);
+void graphics_pipeline_free(Render_Context *rc, Render_Pipeline *pipeline);
 
 // Sets all besides pipeline_layout, render_pass, and subpass
-Pipeline_Config default_pipeline_config(u32 width, u32 height);
+void default_pipeline_config(Pipeline_Config *config, u32 width, u32 height);
 
 Shader_Code read_shader_file(Arena *arena, const char *file_path);
 VkShaderModule create_shader_module(Shader_Code code, VkDevice device);

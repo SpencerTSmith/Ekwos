@@ -18,7 +18,7 @@ extern const u32 num_device_extensions;
 // Contains device and it's queues
 typedef struct Logical_Device Logical_Device;
 struct Logical_Device {
-    VkDevice handle;
+    VkDevice device;
     VkQueue graphic_q;
     VkQueue present_q;
 };
@@ -27,20 +27,22 @@ struct Logical_Device {
 typedef struct Swap_Chain Swap_Chain;
 struct Swap_Chain {
     VkSwapchainKHR handle;
-    VkFormat img_format;
+    VkFormat format;
     VkExtent2D extent;
-    VkImage imgs[MAX_SWAP_IMGS];
-    VkImageView img_views[MAX_SWAP_IMGS];
-    u32 imgs_count;
+    VkImage images[MAX_SWAP_IMGS];
+    VkImageView image_views[MAX_SWAP_IMGS];
+    VkImage depth_images[MAX_SWAP_IMGS];
+    VkImageView depth_image_views[MAX_SWAP_IMGS];
+    u32 image_count;
 };
 
 typedef struct Swap_Chain_Info Swap_Chain_Info;
 struct Swap_Chain_Info {
     VkSurfaceCapabilitiesKHR capabilities;
     VkSurfaceFormatKHR *formats;
-    u32 num_formats;
+    u32 format_count;
     VkPresentModeKHR *present_modes;
-    u32 num_present_modes;
+    u32 present_mode_count;
 };
 
 #define QUEUE_NUM 2

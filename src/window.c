@@ -7,7 +7,7 @@
 
 #include "common.h"
 
-Window window_create(Arena *arena, const char *name, int width, int height) {
+Window window_create(const char *name, int width, int height) {
     Window window = {0};
 
     if (!glfwInit()) {
@@ -32,13 +32,10 @@ Window window_create(Arena *arena, const char *name, int width, int height) {
     window.w = width;
     window.h = height;
 
-    render_context_init(arena, &window.rctx, window.handle);
-
     return window;
 }
 
 void window_free(Window *window) {
-    render_context_free(&window->rctx);
     glfwDestroyWindow(window->handle);
     glfwTerminate();
 }
