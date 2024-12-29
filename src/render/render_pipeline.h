@@ -1,7 +1,7 @@
 #ifndef PIPELINE_H
 #define PIPELINE_H
 
-#include "common.h"
+#include "core/common.h"
 #include "render_context.h"
 
 typedef struct Render_Pipeline Render_Pipeline;

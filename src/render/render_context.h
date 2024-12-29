@@ -1,8 +1,8 @@
 #ifndef RENDER_CONTEXT_H
 #define RENDER_CONTEXT_H
 
-#include "arena.h"
-#include "common.h"
+#include "core/arena.h"
+#include "core/common.h"
 
 #include <stdbool.h>
 

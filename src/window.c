@@ -5,7 +5,7 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "common.h"
+#include "core/common.h"
 
 Window window_create(const char *name, int width, int height) {
     Window window = {0};

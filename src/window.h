@@ -1,9 +1,8 @@
 #ifndef WINDOW_H
 #define WINDOW_H
 
-#include "arena.h"
-#include "common.h"
-#include "render_context.h"
+#include "core/common.h"
+#include "render/render_context.h"
 
 #include <stdbool.h>
 

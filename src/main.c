@@ -1,6 +1,6 @@
-#include "arena.h"
-#include "common.h"
-#include "render_pipeline.h"
+#include "core/arena.h"
+#include "core/common.h"
+#include "render/render_pipeline.h"
 #include "window.h"
 
 bool g_running = true;
