@@ -3,7 +3,7 @@
 
 #include "arena.h"
 #include "common.h"
-#include "vk_context.h"
+#include "render_context.h"
 
 #include <stdbool.h>
 
@@ -17,7 +17,8 @@ struct Window {
     };
     char *name;
     GLFWwindow *handle;
-    Render_Context rndr_ctx;
+
+    Render_Context rctx;
 };
 
 Window window_create(Arena *arena, const char *name, int width, int height);

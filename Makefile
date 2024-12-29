@@ -1,11 +1,17 @@
-CFLAGS = -g -Wall -Wextra -Wshadow -lvulkan -lglfw
+CC = gcc
+CFLAGS = -g -Wall -Wextra -Wshadow
+LDFLAGS = -lvulkan -lglfw
+
+SRC_DIR = src
 OUT_DIR = bin
+BUILD_DIR = build
 OUT_FILE = $(OUT_DIR)/game.x
 
 
 build:
 	mkdir -p $(OUT_DIR)
-	gcc ./src/*.c $(CFLAGS) -o $(OUT_FILE)
+
+	$(CC) $(SRC_DIR)/*.c $(CFLAGS) $(LDFLAGS) -o $(OUT_FILE)
 
 run: build build-shader
 	$(OUT_FILE)

@@ -32,13 +32,13 @@ Window window_create(Arena *arena, const char *name, int width, int height) {
     window.w = width;
     window.h = height;
 
-    render_context_init(arena, &window.rndr_ctx, window.handle);
+    render_context_init(arena, &window.rctx, window.handle);
 
     return window;
 }
 
 void window_free(Window *window) {
-    render_context_free(&window->rndr_ctx);
+    render_context_free(&window->rctx);
     glfwDestroyWindow(window->handle);
     glfwTerminate();
 }

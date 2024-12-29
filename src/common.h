@@ -32,8 +32,12 @@ enum exit_code {
     EXT_VULKAN_QUEUE_FAMILIES,
     EXT_VULKAN_LOGICAL_DEVICE,
     EXT_VULKAN_SURFACE,
-    EXT_VULKAN_SWAP_CHAIN_SUPPORT,
+    EXT_VULKAN_SWAP_CHAIN_INFO,
+    EXT_VULKAN_SWAP_CHAIN_CREATE,
+    EXT_VULKAN_SWAP_CHAIN_IMAGE_VIEW,
     NUM_EXT
 };
+
+#define clamp(value, min, max) ((value) < (min) ? (min) : ((value) > (max) ? (max) : (value)))
 
 #endif // COMMON_H

@@ -1,4 +1,4 @@
-#include "vk_context.h"
+#include "render_context.h"
 
 #include <stdalign.h>
 #include <stdbool.h>
@@ -14,6 +14,34 @@ const char *const device_extensions[] = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 const u32 num_device_extensions = 1;
 
 void render_context_init(Arena *arena, Render_Context *rndr_ctx, GLFWwindow *window_handle) {
+    // Get some temporary memory to hold our queries and such about device supports
+    // we don't need it later
+    Scratch scratch = scratch_begin(arena);
+
+    create_instance(scratch.arena, rndr_ctx);
+    create_surface(rndr_ctx, window_handle);
+    choose_physical_device(scratch.arena, rndr_ctx);
+    create_logical_device(scratch.arena, rndr_ctx);
+    create_swap_chain(scratch.arena, rndr_ctx, window_handle);
+
+    // Memory storing all those queries not nessecary anymore
+    scratch_end(&scratch);
+}
+
+void render_context_free(Render_Context *rndr_ctx) {
+    for (u32 i = 0; i < rndr_ctx->swap.imgs_count; i++) {
+        vkDestroyImageView(rndr_ctx->logical.handle, rndr_ctx->swap.img_views[i], NULL);
+    }
+    vkDestroySwapchainKHR(rndr_ctx->logical.handle, rndr_ctx->swap.handle, NULL);
+    vkDestroySurfaceKHR(rndr_ctx->instance, rndr_ctx->surface, NULL);
+    vkDestroyDevice(rndr_ctx->logical.handle, NULL);
+    if (enable_val_layers) {
+        vkDestroyDebugUtilsMessengerEXT(rndr_ctx->instance, rndr_ctx->debug_messenger, NULL);
+    }
+    vkDestroyInstance(rndr_ctx->instance, NULL);
+}
+
+void create_instance(Arena *arena, Render_Context *rndr_ctx) {
     // Info needed to create vulkan instance... similar to opengl context
     VkApplicationInfo app_info = {0};
     app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -28,19 +56,15 @@ void render_context_init(Arena *arena, Render_Context *rndr_ctx, GLFWwindow *win
     create_info.sType = VK_STRUCTURE_TYPE_INSTANCE_CREATE_INFO;
     create_info.pApplicationInfo = &app_info;
 
-    // Get some temporary memory to hold our validation layers and extensions,
-    // we don't need it later
-    Scratch scratch = scratch_begin(arena);
-
     u32 num_extensions = 0;
-    const char **extensions = get_glfw_required_extensions(scratch.arena, &num_extensions);
+    const char **extensions = get_glfw_required_extensions(arena, &num_extensions);
 
     create_info.enabledExtensionCount = num_extensions;
     create_info.ppEnabledExtensionNames = extensions;
 
     VkDebugUtilsMessengerCreateInfoEXT debug_create_info = {0};
     if (enable_val_layers) {
-        if (!check_val_layer_support(scratch.arena, enabled_validation_layers,
+        if (!check_val_layer_support(arena, enabled_validation_layers,
                                      num_enable_validation_layers)) {
             fprintf(stderr, "Failed to find specified Validation Layers\n");
             exit(EXT_VULKAN_LAYERS);
@@ -79,27 +103,9 @@ void render_context_init(Arena *arena, Render_Context *rndr_ctx, GLFWwindow *win
             exit(EXT_VULKAN_DEBUG_MESSENGER);
         }
     }
-
-    // All other things for our vulkan initialization
-    rndr_ctx->surface = create_surface(rndr_ctx->instance, window_handle);
-    rndr_ctx->physical_device = pick_physical_device(scratch.arena, rndr_ctx->instance);
-    rndr_ctx->logical_device =
-        create_logical_device(scratch.arena, rndr_ctx->physical_device, rndr_ctx->surface);
-
-    // Memory storing all this no longer nessecary
-    scratch_end(&scratch);
 }
 
-void render_context_free(Render_Context *rndr_ctx) {
-    vkDestroySurfaceKHR(rndr_ctx->instance, rndr_ctx->surface, NULL);
-    vkDestroyDevice(rndr_ctx->logical_device.vk_handle, NULL);
-    if (enable_val_layers) {
-        vkDestroyDebugUtilsMessengerEXT(rndr_ctx->instance, rndr_ctx->debug_messenger, NULL);
-    }
-    vkDestroyInstance(rndr_ctx->instance, NULL);
-}
-
-bool check_val_layer_support(Arena *arena, const char **layers, u32 num_layers) {
+bool check_val_layer_support(Arena *arena, const char *const *layers, u32 num_layers) {
     u32 num_supported_layers;
     vkEnumerateInstanceLayerProperties(&num_supported_layers, NULL);
 
@@ -172,8 +178,19 @@ const char **get_glfw_required_extensions(Arena *arena, u32 *num_extensions) {
     return extensions;
 }
 
-bool check_device_extension_support(Arena *arena, VkPhysicalDevice device, const char **extensions,
-                                    u32 num_extensions) {
+void create_surface(Render_Context *rndr_ctx, GLFWwindow *window_handle) {
+    VkSurfaceKHR surface;
+    VkResult result = glfwCreateWindowSurface(rndr_ctx->instance, window_handle, NULL, &surface);
+    if (result != VK_SUCCESS) {
+        fprintf(stderr, "Failed to create render surface");
+        exit(EXT_VULKAN_SURFACE);
+    }
+
+    rndr_ctx->surface = surface;
+}
+
+bool check_device_extension_support(Arena *arena, VkPhysicalDevice device,
+                                    const char *const *extensions, u32 num_extensions) {
     u32 extension_count = 0;
     vkEnumerateDeviceExtensionProperties(device, NULL, &extension_count, NULL);
 
@@ -199,8 +216,10 @@ bool check_device_extension_support(Arena *arena, VkPhysicalDevice device, const
     return true;
 }
 
-VkPhysicalDevice pick_physical_device(Arena *arena, VkInstance instance) {
+void choose_physical_device(Arena *arena, Render_Context *rndr_ctx) {
     u32 device_count = 0;
+    VkInstance instance = rndr_ctx->instance;
+
     vkEnumeratePhysicalDevices(instance, &device_count, NULL);
 
     VkPhysicalDevice *phys_devs =
@@ -229,7 +248,8 @@ VkPhysicalDevice pick_physical_device(Arena *arena, VkInstance instance) {
         fprintf(stderr, "Failed to find suitable graphics device\n");
         exit(EXT_VULKAN_DEVICE);
     }
-    return physical_device;
+
+    rndr_ctx->physical = physical_device;
 }
 
 Swap_Chain_Info get_swap_chain_info(Arena *arena, VkPhysicalDevice device, VkSurfaceKHR surface) {
@@ -239,7 +259,7 @@ Swap_Chain_Info get_swap_chain_info(Arena *arena, VkPhysicalDevice device, VkSur
     vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &info.num_formats, NULL);
     if (info.num_formats == 0) {
         fprintf(stderr, "Swap chain support inadequate\n");
-        exit(EXT_VULKAN_SWAP_CHAIN_SUPPORT);
+        exit(EXT_VULKAN_SWAP_CHAIN_INFO);
     }
 
     info.formats = arena_calloc(arena, info.num_formats, VkSurfaceFormatKHR);
@@ -248,7 +268,7 @@ Swap_Chain_Info get_swap_chain_info(Arena *arena, VkPhysicalDevice device, VkSur
     vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &info.num_present_modes, NULL);
     if (info.num_formats == 0) {
         fprintf(stderr, "Swap chain support inadequate\n");
-        exit(EXT_VULKAN_SWAP_CHAIN_SUPPORT);
+        exit(EXT_VULKAN_SWAP_CHAIN_INFO);
     }
 
     info.present_modes = arena_calloc(arena, info.num_present_modes, VkPresentModeKHR);
@@ -282,20 +302,17 @@ VkPresentModeKHR choose_swap_present_mode(VkPresentModeKHR *modes, u32 num_modes
     return VK_PRESENT_MODE_FIFO_KHR;
 }
 
-#define clamp(value, min, max) ((value) < (min) ? (min) : ((value) > (max) ? (max) : (value)))
-
-VkExtent2D choose_swap_extent(const VkSurfaceCapabilitiesKHR *capabilities, GLFWwindow *window) {
+VkExtent2D choose_swap_extent(VkSurfaceCapabilitiesKHR capabilities, GLFWwindow *window) {
     // Window manager already specified it for us
-    if (capabilities->currentExtent.width != UINT32_MAX) {
-        return capabilities->currentExtent;
+    if (capabilities.currentExtent.width != UINT32_MAX) {
+        return capabilities.currentExtent;
     }
 
     i32 w, h;
     glfwGetFramebufferSize(window, &w, &h);
     u32 width = w, height = h;
-    width = clamp(width, capabilities->minImageExtent.width, capabilities->maxImageExtent.width);
-    height =
-        clamp(height, capabilities->minImageExtent.height, capabilities->maxImageExtent.height);
+    width = clamp(width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
+    height = clamp(height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
 
     VkExtent2D actual_extend = {
         .width = width,
@@ -305,22 +322,117 @@ VkExtent2D choose_swap_extent(const VkSurfaceCapabilitiesKHR *capabilities, GLFW
     return actual_extend;
 }
 
-struct Logical_Device create_logical_device(Arena *arena, VkPhysicalDevice physical_device,
-                                            VkSurfaceKHR surface) {
+void create_swap_chain(Arena *arena, Render_Context *rndr_ctx, GLFWwindow *window) {
+    Swap_Chain_Info info = get_swap_chain_info(arena, rndr_ctx->physical, rndr_ctx->surface);
+    VkSurfaceFormatKHR surface_format = choose_swap_surface_format(info.formats, info.num_formats);
+    VkPresentModeKHR present_mode =
+        choose_swap_present_mode(info.present_modes, info.num_present_modes);
+    VkExtent2D extent = choose_swap_extent(info.capabilities, window);
+
+    // Suggested to use at least one more
+    u32 image_count = info.capabilities.minImageCount + 1;
+
+    // Little clamp
+    if (info.capabilities.maxImageCount > 0 && image_count > info.capabilities.maxImageCount) {
+        image_count = info.capabilities.maxImageCount;
+    }
+
+    VkSwapchainCreateInfoKHR create_info = {0};
+    create_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
+    create_info.surface = rndr_ctx->surface;
+    create_info.minImageCount = image_count;
+    create_info.imageFormat = surface_format.format;
+    create_info.imageExtent = extent;
+    create_info.imageColorSpace = surface_format.colorSpace;
+    // always 1 unless we want to have 3d goggles type thing hahaha
+    create_info.imageArrayLayers = 1;
+    create_info.imageUsage = VK_IMAGE_USAGE_COLOR_ATTACHMENT_BIT;
+
+    Queue_Family_Indices q_fam_indxs =
+        get_queue_family_indices(arena, rndr_ctx->physical, rndr_ctx->surface);
+
+    // Set to share images if the queues are different... for now
+    if (q_fam_indxs.graphic != q_fam_indxs.present) {
+        create_info.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
+        u32 indices[QUEUE_NUM] = {q_fam_indxs.graphic, q_fam_indxs.present};
+        create_info.queueFamilyIndexCount = QUEUE_NUM;
+        create_info.pQueueFamilyIndices = indices;
+    } else {
+        create_info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
+    }
+
+    // Any transformations we want to apply to images in swapchain
+    create_info.preTransform = info.capabilities.currentTransform;
+
+    // Don't make the window transparent
+    create_info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
+    create_info.presentMode = present_mode;
+    // Don't need to keep track of clipped pixels
+    create_info.clipped = VK_TRUE;
+    // Creating for the first time
+    create_info.oldSwapchain = VK_NULL_HANDLE;
+
+    VkResult result =
+        vkCreateSwapchainKHR(rndr_ctx->logical.handle, &create_info, NULL, &rndr_ctx->swap.handle);
+    if (result != VK_SUCCESS) {
+        fprintf(stderr, "Swap chain support inadequate\n");
+        exit(EXT_VULKAN_SWAP_CHAIN_CREATE);
+    }
+
+    vkGetSwapchainImagesKHR(rndr_ctx->logical.handle, rndr_ctx->swap.handle,
+                            &rndr_ctx->swap.imgs_count, NULL);
+
+    // Grab handles to the swap images
+    if (rndr_ctx->swap.imgs_count > 0 && rndr_ctx->swap.imgs_count <= MAX_SWAP_IMGS) {
+        vkGetSwapchainImagesKHR(rndr_ctx->logical.handle, rndr_ctx->swap.handle,
+                                &rndr_ctx->swap.imgs_count, rndr_ctx->swap.imgs);
+    }
+
+    // Get image views
+    for (u32 i = 0; i < rndr_ctx->swap.imgs_count; i++) {
+        VkImageViewCreateInfo iv_info = {
+            .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
+            .image = rndr_ctx->swap.imgs[i],
+            .viewType = VK_IMAGE_VIEW_TYPE_2D,
+            .format = surface_format.format,
+            .components.r = VK_COMPONENT_SWIZZLE_IDENTITY,
+            .components.g = VK_COMPONENT_SWIZZLE_IDENTITY,
+            .components.b = VK_COMPONENT_SWIZZLE_IDENTITY,
+            .components.a = VK_COMPONENT_SWIZZLE_IDENTITY,
+            .subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
+            .subresourceRange.baseMipLevel = 0,
+            .subresourceRange.levelCount = 1,
+            .subresourceRange.baseArrayLayer = 0,
+            .subresourceRange.layerCount = 1,
+        };
+
+        result = vkCreateImageView(rndr_ctx->logical.handle, &iv_info, NULL,
+                                   &rndr_ctx->swap.img_views[i]);
+        if (result != VK_SUCCESS) {
+            fprintf(stderr, "Swap chain support inadequate\n");
+            exit(EXT_VULKAN_SWAP_CHAIN_IMAGE_VIEW);
+        }
+    }
+
+    rndr_ctx->swap.extent = extent;
+    rndr_ctx->swap.img_format = surface_format.format;
+}
+
+Queue_Family_Indices get_queue_family_indices(Arena *arena, VkPhysicalDevice device,
+                                              VkSurfaceKHR surface) {
     // Find queue families the physical device supports, pick the one that supports graphics and
     // presentation
     u32 queue_family_count = 0;
-    vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_family_count, NULL);
+    vkGetPhysicalDeviceQueueFamilyProperties(device, &queue_family_count, NULL);
 
     VkQueueFamilyProperties *queue_family_props =
         arena_alloc(arena, queue_family_count * sizeof(VkQueueFamilyProperties),
                     alignof(VkQueueFamilyProperties));
-    vkGetPhysicalDeviceQueueFamilyProperties(physical_device, &queue_family_count,
-                                             queue_family_props);
+    vkGetPhysicalDeviceQueueFamilyProperties(device, &queue_family_count, queue_family_props);
 
     // Get the queue for graphics and presentation
-    i64 graphic_index = -1;
-    i64 present_index = -1;
+    u32 graphic_index = VK_QUEUE_FAMILY_IGNORED;
+    u32 present_index = VK_QUEUE_FAMILY_IGNORED;
     for (u32 i = 0; i < queue_family_count; i++) {
         bool graphic_support = queue_family_props[i].queueFlags & VK_QUEUE_GRAPHICS_BIT;
         if (graphic_support) {
@@ -328,40 +440,49 @@ struct Logical_Device create_logical_device(Arena *arena, VkPhysicalDevice physi
         }
 
         VkBool32 present_support = VK_FALSE;
-        vkGetPhysicalDeviceSurfaceSupportKHR(physical_device, i, surface, &present_support);
+        vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &present_support);
         if (present_support) {
             present_index = i;
         }
 
         // Found suitable queues for both
-        if (graphic_index != -1 && present_index != -1) {
+        if (graphic_index != VK_QUEUE_FAMILY_IGNORED && present_index != VK_QUEUE_FAMILY_IGNORED) {
             break;
         }
     }
 
-    if (graphic_index == -1 || present_index == -1) {
+    if (graphic_index == VK_QUEUE_FAMILY_IGNORED || present_index == VK_QUEUE_FAMILY_IGNORED) {
         fprintf(stderr, "Failed to find suitable queue families\n");
         exit(EXT_VULKAN_QUEUE_FAMILIES);
     }
+
+    return (Queue_Family_Indices){.graphic = graphic_index, .present = present_index};
+}
+
+void create_logical_device(Arena *arena, Render_Context *rndr_ctx) {
+    VkPhysicalDevice physical_device = rndr_ctx->physical;
+    VkSurfaceKHR surface = rndr_ctx->surface;
+
+    Queue_Family_Indices q_fam_indxs = get_queue_family_indices(arena, physical_device, surface);
 
     float queue_priority = 1.0f;
 
     // Logical device needs an array of queue create infos
     u64 num_queue_creates = 0;
-    VkDeviceQueueCreateInfo queue_creates[2];
+    VkDeviceQueueCreateInfo queue_creates[QUEUE_NUM];
 
     VkDeviceQueueCreateInfo graphic_create = {0};
     graphic_create.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-    graphic_create.queueFamilyIndex = graphic_index;
+    graphic_create.queueFamilyIndex = q_fam_indxs.graphic;
     graphic_create.queueCount = 1;
     graphic_create.pQueuePriorities = &queue_priority;
 
     queue_creates[num_queue_creates++] = graphic_create;
 
-    if (graphic_index != present_index) {
+    if (q_fam_indxs.graphic != q_fam_indxs.present) {
         VkDeviceQueueCreateInfo present_create = {0};
         present_create.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-        present_create.queueFamilyIndex = present_index;
+        present_create.queueFamilyIndex = q_fam_indxs.present;
         present_create.queueCount = 1;
         present_create.pQueuePriorities = &queue_priority;
 
@@ -392,27 +513,16 @@ struct Logical_Device create_logical_device(Arena *arena, VkPhysicalDevice physi
     }
 
     VkQueue graphic_queue = NULL;
-    vkGetDeviceQueue(device, graphic_index, 0, &graphic_queue);
+    vkGetDeviceQueue(device, q_fam_indxs.graphic, 0, &graphic_queue);
 
     VkQueue present_queue = NULL;
-    vkGetDeviceQueue(device, present_index, 0, &present_queue);
+    vkGetDeviceQueue(device, q_fam_indxs.present, 0, &present_queue);
 
-    return (struct Logical_Device){
-        .vk_handle = device,
-        .graphic_queue = graphic_queue,
-        .present_queue = present_queue,
+    rndr_ctx->logical = (Logical_Device){
+        .handle = device,
+        .present_q = present_queue,
+        .graphic_q = graphic_queue,
     };
-}
-
-VkSurfaceKHR create_surface(VkInstance instance, GLFWwindow *window_handle) {
-    VkSurfaceKHR surface;
-    VkResult result = glfwCreateWindowSurface(instance, window_handle, NULL, &surface);
-    if (result != VK_SUCCESS) {
-        fprintf(stderr, "Failed to create render surface");
-        exit(EXT_VULKAN_SURFACE);
-    }
-
-    return surface;
 }
 
 VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(
