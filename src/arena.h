@@ -5,7 +5,7 @@
 
 typedef struct Arena Arena;
 struct Arena {
-    void *base_ptr;
+    u8 *base_ptr;
     u64 capacity;
     u64 offset;
 };

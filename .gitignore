@@ -1,1 +1,3 @@
 *.x
+/build/
+.cache

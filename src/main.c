@@ -17,17 +17,16 @@ int main(int argc, char **argv) {
 
     Window window = window_create("yo", 800, 600);
     render_context_init(&arena, &window.rctx, window.handle);
-    Pipeline_Config config = {0};
-    default_pipeline_config(&config, window.w, window.h);
+    Pipeline_Config config = default_pipeline_config(window.w, window.h);
     Render_Pipeline pipeline =
-        graphics_pipeline_create(&arena, &window.rctx, "./src/shaders/vert.vert.spv",
-                                 "./src/shaders/frag.frag.spv", &config);
+        render_pipeline_create(&arena, &window.rctx, "./src/shaders/vert.vert.spv",
+                               "./src/shaders/frag.frag.spv", &config);
 
     while (!window_should_close(window)) {
         process_input(window);
     }
 
-    graphics_pipeline_free(&window.rctx, &pipeline);
+    render_pipeline_free(&window.rctx, &pipeline);
     render_context_free(&window.rctx);
     window_free(&window);
 

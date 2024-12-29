@@ -26,11 +26,11 @@ Arena arena_create(u64 reserve_size) {
     arena.offset = 0;
 
     return arena;
-};
+}
 
 void arena_free(Arena *arena) {
     free(arena->base_ptr);
-    memset(arena, 0, sizeof(*arena));
+    memset(arena, 0, sizeof(Arena));
 }
 
 void *arena_alloc(Arena *arena, u64 size, u64 alignment) {

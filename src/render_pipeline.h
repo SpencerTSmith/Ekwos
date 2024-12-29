@@ -11,10 +11,9 @@ struct Render_Pipeline {
 
 typedef struct Pipeline_Config Pipeline_Config;
 struct Pipeline_Config {
-    VkPipelineInputAssemblyStateCreateInfo input_assembly_info;
     VkViewport viewport;
     VkRect2D scissor;
-    VkPipelineViewportStateCreateInfo viewport_info;
+    VkPipelineInputAssemblyStateCreateInfo input_assembly_info;
     VkPipelineRasterizationStateCreateInfo rasterization_info;
     VkPipelineMultisampleStateCreateInfo multisample_info;
     VkPipelineColorBlendAttachmentState color_blend_attachment;
@@ -31,13 +30,13 @@ struct Shader_Code {
     u64 size;
 };
 
-Render_Pipeline graphics_pipeline_create(Arena *arena, Render_Context *rc,
-                                         const char *vert_shader_path, const char *frag_shader_path,
-                                         const Pipeline_Config *config);
-void graphics_pipeline_free(Render_Context *rc, Render_Pipeline *pipeline);
+Render_Pipeline render_pipeline_create(Arena *arena, Render_Context *rc,
+                                       const char *vert_shader_path, const char *frag_shader_path,
+                                       const Pipeline_Config *config);
+void render_pipeline_free(Render_Context *rc, Render_Pipeline *pipeline);
 
 // Sets all besides pipeline_layout, render_pass, and subpass
-void default_pipeline_config(Pipeline_Config *config, u32 width, u32 height);
+Pipeline_Config default_pipeline_config(u32 width, u32 height);
 
 Shader_Code read_shader_file(Arena *arena, const char *file_path);
 VkShaderModule create_shader_module(Shader_Code code, VkDevice device);

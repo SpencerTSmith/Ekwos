@@ -6,9 +6,9 @@
 #include <stdlib.h>
 #include <string.h>
 
-Render_Pipeline graphics_pipeline_create(Arena *arena, Render_Context *rc,
-                                         const char *vert_shader_path, const char *frag_shader_path,
-                                         const Pipeline_Config *config) {
+Render_Pipeline render_pipeline_create(Arena *arena, Render_Context *rc,
+                                       const char *vert_shader_path, const char *frag_shader_path,
+                                       const Pipeline_Config *config) {
     // Don't need to keep the shader code memory around
     Scratch scratch = scratch_begin(arena);
     Shader_Code vert_code = read_shader_file(arena, vert_shader_path);
@@ -35,13 +35,21 @@ Render_Pipeline graphics_pipeline_create(Arena *arena, Render_Context *rc,
     vertex_input_info.pVertexAttributeDescriptions = NULL;
     vertex_input_info.pVertexBindingDescriptions = NULL;
 
+    // Yet more bullshit we have to create
+    VkPipelineViewportStateCreateInfo viewport_info = {0};
+    viewport_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+    viewport_info.viewportCount = 1;
+    viewport_info.pViewports = &config->viewport;
+    viewport_info.scissorCount = 1;
+    viewport_info.pScissors = &config->scissor;
+
     VkGraphicsPipelineCreateInfo pipeline_info = {0};
     pipeline_info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
     pipeline_info.stageCount = 2;
     pipeline_info.pStages = shader_stages;
     pipeline_info.pVertexInputState = &vertex_input_info;
     pipeline_info.pInputAssemblyState = &config->input_assembly_info;
-    pipeline_info.pViewportState = &config->viewport_info;
+    pipeline_info.pViewportState = &viewport_info;
     pipeline_info.pMultisampleState = &config->multisample_info;
     pipeline_info.pRasterizationState = &config->rasterization_info;
     pipeline_info.pDepthStencilState = &config->depth_stencil_info;
@@ -69,76 +77,72 @@ Render_Pipeline graphics_pipeline_create(Arena *arena, Render_Context *rc,
     return pipeline;
 }
 
-void graphics_pipeline_free(Render_Context *rc, Render_Pipeline *pipeline) {
+void render_pipeline_free(Render_Context *rc, Render_Pipeline *pipeline) {
     vkDestroyPipeline(rc->logical.device, pipeline->handle, NULL);
     memset(pipeline, 0, sizeof(*pipeline));
 }
 
-void default_pipeline_config(Pipeline_Config *config, u32 width, u32 height) {
+Pipeline_Config default_pipeline_config(u32 width, u32 height) {
+    Pipeline_Config config = {0};
     // What is the primitive assembly like? (How are vertices treated... triangles, points, etc)
-    config->input_assembly_info.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
-    config->input_assembly_info.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
-    config->input_assembly_info.primitiveRestartEnable = VK_FALSE;
+    config.input_assembly_info.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
+    config.input_assembly_info.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
+    config.input_assembly_info.primitiveRestartEnable = VK_FALSE;
 
-    // How do we go from NDconfig->to screen coords?
-    config->viewport.x = 0.0f;
-    config->viewport.y = 0.0f;
-    config->viewport.width = width;
-    config->viewport.height = height;
-    config->viewport.minDepth = 0.0f;
-    config->viewport.maxDepth = 1.0f;
+    // How do we go from NDconfig.to screen coords?
+    config.viewport.x = 0.0f;
+    config.viewport.y = 0.0f;
+    config.viewport.width = width;
+    config.viewport.height = height;
+    config.viewport.minDepth = 0.0f;
+    config.viewport.maxDepth = 1.0f;
 
     VkOffset2D offset = {.x = 0, .y = 0};
     VkExtent2D extent = {.width = width, .height = height};
-    config->scissor.offset = offset;
-    config->scissor.extent = extent;
+    config.scissor.offset = offset;
+    config.scissor.extent = extent;
 
-    // Yet more bullshit we have to config->eate
-    config->viewport_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-    config->viewport_info.viewportCount = 1;
-    config->viewport_info.pViewports = &config->viewport;
-    config->viewport_info.scissorCount = 1;
-    config->viewport_info.pScissors = &config->scissor;
+    config.rasterization_info.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
+    config.rasterization_info.depthClampEnable = VK_FALSE;
+    config.rasterization_info.rasterizerDiscardEnable = VK_FALSE;
+    config.rasterization_info.polygonMode = VK_POLYGON_MODE_FILL;
+    config.rasterization_info.lineWidth = 1.0f;
+    config.rasterization_info.cullMode = VK_CULL_MODE_NONE;
+    config.rasterization_info.frontFace = VK_FRONT_FACE_CLOCKWISE;
+    config.rasterization_info.depthBiasEnable = VK_FALSE;
+    config.rasterization_info.depthBiasConstantFactor = 0.0f;
+    config.rasterization_info.depthBiasClamp = 0.0f;
+    config.rasterization_info.depthBiasSlopeFactor = 0.0f;
 
-    config->rasterization_info.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
-    config->rasterization_info.depthClampEnable = VK_FALSE;
-    config->rasterization_info.rasterizerDiscardEnable = VK_FALSE;
-    config->rasterization_info.polygonMode = VK_POLYGON_MODE_FILL;
-    config->rasterization_info.lineWidth = 1.0f;
-    config->rasterization_info.cullMode = VK_CULL_MODE_NONE;
-    config->rasterization_info.frontFace = VK_FRONT_FACE_CLOCKWISE;
-    config->rasterization_info.depthBiasEnable = VK_FALSE;
-    config->rasterization_info.depthBiasConstantFactor = 0.0f;
-    config->rasterization_info.depthBiasClamp = 0.0f;
-    config->rasterization_info.depthBiasSlopeFactor = 0.0f;
+    config.multisample_info.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
+    config.multisample_info.sampleShadingEnable = VK_FALSE;
+    config.multisample_info.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
+    config.multisample_info.minSampleShading = 1.0f;
+    config.multisample_info.pSampleMask = VK_NULL_HANDLE;
+    config.multisample_info.alphaToCoverageEnable = VK_FALSE;
+    config.multisample_info.alphaToOneEnable = VK_FALSE;
 
-    config->multisample_info.sType = VK_STRUCTURE_TYPE_PIPELINE_MULTISAMPLE_STATE_CREATE_INFO;
-    config->multisample_info.sampleShadingEnable = VK_FALSE;
-    config->multisample_info.rasterizationSamples = VK_SAMPLE_COUNT_1_BIT;
-    config->multisample_info.minSampleShading = 1.0f;
-    config->multisample_info.pSampleMask = VK_NULL_HANDLE;
-    config->multisample_info.alphaToCoverageEnable = VK_FALSE;
-    config->multisample_info.alphaToOneEnable = VK_FALSE;
-
-    config->color_blend_attachment.colorWriteMask =
+    config.color_blend_attachment.colorWriteMask =
         VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT |
         VK_COLOR_COMPONENT_A_BIT;
-    config->color_blend_attachment.blendEnable = VK_FALSE;
-    config->color_blend_attachment.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
-    config->color_blend_attachment.colorBlendOp = VK_BLEND_OP_ADD;
-    config->color_blend_attachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-    config->color_blend_attachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
-    config->color_blend_attachment.alphaBlendOp = VK_BLEND_OP_ADD;
+    config.color_blend_attachment.blendEnable = VK_FALSE;
+    config.color_blend_attachment.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
+    config.color_blend_attachment.colorBlendOp = VK_BLEND_OP_ADD;
+    config.color_blend_attachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+    config.color_blend_attachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+    config.color_blend_attachment.alphaBlendOp = VK_BLEND_OP_ADD;
 
-    config->color_blend_info.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-    config->color_blend_info.logicOpEnable = VK_FALSE;
-    config->color_blend_info.logicOp = VK_LOGIC_OP_COPY;
-    config->color_blend_info.attachmentCount = 1;
-    config->color_blend_info.pAttachments = &config->color_blend_attachment;
-    config->color_blend_info.blendConstants[0] = 0.0f;
-    config->color_blend_info.blendConstants[1] = 0.0f;
-    config->color_blend_info.blendConstants[2] = 0.0f;
-    config->color_blend_info.blendConstants[3] = 0.0f;
+    config.color_blend_info.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+    config.color_blend_info.logicOpEnable = VK_FALSE;
+    config.color_blend_info.logicOp = VK_LOGIC_OP_COPY;
+    config.color_blend_info.attachmentCount = 1;
+    config.color_blend_info.pAttachments = &config.color_blend_attachment;
+    config.color_blend_info.blendConstants[0] = 0.0f;
+    config.color_blend_info.blendConstants[1] = 0.0f;
+    config.color_blend_info.blendConstants[2] = 0.0f;
+    config.color_blend_info.blendConstants[3] = 0.0f;
+
+    return config;
 }
 
 Shader_Code read_shader_file(Arena *arena, const char *file_path) {
