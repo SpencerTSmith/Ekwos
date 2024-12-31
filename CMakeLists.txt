@@ -1,17 +1,17 @@
 cmake_minimum_required(VERSION 3.10)
-project(game LANGUAGES C)
+project(ekwos LANGUAGES C)
 
 file(GLOB_RECURSE SOURCES "src/*.c")
 
 # Create the executable
-add_executable(game ${SOURCES})
+add_executable(ekwos ${SOURCES})
 
 # Set include directories (if any)
-target_include_directories(game PRIVATE src)
+target_include_directories(ekwos PRIVATE src)
 
-target_link_libraries(game PRIVATE glfw vulkan)
+target_link_libraries(ekwos PRIVATE glfw vulkan)
 
-target_compile_options(game PRIVATE
+target_compile_options(ekwos PRIVATE
 	-g
 	-Wall
 	-Wextra
@@ -19,6 +19,6 @@ target_compile_options(game PRIVATE
 	-Wpedantic
 )
 
-set_target_properties(game PROPERTIES
+set_target_properties(ekwos PROPERTIES
 	C_STANDARD 17
 )
