@@ -1,0 +1,15 @@
+#include "core/log.h"
+#include <stdio.h>
+
+static const char *level_strings[LOG_NUM] = {"FATAL", "ERROR", "WARNING", "DEBUG"};
+
+void log_message(enum Log_Level level, const char *file, u64 line, const char *message, ...) {
+    fprintf(stderr, "[Ekwos %s] %s:%lu: ", level_strings[level], file, line);
+
+    va_list args;
+    va_start(args, message);
+    vfprintf(stderr, message, args);
+    va_end(args);
+
+    fprintf(stderr, "\n");
+}

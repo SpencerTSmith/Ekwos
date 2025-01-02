@@ -3,6 +3,8 @@
 #include "render/render_pipeline.h"
 #include "window.h"
 
+#include <stdio.h>
+
 bool g_running = true;
 
 void process_input(Window window) {
@@ -17,7 +19,9 @@ int main(int argc, char **argv) {
 
     Window window = window_create("yo", 800, 600);
     render_context_init(&arena, &window.rctx, window.handle);
-    Pipeline_Config config = default_pipeline_config(window.w, window.h);
+
+    Pipeline_Config config =
+        default_pipeline_config(swap_width(&window.rctx), swap_height(&window.rctx));
     Render_Pipeline pipeline =
         render_pipeline_create(&arena, &window.rctx, "./src/shaders/vert.vert.spv",
                                "./src/shaders/frag.frag.spv", &config);

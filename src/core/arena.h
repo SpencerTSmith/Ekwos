@@ -17,10 +17,7 @@ void arena_pop_to(Arena *arena, u64 offset);
 void arena_pop(Arena *arena, u64 size);
 void arena_clear(Arena *arena);
 
-/*
- * Helper macros
- */
-
+// Helper Macros //
 #define arena_calloc(a, c, t) (t *)(arena_alloc((a), sizeof(t) * (c), alignof(t)))
 
 // We just want some temporary, quickly deallocated memory

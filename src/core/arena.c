@@ -1,6 +1,7 @@
 #include "arena.h"
 
 #include "core/common.h"
+#include "core/log.h"
 
 #include <malloc.h>
 #include <stdlib.h>
@@ -18,7 +19,7 @@ Arena arena_create(u64 reserve_size) {
     arena.base_ptr = calloc(reserve_size, 1);
 
     if (arena.base_ptr == NULL) {
-        fprintf(stderr, "Failed to allocate arena memory\n");
+        LOG_FATAL("Failed to allocate arena memory\n");
         exit(EXT_ARENA_ALLOCATION);
     }
 
@@ -35,7 +36,7 @@ void arena_free(Arena *arena) {
 
 void *arena_alloc(Arena *arena, u64 size, u64 alignment) {
     if (arena->base_ptr == NULL) {
-        fprintf(stderr, "Arena memory is null\n");
+        LOG_FATAL("Arena memory is null\n");
         exit(EXT_ARENA_ALLOCATION);
     }
 
@@ -52,8 +53,8 @@ void *arena_alloc(Arena *arena, u64 size, u64 alignment) {
         // new_capacity = new_capacity > needed_capacity ? new_capacity : needed_capacity;
         // arena->base_ptr = realloc(arena->base_ptr, new_capacity);
 
-        fprintf(stderr, "Not enough memory in arena,\nNEED: %lu bytes\nHAVE: %lu bytes\n",
-                needed_capacity, arena->capacity);
+        LOG_DEBUG("Not enough memory in arena,\nNEED: %lu bytes\nHAVE: %lu bytes\n",
+                  needed_capacity, arena->capacity);
         exit(EXT_ARENA_SIZE);
     }
 
@@ -69,7 +70,7 @@ void *arena_alloc(Arena *arena, u64 size, u64 alignment) {
 
 void arena_pop_to(Arena *arena, u64 offset) {
     if (offset > arena->offset) {
-        fprintf(stderr, "Failed to pop arena allocation, more than currently allocated\n");
+        LOG_DEBUG("Failed to pop arena allocation, more than currently allocated\n");
         return;
     }
 

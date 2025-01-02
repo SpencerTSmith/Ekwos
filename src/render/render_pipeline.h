@@ -7,6 +7,7 @@
 typedef struct Render_Pipeline Render_Pipeline;
 struct Render_Pipeline {
     VkPipeline handle;
+    VkPipelineLayout pipeline_layout;
 };
 
 typedef struct Pipeline_Config Pipeline_Config;
@@ -17,9 +18,8 @@ struct Pipeline_Config {
     VkPipelineRasterizationStateCreateInfo rasterization_info;
     VkPipelineMultisampleStateCreateInfo multisample_info;
     VkPipelineColorBlendAttachmentState color_blend_attachment;
-    VkPipelineColorBlendStateCreateInfo color_blend_info;
     VkPipelineDepthStencilStateCreateInfo depth_stencil_info;
-    VkPipelineLayout pipeline_layout;
+    VkPipelineLayoutCreateInfo pipeline_layout_info;
     VkRenderPass render_pass;
     u32 subpass;
 };

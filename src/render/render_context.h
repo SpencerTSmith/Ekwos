@@ -15,25 +15,20 @@ extern const bool enable_val_layers;
 extern const char *const device_extensions[];
 extern const u32 num_device_extensions;
 
-// Contains device and it's queues
-typedef struct Logical_Device Logical_Device;
-struct Logical_Device {
-    VkDevice device;
-    VkQueue graphic_q;
-    VkQueue present_q;
-};
-
 #define MAX_SWAP_IMGS 3
 typedef struct Swap_Chain Swap_Chain;
 struct Swap_Chain {
     VkSwapchainKHR handle;
     VkFormat format;
     VkExtent2D extent;
+    VkFramebuffer framebuffers[MAX_SWAP_IMGS];
     VkImage images[MAX_SWAP_IMGS];
     VkImageView image_views[MAX_SWAP_IMGS];
     VkImage depth_images[MAX_SWAP_IMGS];
     VkImageView depth_image_views[MAX_SWAP_IMGS];
     u32 image_count;
+    VkRenderPass render_pass;
+    u32 subpass;
 };
 
 typedef struct Swap_Chain_Info Swap_Chain_Info;
@@ -58,7 +53,9 @@ struct Render_Context {
     VkDebugUtilsMessengerEXT debug_messenger;
     VkSurfaceKHR surface;
     VkPhysicalDevice physical;
-    Logical_Device logical;
+    VkDevice logical;
+    VkQueue graphic_q;
+    VkQueue present_q;
     Swap_Chain swap;
 };
 
@@ -67,6 +64,9 @@ struct Render_Context {
 
 void render_context_init(Arena *arena, Render_Context *rndr_ctx, GLFWwindow *window_handle);
 void render_context_free(Render_Context *rndr_ctx);
+
+u32 swap_height(Render_Context *rc);
+u32 swap_width(Render_Context *rc);
 
 // This also sets up our debug messenger if it's needed
 void create_instance(Arena *arena, Render_Context *rndr_ctx);
@@ -90,6 +90,10 @@ VkSurfaceFormatKHR choose_swap_surface_format(VkSurfaceFormatKHR *formats, u32 n
 VkPresentModeKHR choose_swap_present_mode(VkPresentModeKHR *modes, u32 num_modes);
 VkExtent2D choose_swap_extent(VkSurfaceCapabilitiesKHR capabilities, GLFWwindow *window);
 void create_swap_chain(Arena *arena, Render_Context *rndr_ctx, GLFWwindow *window);
+void create_frame_buffers(Render_Context *rndr_ctx);
+
+// Probably will pull this out of being directly associated with Swap
+void create_render_pass(Render_Context *rndr_ctx);
 
 // call back for validation layer error messages
 VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(

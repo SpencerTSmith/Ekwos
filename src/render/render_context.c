@@ -23,23 +23,30 @@ void render_context_init(Arena *arena, Render_Context *rndr_ctx, GLFWwindow *win
     choose_physical_device(scratch.arena, rndr_ctx);
     create_logical_device(scratch.arena, rndr_ctx);
     create_swap_chain(scratch.arena, rndr_ctx, window_handle);
+    create_render_pass(rndr_ctx);
+    create_frame_buffers(rndr_ctx);
 
     // Memory storing all those queries not nessecary anymore
     scratch_end(&scratch);
 }
 
 void render_context_free(Render_Context *rndr_ctx) {
+    vkDestroyRenderPass(rndr_ctx->logical, rndr_ctx->swap.render_pass, NULL);
     for (u32 i = 0; i < rndr_ctx->swap.image_count; i++) {
-        vkDestroyImageView(rndr_ctx->logical.device, rndr_ctx->swap.image_views[i], NULL);
+        vkDestroyFramebuffer(rndr_ctx->logical, rndr_ctx->swap.framebuffers[i], NULL);
+        vkDestroyImageView(rndr_ctx->logical, rndr_ctx->swap.image_views[i], NULL);
     }
-    vkDestroySwapchainKHR(rndr_ctx->logical.device, rndr_ctx->swap.handle, NULL);
+    vkDestroySwapchainKHR(rndr_ctx->logical, rndr_ctx->swap.handle, NULL);
     vkDestroySurfaceKHR(rndr_ctx->instance, rndr_ctx->surface, NULL);
-    vkDestroyDevice(rndr_ctx->logical.device, NULL);
+    vkDestroyDevice(rndr_ctx->logical, NULL);
     if (enable_val_layers) {
         vkDestroyDebugUtilsMessengerEXT(rndr_ctx->instance, rndr_ctx->debug_messenger, NULL);
     }
     vkDestroyInstance(rndr_ctx->instance, NULL);
 }
+
+u32 swap_height(Render_Context *rc) { return rc->swap.extent.height; }
+u32 swap_width(Render_Context *rc) { return rc->swap.extent.height; }
 
 void create_instance(Arena *arena, Render_Context *rndr_ctx) {
     // Info needed to create vulkan instance... similar to opengl context
@@ -373,41 +380,40 @@ void create_swap_chain(Arena *arena, Render_Context *rndr_ctx, GLFWwindow *windo
     create_info.oldSwapchain = VK_NULL_HANDLE;
 
     VkResult result =
-        vkCreateSwapchainKHR(rndr_ctx->logical.device, &create_info, NULL, &rndr_ctx->swap.handle);
+        vkCreateSwapchainKHR(rndr_ctx->logical, &create_info, NULL, &rndr_ctx->swap.handle);
     if (result != VK_SUCCESS) {
         fprintf(stderr, "Swap chain support inadequate\n");
         exit(EXT_VULKAN_SWAP_CHAIN_CREATE);
     }
 
-    vkGetSwapchainImagesKHR(rndr_ctx->logical.device, rndr_ctx->swap.handle,
-                            &rndr_ctx->swap.image_count, NULL);
+    vkGetSwapchainImagesKHR(rndr_ctx->logical, rndr_ctx->swap.handle, &rndr_ctx->swap.image_count,
+                            NULL);
 
     // Grab handles to the swap images
     if (rndr_ctx->swap.image_count > 0 && rndr_ctx->swap.image_count <= MAX_SWAP_IMGS) {
-        vkGetSwapchainImagesKHR(rndr_ctx->logical.device, rndr_ctx->swap.handle,
+        vkGetSwapchainImagesKHR(rndr_ctx->logical, rndr_ctx->swap.handle,
                                 &rndr_ctx->swap.image_count, rndr_ctx->swap.images);
     }
 
     // Get image views
     for (u32 i = 0; i < rndr_ctx->swap.image_count; i++) {
-        VkImageViewCreateInfo iv_info = {
-            .sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO,
-            .image = rndr_ctx->swap.images[i],
-            .viewType = VK_IMAGE_VIEW_TYPE_2D,
-            .format = surface_format.format,
-            .components.r = VK_COMPONENT_SWIZZLE_IDENTITY,
-            .components.g = VK_COMPONENT_SWIZZLE_IDENTITY,
-            .components.b = VK_COMPONENT_SWIZZLE_IDENTITY,
-            .components.a = VK_COMPONENT_SWIZZLE_IDENTITY,
-            .subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT,
-            .subresourceRange.baseMipLevel = 0,
-            .subresourceRange.levelCount = 1,
-            .subresourceRange.baseArrayLayer = 0,
-            .subresourceRange.layerCount = 1,
-        };
+        VkImageViewCreateInfo iv_info = {0};
+        iv_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        iv_info.image = rndr_ctx->swap.images[i];
+        iv_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        iv_info.format = surface_format.format;
+        iv_info.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+        iv_info.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+        iv_info.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+        iv_info.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+        iv_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        iv_info.subresourceRange.baseMipLevel = 0;
+        iv_info.subresourceRange.levelCount = 1;
+        iv_info.subresourceRange.baseArrayLayer = 0;
+        iv_info.subresourceRange.layerCount = 1;
 
-        result = vkCreateImageView(rndr_ctx->logical.device, &iv_info, NULL,
-                                   &rndr_ctx->swap.image_views[i]);
+        result =
+            vkCreateImageView(rndr_ctx->logical, &iv_info, NULL, &rndr_ctx->swap.image_views[i]);
         if (result != VK_SUCCESS) {
             fprintf(stderr, "Swap chain support inadequate\n");
             exit(EXT_VULKAN_SWAP_CHAIN_IMAGE_VIEW);
@@ -416,6 +422,7 @@ void create_swap_chain(Arena *arena, Render_Context *rndr_ctx, GLFWwindow *windo
 
     rndr_ctx->swap.extent = extent;
     rndr_ctx->swap.format = surface_format.format;
+    rndr_ctx->swap.image_count = image_count;
 }
 
 Queue_Family_Indices get_queue_family_indices(Arena *arena, VkPhysicalDevice device,
@@ -518,17 +525,79 @@ void create_logical_device(Arena *arena, Render_Context *rndr_ctx) {
     VkQueue present_queue = NULL;
     vkGetDeviceQueue(device, q_fam_indxs.present, 0, &present_queue);
 
-    rndr_ctx->logical = (Logical_Device){
-        .device = device,
-        .present_q = present_queue,
-        .graphic_q = graphic_queue,
-    };
+    rndr_ctx->logical = device;
+    rndr_ctx->present_q = present_queue;
+    rndr_ctx->graphic_q = graphic_queue;
+}
+
+void create_frame_buffers(Render_Context *rndr_ctx) {
+    Swap_Chain *swap = &rndr_ctx->swap;
+    for (u32 i = 0; i < swap->image_count; i++) {
+        // Create framebuffers from image views... may want to have more attachments in future...
+        // array
+        // NOTE(spencer): when changing this in future remember to change attachment count in
+        // fb_info
+        VkImageView attachments[] = {
+            swap->image_views[i],
+        };
+
+        VkFramebufferCreateInfo fb_info = {0};
+        fb_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+        fb_info.renderPass = swap->render_pass;
+        fb_info.attachmentCount = 1;
+        fb_info.pAttachments = attachments;
+        fb_info.width = swap->extent.width;
+        fb_info.height = swap->extent.height;
+        fb_info.layers = 1;
+
+        VkResult result =
+            vkCreateFramebuffer(rndr_ctx->logical, &fb_info, NULL, &swap->framebuffers[i]);
+        if (result != VK_SUCCESS) {
+            fprintf(stderr, "Failed to create framebuffer %u", i);
+            exit(EXT_VULKAN_LOGICAL_DEVICE);
+        }
+    }
+}
+
+void create_render_pass(Render_Context *rndr_ctx) {
+    VkAttachmentDescription color_attachment = {0};
+    color_attachment.format = rndr_ctx->swap.format;
+    color_attachment.samples = VK_SAMPLE_COUNT_1_BIT;        // maybe more if multisampling?
+    color_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;   // clear the color attachment
+    color_attachment.storeOp = VK_ATTACHMENT_STORE_OP_STORE; // store the render
+    color_attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    color_attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    color_attachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    color_attachment.finalLayout = VK_IMAGE_LAYOUT_PRESENT_SRC_KHR; // ready for rendering
+
+    // Can have multiple subpasses that reference other attachments
+    VkAttachmentReference color_attachment_ref = {0};
+    // this is why we have layout (location = 0) out vec4 outColor in shaders
+    color_attachment_ref.attachment = 0;
+    color_attachment_ref.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
+
+    VkSubpassDescription subpass = {0};
+    subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
+    subpass.colorAttachmentCount = 1;
+    subpass.pColorAttachments = &color_attachment_ref;
+
+    VkRenderPassCreateInfo render_pass_info = {0};
+    render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
+    render_pass_info.attachmentCount = 1;
+    render_pass_info.pAttachments = &color_attachment;
+    render_pass_info.subpassCount = 1;
+    render_pass_info.pSubpasses = &subpass;
+
+    VkResult result =
+        vkCreateRenderPass(rndr_ctx->logical, &render_pass_info, NULL, &rndr_ctx->swap.render_pass);
+    if (result != VK_SUCCESS) {
+        fprintf(stderr, "Failed to create render pass");
+    }
 }
 
 VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(
     VkDebugUtilsMessageSeverityFlagsEXT msg_severity, VkDebugUtilsMessageTypeFlagsEXT msg_type,
     const VkDebugUtilsMessengerCallbackDataEXT *callback_data, void *user_data) {
-
     if (msg_severity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
         fprintf(stderr, "Validation layer: %s\n\n", callback_data->pMessage);
     }

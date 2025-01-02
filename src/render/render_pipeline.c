@@ -9,12 +9,13 @@
 Render_Pipeline render_pipeline_create(Arena *arena, Render_Context *rc,
                                        const char *vert_shader_path, const char *frag_shader_path,
                                        const Pipeline_Config *config) {
+    Render_Pipeline pipeline = {0};
     // Don't need to keep the shader code memory around
     Scratch scratch = scratch_begin(arena);
     Shader_Code vert_code = read_shader_file(arena, vert_shader_path);
     Shader_Code frag_code = read_shader_file(arena, frag_shader_path);
-    VkShaderModule vert_mod = create_shader_module(vert_code, rc->logical.device);
-    VkShaderModule frag_mod = create_shader_module(frag_code, rc->logical.device);
+    VkShaderModule vert_mod = create_shader_module(vert_code, rc->logical);
+    VkShaderModule frag_mod = create_shader_module(frag_code, rc->logical);
     scratch_end(&scratch);
 
     VkPipelineShaderStageCreateInfo shader_stages[2] = {0};
@@ -35,6 +36,17 @@ Render_Pipeline render_pipeline_create(Arena *arena, Render_Context *rc,
     vertex_input_info.pVertexAttributeDescriptions = NULL;
     vertex_input_info.pVertexBindingDescriptions = NULL;
 
+    VkPipelineColorBlendStateCreateInfo color_blend_info = {0};
+    color_blend_info.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
+    color_blend_info.logicOpEnable = VK_FALSE;
+    color_blend_info.logicOp = VK_LOGIC_OP_COPY;
+    color_blend_info.attachmentCount = 1;
+    color_blend_info.pAttachments = &config->color_blend_attachment;
+    color_blend_info.blendConstants[0] = 0.0f;
+    color_blend_info.blendConstants[1] = 0.0f;
+    color_blend_info.blendConstants[2] = 0.0f;
+    color_blend_info.blendConstants[3] = 0.0f;
+
     // Yet more bullshit we have to create
     VkPipelineViewportStateCreateInfo viewport_info = {0};
     viewport_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
@@ -42,6 +54,12 @@ Render_Pipeline render_pipeline_create(Arena *arena, Render_Context *rc,
     viewport_info.pViewports = &config->viewport;
     viewport_info.scissorCount = 1;
     viewport_info.pScissors = &config->scissor;
+
+    VkResult result = vkCreatePipelineLayout(rc->logical, &config->pipeline_layout_info, NULL,
+                                             &pipeline.pipeline_layout);
+    if (result != VK_SUCCESS) {
+        fprintf(stderr, "Failed to create pipeline layout\n");
+    }
 
     VkGraphicsPipelineCreateInfo pipeline_info = {0};
     pipeline_info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -53,32 +71,33 @@ Render_Pipeline render_pipeline_create(Arena *arena, Render_Context *rc,
     pipeline_info.pMultisampleState = &config->multisample_info;
     pipeline_info.pRasterizationState = &config->rasterization_info;
     pipeline_info.pDepthStencilState = &config->depth_stencil_info;
+    pipeline_info.pColorBlendState = &color_blend_info;
     pipeline_info.pDynamicState = NULL;
 
-    pipeline_info.layout = config->pipeline_layout;
-    pipeline_info.renderPass = config->render_pass;
-    pipeline_info.subpass = config->subpass;
+    pipeline_info.layout = pipeline.pipeline_layout;
+    pipeline_info.renderPass = rc->swap.render_pass;
+    pipeline_info.subpass = rc->swap.subpass;
 
     // If we want to inherit state from another pipeline
     pipeline_info.basePipelineIndex = -1;
     pipeline_info.basePipelineHandle = VK_NULL_HANDLE;
 
-    Render_Pipeline pipeline = {0};
-    VkResult result = vkCreateGraphicsPipelines(rc->logical.device, VK_NULL_HANDLE, 1,
-                                                &pipeline_info, NULL, &pipeline.handle);
+    result = vkCreateGraphicsPipelines(rc->logical, VK_NULL_HANDLE, 1, &pipeline_info, NULL,
+                                       &pipeline.handle);
     if (result != VK_SUCCESS) {
         fprintf(stderr, "Failed to create pipeline\n");
     }
 
     // We can clean up any shader modules now
-    vkDestroyShaderModule(rc->logical.device, vert_mod, NULL);
-    vkDestroyShaderModule(rc->logical.device, frag_mod, NULL);
+    vkDestroyShaderModule(rc->logical, vert_mod, NULL);
+    vkDestroyShaderModule(rc->logical, frag_mod, NULL);
 
     return pipeline;
 }
 
 void render_pipeline_free(Render_Context *rc, Render_Pipeline *pipeline) {
-    vkDestroyPipeline(rc->logical.device, pipeline->handle, NULL);
+    vkDestroyPipelineLayout(rc->logical, pipeline->pipeline_layout, NULL);
+    vkDestroyPipeline(rc->logical, pipeline->handle, NULL);
     memset(pipeline, 0, sizeof(*pipeline));
 }
 
@@ -132,15 +151,11 @@ Pipeline_Config default_pipeline_config(u32 width, u32 height) {
     config.color_blend_attachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
     config.color_blend_attachment.alphaBlendOp = VK_BLEND_OP_ADD;
 
-    config.color_blend_info.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
-    config.color_blend_info.logicOpEnable = VK_FALSE;
-    config.color_blend_info.logicOp = VK_LOGIC_OP_COPY;
-    config.color_blend_info.attachmentCount = 1;
-    config.color_blend_info.pAttachments = &config.color_blend_attachment;
-    config.color_blend_info.blendConstants[0] = 0.0f;
-    config.color_blend_info.blendConstants[1] = 0.0f;
-    config.color_blend_info.blendConstants[2] = 0.0f;
-    config.color_blend_info.blendConstants[3] = 0.0f;
+    config.pipeline_layout_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    config.pipeline_layout_info.setLayoutCount = 0;
+    config.pipeline_layout_info.pSetLayouts = NULL;
+    config.pipeline_layout_info.pushConstantRangeCount = 0;
+    config.pipeline_layout_info.pPushConstantRanges = NULL;
 
     return config;
 }
