@@ -15,6 +15,7 @@ enum Log_Level {
     LOG_NUM,
 };
 
+// TODO(spencer): rewrite using platform layer file i/o
 void log_message(enum Log_Level level, const char *file, u64 line, const char *message, ...);
 
 #define LOG_FATAL(message, ...) log_message(LOG_FATAL, __FILE__, __LINE__, message, ##__VA_ARGS__)

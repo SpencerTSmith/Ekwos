@@ -1,4 +1,5 @@
 #include "render_pipeline.h"
+#include "core/log.h"
 
 #include <errno.h>
 #include <stdalign.h>
@@ -58,7 +59,7 @@ Render_Pipeline render_pipeline_create(Arena *arena, Render_Context *rc,
     VkResult result = vkCreatePipelineLayout(rc->logical, &config->pipeline_layout_info, NULL,
                                              &pipeline.pipeline_layout);
     if (result != VK_SUCCESS) {
-        fprintf(stderr, "Failed to create pipeline layout\n");
+        LOG_ERROR("Failed to create pipeline layout");
     }
 
     VkGraphicsPipelineCreateInfo pipeline_info = {0};
@@ -85,13 +86,14 @@ Render_Pipeline render_pipeline_create(Arena *arena, Render_Context *rc,
     result = vkCreateGraphicsPipelines(rc->logical, VK_NULL_HANDLE, 1, &pipeline_info, NULL,
                                        &pipeline.handle);
     if (result != VK_SUCCESS) {
-        fprintf(stderr, "Failed to create pipeline\n");
+        LOG_ERROR("Failed to create pipeline");
     }
 
     // We can clean up any shader modules now
     vkDestroyShaderModule(rc->logical, vert_mod, NULL);
     vkDestroyShaderModule(rc->logical, frag_mod, NULL);
 
+    LOG_DEBUG("Render Pipeline resources initialized");
     return pipeline;
 }
 
@@ -99,6 +101,7 @@ void render_pipeline_free(Render_Context *rc, Render_Pipeline *pipeline) {
     vkDestroyPipelineLayout(rc->logical, pipeline->pipeline_layout, NULL);
     vkDestroyPipeline(rc->logical, pipeline->handle, NULL);
     memset(pipeline, 0, sizeof(*pipeline));
+    LOG_DEBUG("Render Pipeline resources destroyed");
 }
 
 Pipeline_Config default_pipeline_config(u32 width, u32 height) {
@@ -201,6 +204,7 @@ Shader_Code read_shader_file(Arena *arena, const char *file_path) {
     }
 
     fclose(shader_file);
+    LOG_DEBUG("Read shader file: %s, with size %u", file_path, size);
     return shader_data;
 }
 
@@ -213,7 +217,7 @@ VkShaderModule create_shader_module(Shader_Code code, VkDevice device) {
 
     VkShaderModule shader_module;
     if (vkCreateShaderModule(device, &ci, NULL, &shader_module)) {
-        fprintf(stderr, "Failed to create shader module\n");
+        LOG_ERROR("Failed to create shader module");
     }
 
     return shader_module;

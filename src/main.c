@@ -3,8 +3,6 @@
 #include "render/render_pipeline.h"
 #include "window.h"
 
-#include <stdio.h>
-
 bool g_running = true;
 
 void process_input(Window window) {
