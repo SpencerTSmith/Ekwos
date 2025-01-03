@@ -2,7 +2,6 @@
 #define WINDOW_H
 
 #include "core/common.h"
-#include "render/render_context.h"
 
 #include <stdbool.h>
 
@@ -16,8 +15,6 @@ struct Window {
     };
     char *name;
     GLFWwindow *handle;
-
-    Render_Context rctx;
 };
 
 Window window_create(const char *name, int width, int height);

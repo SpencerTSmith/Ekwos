@@ -12,26 +12,33 @@ void process_input(Window window) {
         glfwSetWindowShouldClose(window.handle, true);
 }
 
+typedef struct Game Game;
+struct Game {
+    Window window;
+    Render_Context rctx;
+};
+
 int main(int argc, char **argv) {
     Arena arena = arena_create(1024 * 100);
 
-    Window window = window_create("yo", 800, 600);
-    render_context_init(&arena, &window.rctx, window.handle);
+    Game game = {0};
+    game.window = window_create("yo", 800, 600);
+    render_context_init(&arena, &game.rctx, game.window.handle);
 
     Pipeline_Config config =
-        default_pipeline_config(swap_width(&window.rctx), swap_height(&window.rctx));
-    Render_Pipeline pipeline =
-        render_pipeline_create(&arena, &window.rctx, "./src/shaders/vert.vert.spv",
-                               "./src/shaders/frag.frag.spv", &config);
+        default_pipeline_config(swap_width(&game.rctx), swap_height(&game.rctx));
+    Render_Pipeline pipeline = render_pipeline_create(
+        &arena, &game.rctx, "./src/shaders/vert.vert.spv", "./src/shaders/frag.frag.spv", &config);
 
-    while (!window_should_close(window)) {
-        process_input(window);
-        render_frame(&window.rctx, &pipeline);
+    while (!window_should_close(game.window)) {
+        process_input(game.window);
+        render_frame(&game.rctx, &pipeline);
     }
 
-    render_pipeline_free(&window.rctx, &pipeline);
-    render_context_free(&window.rctx);
-    window_free(&window);
+    vkDeviceWaitIdle(game.rctx.logical);
+    render_pipeline_free(&game.rctx, &pipeline);
+    render_context_free(&game.rctx);
+    window_free(&game.window);
 
     arena_free(&arena);
     return EXT_SUCCESS;

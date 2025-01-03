@@ -16,6 +16,7 @@ extern const char *const device_extensions[];
 extern const u32 num_device_extensions;
 
 #define MAX_SWAP_IMGS 3
+#define MAX_IN_FLIGHT 2
 typedef struct Swap_Chain Swap_Chain;
 struct Swap_Chain {
     VkSwapchainKHR handle;
@@ -29,9 +30,10 @@ struct Swap_Chain {
     u32 image_count;
     VkRenderPass render_pass;
     u32 subpass;
-    VkSemaphore image_available_sem;
-    VkSemaphore render_finished_sem;
-    VkFence in_flight_fence;
+    VkSemaphore image_available_sem[MAX_IN_FLIGHT];
+    VkSemaphore render_finished_sem[MAX_IN_FLIGHT];
+    VkFence in_flight_fence[MAX_IN_FLIGHT];
+    u32 curr_frame;
 };
 
 typedef struct Swap_Chain_Info Swap_Chain_Info;
@@ -63,7 +65,7 @@ struct Render_Context {
     u32 present_index;
     Swap_Chain swap;
     VkCommandPool command_pool;
-    VkCommandBuffer command_buffer;
+    VkCommandBuffer command_buffers[MAX_IN_FLIGHT];
 };
 
 typedef struct Render_Pipeline Render_Pipeline;
