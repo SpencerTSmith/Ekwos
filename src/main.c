@@ -26,6 +26,7 @@ int main(int argc, char **argv) {
 
     while (!window_should_close(window)) {
         process_input(window);
+        render_frame(&window.rctx, &pipeline);
     }
 
     render_pipeline_free(&window.rctx, &pipeline);
