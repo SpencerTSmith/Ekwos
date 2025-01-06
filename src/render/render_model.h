@@ -2,6 +2,7 @@
 #define RENDER_MODEL_H
 
 #include "core/common.h"
+#include "render/render_context.h"
 
 typedef struct Render_Model Render_Model;
 struct Render_Model {
