@@ -104,6 +104,10 @@ void render_pipeline_free(Render_Context *rc, Render_Pipeline *pipeline) {
     LOG_DEBUG("Render Pipeline resources destroyed");
 }
 
+void render_pipeline_bind(Render_Pipeline *pipeline, VkCommandBuffer cmd_buf) {
+    vkCmdBindPipeline(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->handle);
+}
+
 Pipeline_Config default_pipeline_config(u32 width, u32 height) {
     Pipeline_Config config = {0};
     // What is the primitive assembly like? (How are vertices treated... triangles, points, etc)
@@ -168,22 +172,19 @@ Shader_Code read_shader_file(Arena *arena, const char *file_path) {
 
     FILE *shader_file = fopen(file_path, "rb");
     if (shader_file == NULL) {
-        fprintf(stderr, "Error (%s) : Failed to read shader file: %s\n", strerror(errno),
-                file_path);
+        LOG_ERROR("Failed to read shader file: %s, %s\n", file_path, strerror(errno));
         return shader_data;
     }
 
     if (fseek(shader_file, 0, SEEK_END) != 0) {
-        fprintf(stderr, "Error (%s) : Failed to seek end of file: %s\n", strerror(errno),
-                file_path);
+        LOG_ERROR("Failed to find end of shader file: %s, %s\n", file_path, strerror(errno));
         fclose(shader_file);
         return shader_data;
     }
 
     i64 size = ftell(shader_file);
     if (size == -1L) {
-        fprintf(stderr, "Error (%s) : Failed to get size of file: %s\n", strerror(errno),
-                file_path);
+        LOG_ERROR("Failed to get size of shader file: %s, %s\n", file_path, strerror(errno));
         fclose(shader_file);
         return shader_data;
     }
@@ -196,8 +197,8 @@ Shader_Code read_shader_file(Arena *arena, const char *file_path) {
 
     i64 bytes_read = fread(shader_data.data, 1, size, shader_file);
     if (bytes_read != size) {
-        fprintf(stderr, "Error (%s) : shader bytes read into buffer does not match file size: %s\n",
-                strerror(errno), file_path);
+        LOG_ERROR("Bytes read from shader file does not match shader size: %s, %s\n", file_path,
+                  strerror(errno));
         arena_pop(arena, size);
         fclose(shader_file);
         return shader_data;

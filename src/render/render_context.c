@@ -130,9 +130,10 @@ void render_record_command(Render_Context *rc, VkCommandBuffer buf, u32 image_id
     vkCmdBeginRenderPass(buf, &render_pass_info, VK_SUBPASS_CONTENTS_INLINE);
     LOG_DEBUG("Began render pass");
 
-    vkCmdBindPipeline(rc->command_buffers[rc->swap.curr_frame], VK_PIPELINE_BIND_POINT_GRAPHICS,
-                      pipeline->handle);
+    render_pipeline_bind(pipeline, rc->command_buffers[rc->swap.curr_frame]);
+
     vkCmdDraw(rc->command_buffers[rc->swap.curr_frame], 3, 1, 0, 0);
+
     vkCmdEndRenderPass(rc->command_buffers[rc->swap.curr_frame]);
     LOG_DEBUG("Ended render_pass");
 
@@ -157,7 +158,8 @@ void render_frame(Render_Context *rc, Render_Pipeline *pipeline) {
     u32 image_idx;
     vkAcquireNextImageKHR(rc->logical, rc->swap.handle, UINT64_MAX,
                           rc->swap.image_available_sem[current_frame], VK_NULL_HANDLE, &image_idx);
-    LOG_DEBUG("Acquired next image, %u, from swap chain", current_frame);
+    LOG_DEBUG("Acquired next image, %u, from swap chain", image_idx);
+
     vkResetCommandBuffer(rc->command_buffers[current_frame], 0);
 
     render_record_command(rc, rc->command_buffers[current_frame], image_idx, pipeline);
@@ -169,6 +171,7 @@ void render_frame(Render_Context *rc, Render_Pipeline *pipeline) {
 
     // Which semaphores to wait on
     VkSemaphore wait_semaphores[] = {rc->swap.image_available_sem[current_frame]};
+
     VkPipelineStageFlags wait_stages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
     submit_info.waitSemaphoreCount = 1;
     submit_info.pWaitSemaphores = wait_semaphores;
@@ -176,6 +179,7 @@ void render_frame(Render_Context *rc, Render_Pipeline *pipeline) {
 
     // Which semaphores to signal once finished
     VkSemaphore signal_semaphores[] = {rc->swap.render_finished_sem[current_frame]};
+
     submit_info.signalSemaphoreCount = 1;
     submit_info.pSignalSemaphores = signal_semaphores;
 
@@ -183,7 +187,7 @@ void render_frame(Render_Context *rc, Render_Pipeline *pipeline) {
     VkResult result =
         vkQueueSubmit(rc->graphic_q, 1, &submit_info, rc->swap.in_flight_fence[current_frame]);
     if (result != VK_SUCCESS) {
-        LOG_ERROR("Failed to submit command buffer to graphics queue [%u]", current_frame);
+        LOG_ERROR("Failed to submit command buffer [%u] to graphics queue ", current_frame);
     }
     LOG_DEBUG("Submitted command buffer to graphics queue");
 
@@ -194,6 +198,7 @@ void render_frame(Render_Context *rc, Render_Pipeline *pipeline) {
 
     // I don't expect we will ever need more than one swap chain
     VkSwapchainKHR swap_chains[] = {rc->swap.handle};
+
     present_info.swapchainCount = 1;
     present_info.pSwapchains = swap_chains;
     present_info.pImageIndices = &image_idx;
@@ -202,7 +207,8 @@ void render_frame(Render_Context *rc, Render_Pipeline *pipeline) {
     if (result != VK_SUCCESS) {
         LOG_ERROR("Failed to present image from queue");
     }
-    LOG_DEBUG("Image from present queue... presented?");
+    LOG_DEBUG("Queued presentation of image [%u]", image_idx);
+
     rc->swap.curr_frame = (current_frame + 1) % MAX_IN_FLIGHT;
 }
 

@@ -20,8 +20,6 @@ struct Pipeline_Config {
     VkPipelineColorBlendAttachmentState color_blend_attachment;
     VkPipelineDepthStencilStateCreateInfo depth_stencil_info;
     VkPipelineLayoutCreateInfo pipeline_layout_info;
-    VkRenderPass render_pass;
-    u32 subpass;
 };
 
 typedef struct Shader_Code Shader_Code;
@@ -34,6 +32,8 @@ Render_Pipeline render_pipeline_create(Arena *arena, Render_Context *rc,
                                        const char *vert_shader_path, const char *frag_shader_path,
                                        const Pipeline_Config *config);
 void render_pipeline_free(Render_Context *rc, Render_Pipeline *pipeline);
+
+void render_pipeline_bind(Render_Pipeline *pipeline, VkCommandBuffer cmd_buf);
 
 // Sets all besides pipeline_layout, render_pass, and subpass
 Pipeline_Config default_pipeline_config(u32 width, u32 height);

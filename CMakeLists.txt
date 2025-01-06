@@ -9,7 +9,10 @@ add_executable(ekwos ${SOURCES})
 # Set include directories (if any)
 target_include_directories(ekwos PRIVATE src)
 
-target_link_libraries(ekwos PRIVATE glfw vulkan)
+target_link_libraries(ekwos PRIVATE 
+	glfw
+	vulkan
+)
 
 target_compile_options(ekwos PRIVATE
 	-g

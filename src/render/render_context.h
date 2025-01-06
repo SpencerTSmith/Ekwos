@@ -6,6 +6,8 @@
 
 #include <stdbool.h>
 
+typedef struct Render_Pipeline Render_Pipeline;
+
 // What validation layers, may move this out of here
 extern const char *const enabled_validation_layers[];
 extern const u32 num_enable_validation_layers;
@@ -16,7 +18,7 @@ extern const char *const device_extensions[];
 extern const u32 num_device_extensions;
 
 #define MAX_SWAP_IMGS 3
-#define MAX_IN_FLIGHT 2
+#define MAX_IN_FLIGHT (MAX_SWAP_IMGS - 1)
 typedef struct Swap_Chain Swap_Chain;
 struct Swap_Chain {
     VkSwapchainKHR handle;
@@ -68,7 +70,6 @@ struct Render_Context {
     VkCommandBuffer command_buffers[MAX_IN_FLIGHT];
 };
 
-typedef struct Render_Pipeline Render_Pipeline;
 // TODO(spencer): Vulkan allows you to specify your own memory allocation function...
 // may want to incorporate this with our Arena allocator, or other custom allocator suited to it...
 

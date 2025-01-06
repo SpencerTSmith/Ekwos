@@ -27,8 +27,8 @@ int main(int argc, char **argv) {
 
     Pipeline_Config config =
         default_pipeline_config(swap_width(&game.rctx), swap_height(&game.rctx));
-    Render_Pipeline pipeline = render_pipeline_create(
-        &arena, &game.rctx, "./src/shaders/vert.vert.spv", "./src/shaders/frag.frag.spv", &config);
+    Render_Pipeline pipeline = render_pipeline_create(&arena, &game.rctx, "shaders/vert.vert.spv",
+                                                      "shaders/frag.frag.spv", &config);
 
     while (!window_should_close(game.window)) {
         process_input(game.window);

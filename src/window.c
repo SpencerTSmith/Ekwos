@@ -22,6 +22,7 @@ Window window_create(const char *name, int width, int height) {
     }
 
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
+    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
 
     window.handle = glfwCreateWindow(width, height, name, NULL, NULL);
     if (window.handle == NULL) {
