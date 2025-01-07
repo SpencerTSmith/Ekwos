@@ -142,7 +142,7 @@ void render_begin_frame(Render_Context *rc) {
     render_pass_info.renderArea.extent = rc->swap.extent;
 
     // TODO(ss): Probably would be good to lift this out into the contex struct
-    VkClearValue clear_color = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
+    VkClearValue clear_color = {.color = {.float32 = {0.2f, 0.3f, 0.2f, 1.0f}}};
 
     render_pass_info.clearValueCount = 1;
     render_pass_info.pClearValues = &clear_color;

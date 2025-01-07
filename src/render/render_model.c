@@ -7,12 +7,20 @@ const VkVertexInputBindingDescription vertex_binding_desc[VERTEX_BINDING_NUM] = 
     .stride = sizeof(Vertex),
     .inputRate = VK_VERTEX_INPUT_RATE_VERTEX,
 }};
-const VkVertexInputAttributeDescription vertex_attrib_desc[VERTEX_ATTRIBUTES_NUM] = {{
-    .binding = 0,
-    .location = 0,
-    .format = VK_FORMAT_R32G32_SFLOAT,
-    .offset = 0,
-}};
+const VkVertexInputAttributeDescription vertex_attrib_desc[VERTEX_ATTRIBUTES_NUM] = {
+    {
+        .binding = 0,
+        .location = 0,
+        .format = VK_FORMAT_R32G32_SFLOAT,
+        .offset = offsetof(Vertex, position),
+    },
+    {
+        .binding = 0,
+        .location = 1,
+        .format = VK_FORMAT_R32G32B32_SFLOAT,
+        .offset = offsetof(Vertex, color),
+    },
+};
 
 static void create_vertex_buffers(Render_Context *rc, Render_Model *model, Vertex *verts,
                                   u32 vert_count);

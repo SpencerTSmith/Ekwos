@@ -1,5 +1,6 @@
 #include "core/arena.h"
 #include "core/common.h"
+#include "core/linear_algebra.h"
 #include "render/render_model.h"
 #include "render/render_pipeline.h"
 #include "window.h"
@@ -31,9 +32,9 @@ int main(int argc, char **argv) {
     Render_Pipeline pipeline = render_pipeline_create(&arena, &game.rctx, "shaders/vert.vert.spv",
                                                       "shaders/frag.frag.spv", &config);
     Vertex verts[] = {
-        {.position = {.x = 0.0f, .y = -0.5f}},
-        {.position = {.x = 0.5f, .y = 0.5f}},
-        {.position = {.x = -0.5f, .y = 0.5f}},
+        {.position = {.x = 0.0f, .y = -0.5f}, .color = {.r = 1.0f, .g = 0.0f, .b = 0.0f}},
+        {.position = {.x = 0.5f, .y = 0.5f}, .color = {.r = 0.0f, .g = 1.0f, .b = 0.0f}},
+        {.position = {.x = -0.5f, .y = 0.5f}, .color = {.r = 0.0f, .g = 0.0f, .b = 1.0f}},
     };
     u32 verts_count = 3;
     Render_Model model = {0};

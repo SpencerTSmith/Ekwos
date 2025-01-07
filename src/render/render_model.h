@@ -8,6 +8,7 @@
 typedef struct Vertex Vertex;
 struct Vertex {
     vec2 position;
+    vec3 color;
 };
 
 typedef struct Render_Model Render_Model;
@@ -18,7 +19,7 @@ struct Render_Model {
 };
 
 #define VERTEX_BINDING_NUM 1
-#define VERTEX_ATTRIBUTES_NUM 1
+#define VERTEX_ATTRIBUTES_NUM 2
 extern const VkVertexInputBindingDescription vertex_binding_desc[VERTEX_BINDING_NUM];
 extern const VkVertexInputAttributeDescription vertex_attrib_desc[VERTEX_ATTRIBUTES_NUM];
 

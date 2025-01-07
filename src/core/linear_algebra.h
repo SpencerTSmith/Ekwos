@@ -1,3 +1,5 @@
+#ifndef LINEAR_ALGEBRA_H
+#define LINEAR_ALGEBRA_H
 #include <math.h>
 
 #include "core/common.h"
@@ -373,3 +375,4 @@ static inline mat4 mat4_mul_mat4(mat4 a, mat4 b) {
 
     return result;
 }
+#endif // LINEAR_ALGEBRA_H
