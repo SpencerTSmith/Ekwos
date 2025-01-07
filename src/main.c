@@ -1,6 +1,5 @@
 #include "core/arena.h"
 #include "core/common.h"
-#include "core/linear_algebra.h"
 #include "render/render_model.h"
 #include "render/render_pipeline.h"
 #include "window.h"

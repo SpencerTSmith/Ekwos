@@ -32,11 +32,11 @@ void render_model_init(Render_Context *rc, Render_Model *model, Vertex *verts, u
 void render_model_bind(Render_Context *rc, Render_Model *model) {
     VkBuffer buffers[] = {model->vertex_buffer};
     VkDeviceSize offsets[] = {0};
-    vkCmdBindVertexBuffers(rc->command_buffers[rc->swap.curr_frame], 0, 1, buffers, offsets);
+    vkCmdBindVertexBuffers(rc->command_buffers[rc->curr_frame], 0, 1, buffers, offsets);
 }
 
 void render_model_draw(Render_Context *rc, Render_Model *model) {
-    vkCmdDraw(rc->command_buffers[rc->swap.curr_frame], model->vertex_count, 1, 0, 0);
+    vkCmdDraw(rc->command_buffers[rc->curr_frame], model->vertex_count, 1, 0, 0);
 }
 
 void render_model_free(Render_Context *rc, Render_Model *model) {

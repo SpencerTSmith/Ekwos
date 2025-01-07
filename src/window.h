@@ -15,6 +15,7 @@ struct Window {
     };
     char *name;
     GLFWwindow *handle;
+    bool resized;
 };
 
 Window window_create(const char *name, int width, int height);

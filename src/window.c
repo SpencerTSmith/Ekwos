@@ -7,6 +7,8 @@
 
 #include "core/common.h"
 
+static void framebuffer_resize_callback(GLFWwindow *window, int width, int height);
+
 Window window_create(const char *name, int width, int height) {
     Window window = {0};
 
@@ -22,7 +24,7 @@ Window window_create(const char *name, int width, int height) {
     }
 
     glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
-    glfwWindowHint(GLFW_RESIZABLE, GLFW_FALSE);
+    glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
     window.handle = glfwCreateWindow(width, height, name, NULL, NULL);
     if (window.handle == NULL) {
@@ -30,6 +32,10 @@ Window window_create(const char *name, int width, int height) {
         glfwTerminate();
         exit(EXT_GLFW_WINDOW_CREATION);
     }
+
+    glfwSetWindowUserPointer(window.handle, &window);
+    glfwSetFramebufferSizeCallback(window.handle, framebuffer_resize_callback);
+
     window.w = width;
     window.h = height;
 
@@ -42,3 +48,9 @@ void window_free(Window *window) {
 }
 
 bool window_should_close(Window window) { return glfwWindowShouldClose(window.handle); }
+
+static void framebuffer_resize_callback(GLFWwindow *handle, int width, int height) {
+    Window *window = (Window *)glfwGetWindowUserPointer(handle);
+    window->w = width;
+    window->h = height;
+}

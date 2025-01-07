@@ -52,8 +52,8 @@ static void create_render_pass(Render_Context *rndr_ctx);
 static void create_sync_objects(Render_Context *rndr_ctx);
 
 // Command buffer stuff
-void create_command_pool(Render_Context *rndr_ctx);
-void alloc_command_buffers(Render_Context *rndr_ctx);
+static void create_command_pool(Render_Context *rndr_ctx);
+static void alloc_command_buffers(Render_Context *rndr_ctx);
 
 // call back for validation layer error messages
 VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(
@@ -84,9 +84,9 @@ void render_context_init(Arena *arena, Render_Context *rndr_ctx, GLFWwindow *win
 
 void render_context_free(Render_Context *rndr_ctx) {
     for (u32 i = 0; i < MAX_IN_FLIGHT; i++) {
-        vkDestroySemaphore(rndr_ctx->logical, rndr_ctx->swap.render_finished_sem[i], NULL);
-        vkDestroySemaphore(rndr_ctx->logical, rndr_ctx->swap.image_available_sem[i], NULL);
-        vkDestroyFence(rndr_ctx->logical, rndr_ctx->swap.in_flight_fence[i], NULL);
+        vkDestroySemaphore(rndr_ctx->logical, rndr_ctx->render_finished_sem[i], NULL);
+        vkDestroySemaphore(rndr_ctx->logical, rndr_ctx->image_available_sem[i], NULL);
+        vkDestroyFence(rndr_ctx->logical, rndr_ctx->in_flight_fence[i], NULL);
     }
     vkDestroyCommandPool(rndr_ctx->logical, rndr_ctx->command_pool, NULL);
     vkDestroyRenderPass(rndr_ctx->logical, rndr_ctx->swap.render_pass, NULL);
@@ -106,18 +106,18 @@ void render_context_free(Render_Context *rndr_ctx) {
 
 void render_begin_frame(Render_Context *rc) {
     // get this into a register hopefully, more readable too
-    u32 current_frame = rc->swap.curr_frame;
+    u32 current_frame = rc->curr_frame;
 
     // TODO(ss): Should this be wrapped in an assert, deliberate if check? hmmm
-    vkWaitForFences(rc->logical, 1, &rc->swap.in_flight_fence[current_frame], VK_TRUE, UINT64_MAX);
+    vkWaitForFences(rc->logical, 1, &rc->in_flight_fence[current_frame], VK_TRUE, UINT64_MAX);
     LOG_DEBUG("Waited for in flight fence %u", current_frame);
-    vkResetFences(rc->logical, 1, &rc->swap.in_flight_fence[current_frame]);
+    vkResetFences(rc->logical, 1, &rc->in_flight_fence[current_frame]);
     LOG_DEBUG("Reset in flight fence %u", current_frame);
 
     // Which IMAGE... ie the actual framebuffer is ready to be drawn into
     // This is seperate than per frame resources we keep track of
     vkAcquireNextImageKHR(rc->logical, rc->swap.handle, UINT64_MAX,
-                          rc->swap.image_available_sem[current_frame], VK_NULL_HANDLE,
+                          rc->image_available_sem[current_frame], VK_NULL_HANDLE,
                           &rc->swap.curr_image_idx);
     LOG_DEBUG("Acquired next image, %u, from swap chain", &rc->swap.curr_image_idx);
 
@@ -152,7 +152,7 @@ void render_begin_frame(Render_Context *rc) {
 }
 
 void render_end_frame(Render_Context *rc) {
-    u32 current_frame = rc->swap.curr_frame;
+    u32 current_frame = rc->curr_frame;
 
     vkCmdEndRenderPass(rc->command_buffers[current_frame]);
     LOG_DEBUG("Ended render_pass");
@@ -169,7 +169,7 @@ void render_end_frame(Render_Context *rc) {
     submit_info.pCommandBuffers = &rc->command_buffers[current_frame];
 
     // Which semaphores to wait on
-    VkSemaphore wait_semaphores[] = {rc->swap.image_available_sem[current_frame]};
+    VkSemaphore wait_semaphores[] = {rc->image_available_sem[current_frame]};
 
     VkPipelineStageFlags wait_stages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
     submit_info.waitSemaphoreCount = 1;
@@ -177,13 +177,13 @@ void render_end_frame(Render_Context *rc) {
     submit_info.pWaitDstStageMask = wait_stages;
 
     // Which semaphores to signal once finished
-    VkSemaphore signal_semaphores[] = {rc->swap.render_finished_sem[current_frame]};
+    VkSemaphore signal_semaphores[] = {rc->render_finished_sem[current_frame]};
 
     submit_info.signalSemaphoreCount = 1;
     submit_info.pSignalSemaphores = signal_semaphores;
 
     // Give it the fence so we know when it's safe to reuse that command buffer
-    result = vkQueueSubmit(rc->graphic_q, 1, &submit_info, rc->swap.in_flight_fence[current_frame]);
+    result = vkQueueSubmit(rc->graphic_q, 1, &submit_info, rc->in_flight_fence[current_frame]);
     if (result != VK_SUCCESS) {
         LOG_ERROR("Failed to submit command buffer [%u] to graphics queue ", current_frame);
     }
@@ -208,11 +208,23 @@ void render_end_frame(Render_Context *rc) {
     LOG_DEBUG("Queued presentation of image [%u]", &rc->swap.curr_image_idx);
 
     // And increment with wrap around to the next frame buffer in use
-    rc->swap.curr_frame = (current_frame + 1) % MAX_IN_FLIGHT;
+    rc->curr_frame = (current_frame + 1) % MAX_IN_FLIGHT;
 }
 
 u32 swap_height(Render_Context *rc) { return rc->swap.extent.height; }
 u32 swap_width(Render_Context *rc) { return rc->swap.extent.width; }
+
+void swap_recreate(Render_Context *rc, Window *window) {
+    VkExtent2D extent = {window->w, window->h};
+
+    // Wait while either dimension is 0
+    while (extent.width == 0 || extent.height == 0) {
+        extent = (VkExtent2D){window->w, window->h};
+        glfwWaitEvents();
+    }
+
+    vkDeviceWaitIdle(rc->logical);
+}
 
 void create_instance(Arena *arena, Render_Context *rndr_ctx) {
     // Info needed to create vulkan instance... similar to opengl context
@@ -829,7 +841,7 @@ static void create_sync_objects(Render_Context *rndr_ctx) {
 
     for (u32 i = 0; i < MAX_IN_FLIGHT; i++) {
         VkResult result = vkCreateSemaphore(rndr_ctx->logical, &sem_info, NULL,
-                                            &rndr_ctx->swap.image_available_sem[i]);
+                                            &rndr_ctx->image_available_sem[i]);
         if (result != VK_SUCCESS) {
             LOG_FATAL("Failed to create image available semaphore");
             exit(EXT_VULKAN_SYNC_OBJECT);
@@ -837,15 +849,14 @@ static void create_sync_objects(Render_Context *rndr_ctx) {
         LOG_DEBUG("Created image available semaphore");
 
         result = vkCreateSemaphore(rndr_ctx->logical, &sem_info, NULL,
-                                   &rndr_ctx->swap.render_finished_sem[i]);
+                                   &rndr_ctx->render_finished_sem[i]);
         if (result != VK_SUCCESS) {
             LOG_FATAL("Failed to create render finished semaphore");
             exit(EXT_VULKAN_SYNC_OBJECT);
         }
         LOG_DEBUG("Created render finished semaphore");
 
-        result =
-            vkCreateFence(rndr_ctx->logical, &fence_info, NULL, &rndr_ctx->swap.in_flight_fence[i]);
+        result = vkCreateFence(rndr_ctx->logical, &fence_info, NULL, &rndr_ctx->in_flight_fence[i]);
         if (result != VK_SUCCESS) {
             LOG_FATAL("Failed to create in flight fence");
             exit(EXT_VULKAN_SYNC_OBJECT);

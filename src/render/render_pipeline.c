@@ -106,7 +106,7 @@ void render_pipeline_free(Render_Context *rc, Render_Pipeline *pipeline) {
 }
 
 void render_pipeline_bind(Render_Context *rc, Render_Pipeline *pipeline) {
-    vkCmdBindPipeline(rc->command_buffers[rc->swap.curr_frame], VK_PIPELINE_BIND_POINT_GRAPHICS,
+    vkCmdBindPipeline(rc->command_buffers[rc->curr_frame], VK_PIPELINE_BIND_POINT_GRAPHICS,
                       pipeline->handle);
 }
 

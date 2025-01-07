@@ -3,6 +3,7 @@
 
 #include "core/arena.h"
 #include "core/common.h"
+#include "window.h"
 
 #include <stdbool.h>
 
@@ -30,13 +31,9 @@ struct Swap_Chain {
     VkImage depth_images[MAX_SWAP_IMGS];
     VkImageView depth_image_views[MAX_SWAP_IMGS];
     u32 image_count;
+    u32 curr_image_idx;
     VkRenderPass render_pass;
     u32 subpass;
-    VkSemaphore image_available_sem[MAX_IN_FLIGHT];
-    VkSemaphore render_finished_sem[MAX_IN_FLIGHT];
-    VkFence in_flight_fence[MAX_IN_FLIGHT];
-    u32 curr_frame;
-    u32 curr_image_idx;
 };
 
 typedef struct Swap_Chain_Info Swap_Chain_Info;
@@ -69,6 +66,10 @@ struct Render_Context {
     Swap_Chain swap;
     VkCommandPool command_pool;
     VkCommandBuffer command_buffers[MAX_IN_FLIGHT];
+    VkSemaphore image_available_sem[MAX_IN_FLIGHT];
+    VkSemaphore render_finished_sem[MAX_IN_FLIGHT];
+    VkFence in_flight_fence[MAX_IN_FLIGHT];
+    u32 curr_frame;
 };
 
 // TODO(spencer): Vulkan allows you to specify your own memory allocation function...
@@ -84,4 +85,5 @@ void render_end_frame(Render_Context *rc);
 // Utility Functions //
 u32 swap_height(Render_Context *rc);
 u32 swap_width(Render_Context *rc);
+void swap_recreate(Render_Context *rc, Window *window);
 #endif // RENDER_CONTEXT_H
