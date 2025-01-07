@@ -2,7 +2,13 @@
 #define RENDER_MODEL_H
 
 #include "core/common.h"
+#include "core/linear_algebra.h"
 #include "render/render_context.h"
+
+typedef struct Vertex Vertex;
+struct Vertex {
+    vec2 position;
+};
 
 typedef struct Render_Model Render_Model;
 struct Render_Model {
@@ -11,7 +17,12 @@ struct Render_Model {
     u32 vertex_count;
 };
 
+// TODO(ss): Either need to use VMA (Vulkan Memory Allocator Library) or create our own gpu memory
+// allocator ASAP
+
+void model_init(Render_Context *rc, Render_Model *model, Vertex *verts, u32 vert_count);
 void model_bind(Render_Context *rc, Render_Model *model);
 void model_draw(Render_Context *rc, Render_Model *model);
+void model_free(Render_Context *rc, Render_Model *model);
 
 #endif // RENDER_MODEL_H

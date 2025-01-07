@@ -322,7 +322,7 @@ static inline mat4 mat4_make_look_at(vec3 eye, vec3 target, vec3 up) {
     // already normal
     vec3 y = vec3_cross(z, x);
 
-    mat4 v = {
+    mat4 m = {
         {
             {x.x, x.y, x.z, -vec3_dot(x, eye)},
             {y.x, y.y, y.z, -vec3_dot(y, eye)},
@@ -331,7 +331,7 @@ static inline mat4 mat4_make_look_at(vec3 eye, vec3 target, vec3 up) {
         },
     };
 
-    return v;
+    return m;
 }
 
 static inline mat4 mat4_make_perspective(f32 fov, f32 inv_aspect, f32 znear, f32 zfar) {

@@ -3,6 +3,7 @@
 
 #include "core/common.h"
 
+#include <assert.h>
 #include <stdarg.h>
 
 #define DEBUG 1
@@ -12,7 +13,7 @@ enum Log_Level {
     LOG_ERROR,
     LOG_WARN,
     LOG_DEBUG,
-    LOG_NUM,
+    LOG_MAX_NUM,
 };
 
 // TODO(spencer): rewrite using platform layer file i/o

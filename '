@@ -1,7 +1,7 @@
 #ifndef VULKAN_EXTENSION_H
 #define VULKAN_EXTENSION_H
 
-#include <vulkan/vulkan_core.h>
+#include "core/common.h"
 
 // NOTE(spencer): This will hold all vulkan function pointers that aren't auto loaded
 
