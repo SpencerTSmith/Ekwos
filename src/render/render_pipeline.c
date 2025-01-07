@@ -1,5 +1,6 @@
 #include "render_pipeline.h"
 #include "core/log.h"
+#include "render/render_model.h"
 
 #include <errno.h>
 #include <stdalign.h>
@@ -32,10 +33,10 @@ Render_Pipeline render_pipeline_create(Arena *arena, Render_Context *rc,
 
     VkPipelineVertexInputStateCreateInfo vertex_input_info = {0};
     vertex_input_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-    vertex_input_info.vertexAttributeDescriptionCount = 0;
-    vertex_input_info.vertexBindingDescriptionCount = 0;
-    vertex_input_info.pVertexAttributeDescriptions = NULL;
-    vertex_input_info.pVertexBindingDescriptions = NULL;
+    vertex_input_info.vertexAttributeDescriptionCount = VERTEX_ATTRIBUTES_NUM;
+    vertex_input_info.vertexBindingDescriptionCount = VERTEX_BINDING_NUM;
+    vertex_input_info.pVertexAttributeDescriptions = vertex_attrib_desc;
+    vertex_input_info.pVertexBindingDescriptions = vertex_binding_desc;
 
     VkPipelineColorBlendStateCreateInfo color_blend_info = {0};
     color_blend_info.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
@@ -104,8 +105,9 @@ void render_pipeline_free(Render_Context *rc, Render_Pipeline *pipeline) {
     LOG_DEBUG("Render Pipeline resources destroyed");
 }
 
-void render_pipeline_bind(Render_Pipeline *pipeline, VkCommandBuffer cmd_buf) {
-    vkCmdBindPipeline(cmd_buf, VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->handle);
+void render_pipeline_bind(Render_Context *rc, Render_Pipeline *pipeline) {
+    vkCmdBindPipeline(rc->command_buffers[rc->swap.curr_frame], VK_PIPELINE_BIND_POINT_GRAPHICS,
+                      pipeline->handle);
 }
 
 Pipeline_Config default_pipeline_config(u32 width, u32 height) {

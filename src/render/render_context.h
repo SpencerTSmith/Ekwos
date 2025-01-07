@@ -36,6 +36,7 @@ struct Swap_Chain {
     VkSemaphore render_finished_sem[MAX_IN_FLIGHT];
     VkFence in_flight_fence[MAX_IN_FLIGHT];
     u32 curr_frame;
+    u32 curr_image_idx;
 };
 
 typedef struct Swap_Chain_Info Swap_Chain_Info;
@@ -70,52 +71,15 @@ struct Render_Context {
     VkCommandBuffer command_buffers[MAX_IN_FLIGHT];
 };
 
-#define VK_CHECK_FATAL(vk_func, message, ...)                                                      \
-    do {                                                                                           \
-        VkResult result = (vk_func);                                                               \
-        if (result != VK_SUCCESS) {                                                                \
-            LOG_FATAL(message, ##__VA_ARGS__);                                                     \
-        }                                                                                          \
-    } while (0)
-#define VK_CHECK_ERROR(vk_func, message, ...)                                                      \
-    do {                                                                                           \
-        VkResult result = (vk_func);                                                               \
-        if (result != VK_SUCCESS) {                                                                \
-            LOG_ERROR(message, ##__VA_ARGS__);                                                     \
-        }                                                                                          \
-    } while (0)
-
-// Can disable these messages at compile time
-#ifdef DEBUG
-#define VK_CHECK_WARN(vk_func, message, ...)                                                       \
-    do {                                                                                           \
-        VkResult result = (vk_func);                                                               \
-        if (result != VK_SUCCESS) {                                                                \
-            LOG_WARN(message, ##__VA_ARGS__);                                                      \
-        }                                                                                          \
-    } while (0)
-#define VK_CHECK_DEBUG(vk_func, message, ...)                                                      \
-    do {                                                                                           \
-        VkResult result = (vk_func);                                                               \
-        if (result != VK_SUCCESS) {                                                                \
-            LOG_WARN(message, ##__VA_ARGS__);                                                      \
-        }                                                                                          \
-    } while (0)
-#else
-#define VK_CHECK_WARN(vk_func, message, ...)
-#define VK_CHECK_DEBUG(vk_func, message, ...)
-#endif
-
-// TODO(spencer): Vulkan allows you to specify your own memory allocation function...         \
-        // may want to incorporate this with our Arena allocator, or other custom allocator suited
+// TODO(spencer): Vulkan allows you to specify your own memory allocation function...
+// may want to incorporate this with our Arena allocator, or other custom allocator suited
 // to it...
 
 void render_context_init(Arena *arena, Render_Context *rndr_ctx, GLFWwindow *window_handle);
 void render_context_free(Render_Context *rndr_ctx);
 
-void render_record_command(Render_Context *rc, VkCommandBuffer buf, u32 image_idx,
-                           Render_Pipeline *pipeline);
-void render_frame(Render_Context *rc, Render_Pipeline *pipeline);
+void render_begin_frame(Render_Context *rc);
+void render_end_frame(Render_Context *rc);
 
 // Utility Functions //
 u32 swap_height(Render_Context *rc);

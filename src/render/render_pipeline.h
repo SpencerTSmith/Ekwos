@@ -33,7 +33,7 @@ Render_Pipeline render_pipeline_create(Arena *arena, Render_Context *rc,
                                        const Pipeline_Config *config);
 void render_pipeline_free(Render_Context *rc, Render_Pipeline *pipeline);
 
-void render_pipeline_bind(Render_Pipeline *pipeline, VkCommandBuffer cmd_buf);
+void render_pipeline_bind(Render_Context *rc, Render_Pipeline *pipeline);
 
 // Sets all besides pipeline_layout, render_pass, and subpass
 Pipeline_Config default_pipeline_config(u32 width, u32 height);

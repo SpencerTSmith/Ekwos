@@ -104,47 +104,7 @@ void render_context_free(Render_Context *rndr_ctx) {
     LOG_DEBUG("Render Context resources destroyed");
 }
 
-void render_record_command(Render_Context *rc, VkCommandBuffer buf, u32 image_idx,
-                           Render_Pipeline *pipeline) {
-    VkCommandBufferBeginInfo begin_info = {0};
-    begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    // more fields set later?
-
-    VkResult result = vkBeginCommandBuffer(buf, &begin_info);
-    if (result != VK_SUCCESS) {
-        LOG_ERROR("Failed to begin command buffer recording");
-    }
-    LOG_DEBUG("Began command buffer recording");
-
-    VkRenderPassBeginInfo render_pass_info = {0};
-    render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
-    render_pass_info.renderPass = rc->swap.render_pass;
-    render_pass_info.framebuffer = rc->swap.framebuffers[image_idx];
-    render_pass_info.renderArea.offset = (VkOffset2D){0, 0};
-    render_pass_info.renderArea.extent = rc->swap.extent;
-
-    VkClearValue clear_color = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
-
-    render_pass_info.clearValueCount = 1;
-    render_pass_info.pClearValues = &clear_color;
-    vkCmdBeginRenderPass(buf, &render_pass_info, VK_SUBPASS_CONTENTS_INLINE);
-    LOG_DEBUG("Began render pass");
-
-    render_pipeline_bind(pipeline, rc->command_buffers[rc->swap.curr_frame]);
-
-    vkCmdDraw(rc->command_buffers[rc->swap.curr_frame], 3, 1, 0, 0);
-
-    vkCmdEndRenderPass(rc->command_buffers[rc->swap.curr_frame]);
-    LOG_DEBUG("Ended render_pass");
-
-    result = vkEndCommandBuffer(rc->command_buffers[rc->swap.curr_frame]);
-    if (result != VK_SUCCESS) {
-        LOG_ERROR("Failed to end command buffer recording");
-    }
-    LOG_DEBUG("Ended command buffer recording");
-}
-
-void render_frame(Render_Context *rc, Render_Pipeline *pipeline) {
+void render_begin_frame(Render_Context *rc) {
     // get this into a register hopefully, more readable too
     u32 current_frame = rc->swap.curr_frame;
 
@@ -154,15 +114,54 @@ void render_frame(Render_Context *rc, Render_Pipeline *pipeline) {
     vkResetFences(rc->logical, 1, &rc->swap.in_flight_fence[current_frame]);
     LOG_DEBUG("Reset in flight fence %u", current_frame);
 
-    // Which framebuffer is ready to be drawn into
-    u32 image_idx;
+    // Which IMAGE... ie the actual framebuffer is ready to be drawn into
+    // This is seperate than per frame resources we keep track of
     vkAcquireNextImageKHR(rc->logical, rc->swap.handle, UINT64_MAX,
-                          rc->swap.image_available_sem[current_frame], VK_NULL_HANDLE, &image_idx);
-    LOG_DEBUG("Acquired next image, %u, from swap chain", image_idx);
+                          rc->swap.image_available_sem[current_frame], VK_NULL_HANDLE,
+                          &rc->swap.curr_image_idx);
+    LOG_DEBUG("Acquired next image, %u, from swap chain", &rc->swap.curr_image_idx);
 
     vkResetCommandBuffer(rc->command_buffers[current_frame], 0);
 
-    render_record_command(rc, rc->command_buffers[current_frame], image_idx, pipeline);
+    // Ok now ready to start the next frame
+    VkCommandBufferBeginInfo begin_info = {0};
+    begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
+    // more fields set later?
+
+    VkResult result = vkBeginCommandBuffer(rc->command_buffers[current_frame], &begin_info);
+    if (result != VK_SUCCESS) {
+        LOG_ERROR("Failed to begin command buffer %u recording", current_frame);
+    }
+    LOG_DEBUG("Began command buffer %u recording", current_frame);
+
+    VkRenderPassBeginInfo render_pass_info = {0};
+    render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
+    render_pass_info.renderPass = rc->swap.render_pass;
+    render_pass_info.framebuffer = rc->swap.framebuffers[rc->swap.curr_image_idx];
+    render_pass_info.renderArea.offset = (VkOffset2D){0, 0};
+    render_pass_info.renderArea.extent = rc->swap.extent;
+
+    // TODO(ss): Probably would be good to lift this out into the contex struct
+    VkClearValue clear_color = {{{0.0f, 0.0f, 0.0f, 1.0f}}};
+
+    render_pass_info.clearValueCount = 1;
+    render_pass_info.pClearValues = &clear_color;
+    vkCmdBeginRenderPass(rc->command_buffers[current_frame], &render_pass_info,
+                         VK_SUBPASS_CONTENTS_INLINE);
+    LOG_DEBUG("Began render pass");
+}
+
+void render_end_frame(Render_Context *rc) {
+    u32 current_frame = rc->swap.curr_frame;
+
+    vkCmdEndRenderPass(rc->command_buffers[current_frame]);
+    LOG_DEBUG("Ended render_pass");
+
+    VkResult result = vkEndCommandBuffer(rc->command_buffers[current_frame]);
+    if (result != VK_SUCCESS) {
+        LOG_ERROR("Failed to end command buffer %u recording", current_frame);
+    }
+    LOG_DEBUG("Ended command buffer %u recording", current_frame);
 
     VkSubmitInfo submit_info = {0};
     submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
@@ -184,8 +183,7 @@ void render_frame(Render_Context *rc, Render_Pipeline *pipeline) {
     submit_info.pSignalSemaphores = signal_semaphores;
 
     // Give it the fence so we know when it's safe to reuse that command buffer
-    VkResult result =
-        vkQueueSubmit(rc->graphic_q, 1, &submit_info, rc->swap.in_flight_fence[current_frame]);
+    result = vkQueueSubmit(rc->graphic_q, 1, &submit_info, rc->swap.in_flight_fence[current_frame]);
     if (result != VK_SUCCESS) {
         LOG_ERROR("Failed to submit command buffer [%u] to graphics queue ", current_frame);
     }
@@ -201,14 +199,15 @@ void render_frame(Render_Context *rc, Render_Pipeline *pipeline) {
 
     present_info.swapchainCount = 1;
     present_info.pSwapchains = swap_chains;
-    present_info.pImageIndices = &image_idx;
+    present_info.pImageIndices = &rc->swap.curr_image_idx;
 
     result = vkQueuePresentKHR(rc->present_q, &present_info);
     if (result != VK_SUCCESS) {
         LOG_ERROR("Failed to present image from queue");
     }
-    LOG_DEBUG("Queued presentation of image [%u]", image_idx);
+    LOG_DEBUG("Queued presentation of image [%u]", &rc->swap.curr_image_idx);
 
+    // And increment with wrap around to the next frame buffer in use
     rc->swap.curr_frame = (current_frame + 1) % MAX_IN_FLIGHT;
 }
 
