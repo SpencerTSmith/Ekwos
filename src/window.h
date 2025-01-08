@@ -13,12 +13,12 @@ struct Window {
     union {
         u32 height, h;
     };
-    char *name;
     GLFWwindow *handle;
+    char *name;
     bool resized;
 };
 
-Window window_create(const char *name, int width, int height);
+void window_create(Window *window, const char *name, int width, int height);
 void window_free(Window *window);
 bool window_should_close(Window window);
 

@@ -19,8 +19,8 @@ target_compile_options(ekwos PRIVATE
 	-Wall
 	-Wextra
 	-Wshadow
-	-DDEBUG=1
 	-Wpedantic
+	-DDEBUG=1
 )
 
 set_target_properties(ekwos PROPERTIES

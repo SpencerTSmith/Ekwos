@@ -1,6 +1,6 @@
 #include "render_pipeline.h"
 #include "core/log.h"
-#include "render/render_model.h"
+#include "render/render_mesh.h"
 
 #include <errno.h>
 #include <stdalign.h>
@@ -106,8 +106,8 @@ void render_pipeline_free(Render_Context *rc, Render_Pipeline *pipeline) {
 }
 
 void render_pipeline_bind(Render_Context *rc, Render_Pipeline *pipeline) {
-    vkCmdBindPipeline(rc->command_buffers[rc->curr_frame], VK_PIPELINE_BIND_POINT_GRAPHICS,
-                      pipeline->handle);
+    vkCmdBindPipeline(rc->swap.command_buffers[rc->swap.curr_frame],
+                      VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->handle);
 }
 
 Pipeline_Config default_pipeline_config(u32 width, u32 height) {

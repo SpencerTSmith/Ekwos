@@ -11,8 +11,8 @@ struct Vertex {
     vec3 color;
 };
 
-typedef struct Render_Model Render_Model;
-struct Render_Model {
+typedef struct Render_Mesh Render_Mesh;
+struct Render_Mesh {
     VkBuffer vertex_buffer;
     VkDeviceMemory memory;
     u32 vertex_count;
@@ -26,9 +26,9 @@ extern const VkVertexInputAttributeDescription vertex_attrib_desc[VERTEX_ATTRIBU
 // TODO(ss): Either need to use VMA (Vulkan Memory Allocator Library) or create our own gpu memory
 // allocator ASAP
 
-void render_model_init(Render_Context *rc, Render_Model *model, Vertex *verts, u32 vert_count);
-void render_model_bind(Render_Context *rc, Render_Model *model);
-void render_model_draw(Render_Context *rc, Render_Model *model);
-void render_model_free(Render_Context *rc, Render_Model *model);
+void render_mesh_init(Render_Context *rc, Render_Mesh *mesh, Vertex *verts, u32 vert_count);
+void render_mesh_bind(Render_Context *rc, Render_Mesh *mesh);
+void render_mesh_draw(Render_Context *rc, Render_Mesh *mesh);
+void render_mesh_free(Render_Context *rc, Render_Mesh *mesh);
 
 #endif // RENDER_MODEL_H

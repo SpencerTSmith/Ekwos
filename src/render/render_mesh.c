@@ -1,4 +1,4 @@
-#include "render/render_model.h"
+#include "render/render_mesh.h"
 #include "core/log.h"
 #include <string.h>
 
@@ -22,26 +22,26 @@ const VkVertexInputAttributeDescription vertex_attrib_desc[VERTEX_ATTRIBUTES_NUM
     },
 };
 
-static void create_vertex_buffers(Render_Context *rc, Render_Model *model, Vertex *verts,
+static void create_vertex_buffers(Render_Context *rc, Render_Mesh *mesh, Vertex *verts,
                                   u32 vert_count);
 
-void render_model_init(Render_Context *rc, Render_Model *model, Vertex *verts, u32 vert_count) {
-    create_vertex_buffers(rc, model, verts, vert_count);
+void render_mesh_init(Render_Context *rc, Render_Mesh *mesh, Vertex *verts, u32 vert_count) {
+    create_vertex_buffers(rc, mesh, verts, vert_count);
 }
 
-void render_model_bind(Render_Context *rc, Render_Model *model) {
-    VkBuffer buffers[] = {model->vertex_buffer};
+void render_mesh_bind(Render_Context *rc, Render_Mesh *mesh) {
+    VkBuffer buffers[] = {mesh->vertex_buffer};
     VkDeviceSize offsets[] = {0};
-    vkCmdBindVertexBuffers(rc->command_buffers[rc->curr_frame], 0, 1, buffers, offsets);
+    vkCmdBindVertexBuffers(rc->swap.command_buffers[rc->swap.curr_frame], 0, 1, buffers, offsets);
 }
 
-void render_model_draw(Render_Context *rc, Render_Model *model) {
-    vkCmdDraw(rc->command_buffers[rc->curr_frame], model->vertex_count, 1, 0, 0);
+void render_mesh_draw(Render_Context *rc, Render_Mesh *mesh) {
+    vkCmdDraw(rc->swap.command_buffers[rc->swap.curr_frame], mesh->vertex_count, 1, 0, 0);
 }
 
-void render_model_free(Render_Context *rc, Render_Model *model) {
-    vkDestroyBuffer(rc->logical, model->vertex_buffer, NULL);
-    vkFreeMemory(rc->logical, model->memory, NULL);
+void render_mesh_free(Render_Context *rc, Render_Mesh *mesh) {
+    vkDestroyBuffer(rc->logical, mesh->vertex_buffer, NULL);
+    vkFreeMemory(rc->logical, mesh->memory, NULL);
 }
 
 static void create_buffer(Render_Context *rc, VkDeviceSize size, VkBufferUsageFlags usage,
@@ -78,6 +78,7 @@ static void create_buffer(Render_Context *rc, VkDeviceSize size, VkBufferUsageFl
     alloc_info.allocationSize = mem_reqs.size;
     alloc_info.memoryTypeIndex = mem_type_idx;
 
+    // TODO(ss): NOOOOOOO, fix this...
     result = vkAllocateMemory(rc->logical, &alloc_info, NULL, buffer_memory);
     if (result != VK_SUCCESS) {
         LOG_ERROR("Failed to allocate memory for buffer");
@@ -87,9 +88,9 @@ static void create_buffer(Render_Context *rc, VkDeviceSize size, VkBufferUsageFl
     vkBindBufferMemory(rc->logical, *buffer, *buffer_memory, 0);
 }
 
-static void create_vertex_buffers(Render_Context *rc, Render_Model *model, Vertex *verts,
+static void create_vertex_buffers(Render_Context *rc, Render_Mesh *mesh, Vertex *verts,
                                   u32 vert_count) {
-    model->vertex_count = vert_count;
+    mesh->vertex_count = vert_count;
     if (vert_count < 3) {
         LOG_ERROR("Vertex count must be greater than or equal to 3");
         return;
@@ -98,11 +99,11 @@ static void create_vertex_buffers(Render_Context *rc, Render_Model *model, Verte
     VkDeviceSize buffer_size = sizeof(Vertex) * vert_count;
     create_buffer(rc, buffer_size, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
                   VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                  &model->vertex_buffer, &model->memory);
+                  &mesh->vertex_buffer, &mesh->memory);
 
     // Map out memory to copy vertex info into
     void *data = NULL;
-    vkMapMemory(rc->logical, model->memory, 0, buffer_size, 0, &data);
+    vkMapMemory(rc->logical, mesh->memory, 0, buffer_size, 0, &data);
     memcpy(data, verts, buffer_size);
-    vkUnmapMemory(rc->logical, model->memory);
+    vkUnmapMemory(rc->logical, mesh->memory);
 }

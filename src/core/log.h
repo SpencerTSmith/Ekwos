@@ -6,8 +6,6 @@
 #include <assert.h>
 #include <stdarg.h>
 
-#define DEBUG 1
-
 enum Log_Level {
     LOG_FATAL,
     LOG_ERROR,

@@ -40,6 +40,8 @@ enum exit_code {
     NUM_EXT
 };
 
-#define clamp(value, min, max) ((value) < (min) ? (min) : ((value) > (max) ? (max) : (value)))
+#define CLAMP(value, min, max) ((value) < (min) ? (min) : ((value) > (max) ? (max) : (value)))
+#define MAX(first, second) ((first) > (second) ? (first) : (second))
+#define MIN(first, second) ((first) > (second) ? (second) : (first))
 
 #endif // COMMON_H
