@@ -5,7 +5,6 @@
 
 #include <malloc.h>
 #include <stdlib.h>
-#include <string.h>
 
 // adds the alignment and then masks the lower bits to get the next (higher) multiple of that
 // alignment... binary math
@@ -31,7 +30,7 @@ Arena arena_create(u64 reserve_size) {
 
 void arena_free(Arena *arena) {
     free(arena->base_ptr);
-    memset(arena, 0, sizeof(Arena));
+    ZERO_STRUCT(arena);
 }
 
 void *arena_alloc(Arena *arena, u64 size, u64 alignment) {
@@ -59,8 +58,7 @@ void *arena_alloc(Arena *arena, u64 size, u64 alignment) {
     }
 
     void *ptr = arena->base_ptr + aligned_offset;
-    // make sure memory is zeroed out
-    memset(ptr, 0, size);
+    ZERO_SIZE(ptr, size); // make sure memory is zeroed out
 
     // now move the offset
     arena->offset = aligned_offset + size;
@@ -88,5 +86,5 @@ Scratch scratch_begin(Arena *arena) {
 
 void scratch_end(Scratch *scratch) {
     arena_pop_to(scratch->arena, scratch->offset_save);
-    memset(scratch, 0, sizeof(Scratch));
+    ZERO_STRUCT(scratch);
 }

@@ -1,23 +1,32 @@
-#include "render_pipeline.h"
+#include "render/render_pipeline.h"
+
 #include "core/log.h"
 #include "render/render_mesh.h"
 
 #include <errno.h>
-#include <stdalign.h>
 #include <stdio.h>
 #include <stdlib.h>
 #include <string.h>
 
+// Sets all besides pipeline_layout, render_pass, and subpass
+
+static Pipeline_Config default_pipeline_config(void);
+
 Render_Pipeline render_pipeline_create(Arena *arena, Render_Context *rc,
                                        const char *vert_shader_path, const char *frag_shader_path,
                                        const Pipeline_Config *config) {
-    Render_Pipeline pipeline = {0};
+    // Use a default if none passed in
+    Pipeline_Config pl_config = config == NULL ? default_pipeline_config() : *config;
+
     // Don't need to keep the shader code memory around
     Scratch scratch = scratch_begin(arena);
+
+    Render_Pipeline pipeline = {0};
     Shader_Code vert_code = read_shader_file(arena, vert_shader_path);
     Shader_Code frag_code = read_shader_file(arena, frag_shader_path);
     VkShaderModule vert_mod = create_shader_module(vert_code, rc->logical);
     VkShaderModule frag_mod = create_shader_module(frag_code, rc->logical);
+
     scratch_end(&scratch);
 
     VkPipelineShaderStageCreateInfo shader_stages[2] = {0};
@@ -35,48 +44,59 @@ Render_Pipeline render_pipeline_create(Arena *arena, Render_Context *rc,
     vertex_input_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
     vertex_input_info.vertexAttributeDescriptionCount = VERTEX_ATTRIBUTES_NUM;
     vertex_input_info.vertexBindingDescriptionCount = VERTEX_BINDING_NUM;
-    vertex_input_info.pVertexAttributeDescriptions = vertex_attrib_desc;
-    vertex_input_info.pVertexBindingDescriptions = vertex_binding_desc;
+    vertex_input_info.pVertexAttributeDescriptions = g_vertex_attrib_desc;
+    vertex_input_info.pVertexBindingDescriptions = g_vertex_binding_desc;
 
     VkPipelineColorBlendStateCreateInfo color_blend_info = {0};
     color_blend_info.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
     color_blend_info.logicOpEnable = VK_FALSE;
     color_blend_info.logicOp = VK_LOGIC_OP_COPY;
     color_blend_info.attachmentCount = 1;
-    color_blend_info.pAttachments = &config->color_blend_attachment;
+    color_blend_info.pAttachments = &pl_config.color_blend_attachment_state;
     color_blend_info.blendConstants[0] = 0.0f;
     color_blend_info.blendConstants[1] = 0.0f;
     color_blend_info.blendConstants[2] = 0.0f;
     color_blend_info.blendConstants[3] = 0.0f;
 
-    // Yet more bullshit we have to create
-    VkPipelineViewportStateCreateInfo viewport_info = {0};
-    viewport_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
-    viewport_info.viewportCount = 1;
-    viewport_info.pViewports = &config->viewport;
-    viewport_info.scissorCount = 1;
-    viewport_info.pScissors = &config->scissor;
+    VkPipelineDynamicStateCreateInfo dynamic_state_info = {0};
+    dynamic_state_info.sType = VK_STRUCTURE_TYPE_PIPELINE_DYNAMIC_STATE_CREATE_INFO;
+    dynamic_state_info.dynamicStateCount = pl_config.dynamic_state_count;
+    dynamic_state_info.pDynamicStates = pl_config.dynamic_states;
 
-    VkResult result = vkCreatePipelineLayout(rc->logical, &config->pipeline_layout_info, NULL,
-                                             &pipeline.pipeline_layout);
-    if (result != VK_SUCCESS) {
-        LOG_ERROR("Failed to create pipeline layout");
-    }
+    VkPushConstantRange push_constants_range = {0};
+    push_constants_range.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
+    push_constants_range.offset = 0;
+    push_constants_range.size = sizeof(Push_Constants);
+
+    VkPipelineLayoutCreateInfo layout_info = {0};
+    layout_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
+    layout_info.setLayoutCount = 0;
+    layout_info.pSetLayouts = NULL;
+    layout_info.pushConstantRangeCount = 1;
+    layout_info.pPushConstantRanges = &push_constants_range;
+
+    VK_CHECK_FATAL(vkCreatePipelineLayout(rc->logical, &layout_info, NULL, &pipeline.layout),
+                   EXT_VULKAN_PIPELINE_LAYOUT, "Failed to create pipeline layout");
 
     VkGraphicsPipelineCreateInfo pipeline_info = {0};
     pipeline_info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
+
+    // Every thing we finish creating / configuring after getting the config structure
     pipeline_info.stageCount = 2;
     pipeline_info.pStages = shader_stages;
-    pipeline_info.pVertexInputState = &vertex_input_info;
-    pipeline_info.pInputAssemblyState = &config->input_assembly_info;
-    pipeline_info.pViewportState = &viewport_info;
-    pipeline_info.pMultisampleState = &config->multisample_info;
-    pipeline_info.pRasterizationState = &config->rasterization_info;
-    pipeline_info.pDepthStencilState = &config->depth_stencil_info;
     pipeline_info.pColorBlendState = &color_blend_info;
-    pipeline_info.pDynamicState = NULL;
+    pipeline_info.pDynamicState = &dynamic_state_info;
+    pipeline_info.pVertexInputState = &vertex_input_info;
 
-    pipeline_info.layout = pipeline.pipeline_layout;
+    // Enough info from our struct
+    pipeline_info.pInputAssemblyState = &pl_config.input_assembly_info;
+    pipeline_info.pViewportState = &pl_config.viewport_info;
+    pipeline_info.pMultisampleState = &pl_config.multisample_info;
+    pipeline_info.pRasterizationState = &pl_config.rasterization_info;
+    pipeline_info.pDepthStencilState = &pl_config.depth_stencil_info;
+
+    // Stuff we keep track of either from the general render context or with this specific pipeline
+    pipeline_info.layout = pipeline.layout;
     pipeline_info.renderPass = rc->swap.render_pass;
     pipeline_info.subpass = rc->swap.subpass;
 
@@ -84,11 +104,9 @@ Render_Pipeline render_pipeline_create(Arena *arena, Render_Context *rc,
     pipeline_info.basePipelineIndex = -1;
     pipeline_info.basePipelineHandle = VK_NULL_HANDLE;
 
-    result = vkCreateGraphicsPipelines(rc->logical, VK_NULL_HANDLE, 1, &pipeline_info, NULL,
-                                       &pipeline.handle);
-    if (result != VK_SUCCESS) {
-        LOG_ERROR("Failed to create pipeline");
-    }
+    VK_CHECK_FATAL(vkCreateGraphicsPipelines(rc->logical, VK_NULL_HANDLE, 1, &pipeline_info, NULL,
+                                             &pipeline.handle),
+                   EXT_VULKAN_PIPELINE_CREATE, "Failed to create pipeline");
 
     // We can clean up any shader modules now
     vkDestroyShaderModule(rc->logical, vert_mod, NULL);
@@ -98,37 +116,29 @@ Render_Pipeline render_pipeline_create(Arena *arena, Render_Context *rc,
     return pipeline;
 }
 
-void render_pipeline_free(Render_Context *rc, Render_Pipeline *pipeline) {
-    vkDestroyPipelineLayout(rc->logical, pipeline->pipeline_layout, NULL);
-    vkDestroyPipeline(rc->logical, pipeline->handle, NULL);
-    memset(pipeline, 0, sizeof(*pipeline));
+void render_pipeline_free(Render_Context *rc, Render_Pipeline *pl) {
+    vkDestroyPipelineLayout(rc->logical, pl->layout, NULL);
+    vkDestroyPipeline(rc->logical, pl->handle, NULL);
+    ZERO_STRUCT(pl);
     LOG_DEBUG("Render Pipeline resources destroyed");
 }
 
-void render_pipeline_bind(Render_Context *rc, Render_Pipeline *pipeline) {
-    vkCmdBindPipeline(rc->swap.command_buffers[rc->swap.curr_frame],
-                      VK_PIPELINE_BIND_POINT_GRAPHICS, pipeline->handle);
+void render_pipeline_bind(Render_Context *rc, Render_Pipeline *pl) {
+    vkCmdBindPipeline(render_get_current_command(rc), VK_PIPELINE_BIND_POINT_GRAPHICS, pl->handle);
 }
 
-Pipeline_Config default_pipeline_config(u32 width, u32 height) {
+void render_push_constants(Render_Context *rc, Render_Pipeline *pl, Push_Constants push) {
+    vkCmdPushConstants(render_get_current_command(rc), pl->layout,
+                       VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0,
+                       sizeof(Push_Constants), &push);
+}
+
+static Pipeline_Config default_pipeline_config(void) {
     Pipeline_Config config = {0};
     // What is the primitive assembly like? (How are vertices treated... triangles, points, etc)
     config.input_assembly_info.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
     config.input_assembly_info.topology = VK_PRIMITIVE_TOPOLOGY_TRIANGLE_LIST;
     config.input_assembly_info.primitiveRestartEnable = VK_FALSE;
-
-    // How do we go from NDconfig.to screen coords?
-    config.viewport.x = 0.0f;
-    config.viewport.y = 0.0f;
-    config.viewport.width = width;
-    config.viewport.height = height;
-    config.viewport.minDepth = 0.0f;
-    config.viewport.maxDepth = 1.0f;
-
-    VkOffset2D offset = {.x = 0, .y = 0};
-    VkExtent2D extent = {.width = width, .height = height};
-    config.scissor.offset = offset;
-    config.scissor.extent = extent;
 
     config.rasterization_info.sType = VK_STRUCTURE_TYPE_PIPELINE_RASTERIZATION_STATE_CREATE_INFO;
     config.rasterization_info.depthClampEnable = VK_FALSE;
@@ -150,21 +160,26 @@ Pipeline_Config default_pipeline_config(u32 width, u32 height) {
     config.multisample_info.alphaToCoverageEnable = VK_FALSE;
     config.multisample_info.alphaToOneEnable = VK_FALSE;
 
-    config.color_blend_attachment.colorWriteMask =
+    config.color_blend_attachment_state.colorWriteMask =
         VK_COLOR_COMPONENT_R_BIT | VK_COLOR_COMPONENT_G_BIT | VK_COLOR_COMPONENT_B_BIT |
         VK_COLOR_COMPONENT_A_BIT;
-    config.color_blend_attachment.blendEnable = VK_FALSE;
-    config.color_blend_attachment.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
-    config.color_blend_attachment.colorBlendOp = VK_BLEND_OP_ADD;
-    config.color_blend_attachment.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
-    config.color_blend_attachment.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
-    config.color_blend_attachment.alphaBlendOp = VK_BLEND_OP_ADD;
+    config.color_blend_attachment_state.blendEnable = VK_FALSE;
+    config.color_blend_attachment_state.srcColorBlendFactor = VK_BLEND_FACTOR_ONE;
+    config.color_blend_attachment_state.colorBlendOp = VK_BLEND_OP_ADD;
+    config.color_blend_attachment_state.srcAlphaBlendFactor = VK_BLEND_FACTOR_ONE;
+    config.color_blend_attachment_state.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
+    config.color_blend_attachment_state.alphaBlendOp = VK_BLEND_OP_ADD;
 
-    config.pipeline_layout_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
-    config.pipeline_layout_info.setLayoutCount = 0;
-    config.pipeline_layout_info.pSetLayouts = NULL;
-    config.pipeline_layout_info.pushConstantRangeCount = 0;
-    config.pipeline_layout_info.pPushConstantRanges = NULL;
+    // Dynamic yo
+    config.viewport_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
+    config.viewport_info.viewportCount = 1;
+    config.viewport_info.pViewports = VK_NULL_HANDLE;
+    config.viewport_info.scissorCount = 1;
+    config.viewport_info.pScissors = VK_NULL_HANDLE;
+
+    config.dynamic_states[0] = VK_DYNAMIC_STATE_VIEWPORT;
+    config.dynamic_states[1] = VK_DYNAMIC_STATE_SCISSOR;
+    config.dynamic_state_count = 2;
 
     return config;
 }
@@ -184,30 +199,30 @@ Shader_Code read_shader_file(Arena *arena, const char *file_path) {
         return shader_data;
     }
 
-    i64 size = ftell(shader_file);
-    if (size == -1L) {
+    i64 byte_count = ftell(shader_file);
+    if (byte_count == -1L) {
         LOG_ERROR("Failed to get size of shader file: %s, %s\n", file_path, strerror(errno));
         fclose(shader_file);
         return shader_data;
     }
 
-    shader_data.size = size;
+    shader_data.size = byte_count;
     rewind(shader_file);
 
     // aligned with u32, since that is what vulkan is expecting
-    shader_data.data = arena_alloc(arena, size * sizeof(shader_data.data), alignof(u32));
+    shader_data.data = arena_calloc(arena, byte_count, u8);
 
-    i64 bytes_read = fread(shader_data.data, 1, size, shader_file);
-    if (bytes_read != size) {
+    i64 bytes_read = fread(shader_data.data, 1, byte_count, shader_file);
+    if (bytes_read != byte_count) {
         LOG_ERROR("Bytes read from shader file does not match shader size: %s, %s\n", file_path,
                   strerror(errno));
-        arena_pop(arena, size);
+        arena_pop(arena, byte_count);
         fclose(shader_file);
         return shader_data;
     }
 
     fclose(shader_file);
-    LOG_DEBUG("Read shader file: %s, with size %u", file_path, size);
+    LOG_DEBUG("Read shader file: %s, with size %u", file_path, byte_count);
     return shader_data;
 }
 
@@ -219,9 +234,8 @@ VkShaderModule create_shader_module(Shader_Code code, VkDevice device) {
     ci.pCode = (const u32 *)code.data;
 
     VkShaderModule shader_module;
-    if (vkCreateShaderModule(device, &ci, NULL, &shader_module)) {
-        LOG_ERROR("Failed to create shader module");
-    }
+    VK_CHECK_FATAL(vkCreateShaderModule(device, &ci, NULL, &shader_module),
+                   EXT_VULKAN_SHADER_MODULE, "Failed to create shader module");
 
     return shader_module;
 }

@@ -20,16 +20,16 @@ struct Game {
 };
 
 int main(int argc, char **argv) {
-    Arena arena = arena_create(1024 * 100);
 
     Game game = {0};
+    Arena arena = arena_create(1024 * 100);
     window_create(&game.window, "Ekwos: Atavistic Chariot", 800, 600);
     render_context_init(&arena, &game.rctx, game.window.handle);
 
-    Pipeline_Config config =
-        default_pipeline_config(render_swap_width(&game.rctx), render_swap_height(&game.rctx));
     Render_Pipeline pipeline = render_pipeline_create(&arena, &game.rctx, "shaders/vert.vert.spv",
-                                                      "shaders/frag.frag.spv", &config);
+                                                      "shaders/frag.frag.spv", NULL);
+    arena_free(&arena);
+
     Vertex verts[] = {
         {.position = {.x = 0.0f, .y = -0.5f}, .color = {.r = 1.0f, .g = 0.0f, .b = 0.0f}},
         {.position = {.x = 0.5f, .y = 0.5f}, .color = {.r = 0.0f, .g = 1.0f, .b = 0.0f}},
@@ -44,7 +44,14 @@ int main(int argc, char **argv) {
         if (render_begin_frame(&game.rctx, &game.window)) {
             render_pipeline_bind(&game.rctx, &pipeline);
             render_mesh_bind(&game.rctx, &mesh);
-            render_mesh_draw(&game.rctx, &mesh);
+            for (u32 i = 0; i < 4; i++) {
+                Push_Constants push = {0};
+                push.offset = vec2(0.0f, -0.4f + i * 0.25f);
+                push.color = vec3(0.0f - i * .2f, 0.8f - i * .2f, 0.2f + 0.2f * i);
+                render_push_constants(&game.rctx, &pipeline, push);
+
+                render_mesh_draw(&game.rctx, &mesh);
+            }
             render_end_frame(&game.rctx);
         }
     }
@@ -55,6 +62,5 @@ int main(int argc, char **argv) {
     render_context_free(&game.rctx);
     window_free(&game.window);
 
-    arena_free(&arena);
     return EXT_SUCCESS;
 }

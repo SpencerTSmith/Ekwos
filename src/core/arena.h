@@ -1,7 +1,8 @@
 #ifndef ARENA_H
 #define ARENA_H
 
-#include "common.h"
+#include "core/common.h"
+#include <stdalign.h>
 
 typedef struct Arena Arena;
 struct Arena {
@@ -18,7 +19,7 @@ void arena_pop(Arena *arena, u64 size);
 void arena_clear(Arena *arena);
 
 // Helper Macros //
-#define arena_calloc(a, c, t) (t *)(arena_alloc((a), sizeof(t) * (c), alignof(t)))
+#define arena_calloc(a, c, T) (T *)arena_alloc((a), sizeof(T) * (c), alignof(T))
 
 // We just want some temporary, quickly deallocated memory
 // ie we save the offset we wish to return to after using this arena as a scratch pad

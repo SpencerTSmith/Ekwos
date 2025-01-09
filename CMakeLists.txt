@@ -1,6 +1,8 @@
 cmake_minimum_required(VERSION 3.10)
 project(ekwos LANGUAGES C)
 
+set(CMAKE_EXPORT_COMPILE_COMMANDS ON)
+
 file(GLOB_RECURSE SOURCES "src/*.c")
 
 # Create the executable

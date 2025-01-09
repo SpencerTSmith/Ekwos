@@ -3,7 +3,9 @@
 
 #define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
+
 #include <stdint.h>
+#include <string.h>
 
 typedef int64_t i64;
 typedef int32_t i32;
@@ -18,8 +20,16 @@ typedef uint8_t u8;
 typedef float f32;
 typedef double f64;
 
-#define CLAMP(value, min, max) ((value) < (min) ? (min) : ((value) > (max) ? (max) : (value)))
+// Nice little macros //
+#define CLAMP(value, min, max) (((value) < (min)) ? (min) : ((value) > (max)) ? (max) : (value))
 #define MAX(first, second) ((first) > (second) ? (first) : (second))
 #define MIN(first, second) ((first) > (second) ? (second) : (first))
+
+#define STATIC_ARRAY_COUNT(arr) (sizeof(arr) / sizeof(arr[0]))
+
+#define ZERO_STRUCT(ptr) (memset((ptr), 0, sizeof(*(ptr))))
+#define ZERO_SIZE(ptr, size) (memset((ptr), 0, (size)))
+
+#define VOID_PROC ((void)0)
 
 #endif // COMMON_H

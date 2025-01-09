@@ -43,6 +43,7 @@ void window_free(Window *window) {
 
 bool window_should_close(Window window) { return glfwWindowShouldClose(window.handle); }
 
+// TODO(ss): look into window refresh callback for smoother window resize
 static void framebuffer_resize_callback(GLFWwindow *handle, int width, int height) {
     Window *window = (Window *)glfwGetWindowUserPointer(handle);
     window->w = width;

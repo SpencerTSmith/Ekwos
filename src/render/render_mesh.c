@@ -1,13 +1,14 @@
 #include "render/render_mesh.h"
-#include "core/log.h"
-#include <string.h>
 
-const VkVertexInputBindingDescription vertex_binding_desc[VERTEX_BINDING_NUM] = {{
+#include "core/log.h"
+#include "render/render_context.h"
+
+const VkVertexInputBindingDescription g_vertex_binding_desc[VERTEX_BINDING_NUM] = {{
     .binding = 0,
     .stride = sizeof(Vertex),
     .inputRate = VK_VERTEX_INPUT_RATE_VERTEX,
 }};
-const VkVertexInputAttributeDescription vertex_attrib_desc[VERTEX_ATTRIBUTES_NUM] = {
+const VkVertexInputAttributeDescription g_vertex_attrib_desc[VERTEX_ATTRIBUTES_NUM] = {
     {
         .binding = 0,
         .location = 0,
@@ -32,16 +33,17 @@ void render_mesh_init(Render_Context *rc, Render_Mesh *mesh, Vertex *verts, u32 
 void render_mesh_bind(Render_Context *rc, Render_Mesh *mesh) {
     VkBuffer buffers[] = {mesh->vertex_buffer};
     VkDeviceSize offsets[] = {0};
-    vkCmdBindVertexBuffers(rc->swap.command_buffers[rc->swap.curr_frame], 0, 1, buffers, offsets);
+    vkCmdBindVertexBuffers(render_get_current_command(rc), 0, 1, buffers, offsets);
 }
 
 void render_mesh_draw(Render_Context *rc, Render_Mesh *mesh) {
-    vkCmdDraw(rc->swap.command_buffers[rc->swap.curr_frame], mesh->vertex_count, 1, 0, 0);
+    vkCmdDraw(render_get_current_command(rc), mesh->vertex_count, 1, 0, 0);
 }
 
 void render_mesh_free(Render_Context *rc, Render_Mesh *mesh) {
     vkDestroyBuffer(rc->logical, mesh->vertex_buffer, NULL);
     vkFreeMemory(rc->logical, mesh->memory, NULL);
+    ZERO_STRUCT(mesh);
 }
 
 static void create_buffer(Render_Context *rc, VkDeviceSize size, VkBufferUsageFlags usage,
@@ -53,11 +55,8 @@ static void create_buffer(Render_Context *rc, VkDeviceSize size, VkBufferUsageFl
     buffer_info.usage = usage;
     buffer_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-    VkResult result = vkCreateBuffer(rc->logical, &buffer_info, NULL, buffer);
-    if (result != VK_SUCCESS) {
-        LOG_ERROR("Failed to create buffer");
-        return;
-    }
+    VK_CHECK_ERROR(vkCreateBuffer(rc->logical, &buffer_info, NULL, buffer),
+                   "Failed to create buffer");
 
     VkMemoryRequirements mem_reqs = {0};
     vkGetBufferMemoryRequirements(rc->logical, *buffer, &mem_reqs);
@@ -79,13 +78,11 @@ static void create_buffer(Render_Context *rc, VkDeviceSize size, VkBufferUsageFl
     alloc_info.memoryTypeIndex = mem_type_idx;
 
     // TODO(ss): NOOOOOOO, fix this...
-    result = vkAllocateMemory(rc->logical, &alloc_info, NULL, buffer_memory);
-    if (result != VK_SUCCESS) {
-        LOG_ERROR("Failed to allocate memory for buffer");
-        return;
-    }
+    VK_CHECK_ERROR(vkAllocateMemory(rc->logical, &alloc_info, NULL, buffer_memory),
+                   "Failed to allocate memory for buffer");
 
-    vkBindBufferMemory(rc->logical, *buffer, *buffer_memory, 0);
+    VK_CHECK_ERROR(vkBindBufferMemory(rc->logical, *buffer, *buffer_memory, 0),
+                   "Failed to bind buffer memory");
 }
 
 static void create_vertex_buffers(Render_Context *rc, Render_Mesh *mesh, Vertex *verts,
@@ -103,7 +100,8 @@ static void create_vertex_buffers(Render_Context *rc, Render_Mesh *mesh, Vertex 
 
     // Map out memory to copy vertex info into
     void *data = NULL;
-    vkMapMemory(rc->logical, mesh->memory, 0, buffer_size, 0, &data);
+    VK_CHECK_ERROR(vkMapMemory(rc->logical, mesh->memory, 0, buffer_size, 0, &data),
+                   "Unable to map buffer memory for transfer");
     memcpy(data, verts, buffer_size);
     vkUnmapMemory(rc->logical, mesh->memory);
 }

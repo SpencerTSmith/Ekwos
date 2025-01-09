@@ -8,6 +8,7 @@ enum Log_Level {
     LOG_ERROR,
     LOG_WARN,
     LOG_DEBUG,
+    LOG_INFO,
     LOG_MAX_NUM,
 };
 
@@ -33,10 +34,15 @@ enum Exit_Code {
     EXT_VULKAN_RENDER_PASS_CREATE,
     EXT_VULKAN_COMMAND_POOL,
     EXT_VULKAN_COMMAND_BUFFER,
+    EXT_VULKAN_PIPELINE_LAYOUT,
+    EXT_VULKAN_PIPELINE_CREATE,
+    EXT_VULKAN_SHADER_MODULE,
+    EXT_VULKAN_IMAGE_ACQUIRE,
     NUM_EXT
 };
 
 // TODO(spencer): rewrite using platform layer file i/o
+// also look into custom asserts
 void log_message(enum Log_Level level, const char *file, u64 line, const char *message, ...);
 
 // The ## is specific to GCC... need to see about others
@@ -48,8 +54,14 @@ void log_message(enum Log_Level level, const char *file, u64 line, const char *m
 #define LOG_WARN(message, ...) log_message(LOG_WARN, __FILE__, __LINE__, message, ##__VA_ARGS__)
 #define LOG_DEBUG(message, ...) log_message(LOG_DEBUG, __FILE__, __LINE__, message, ##__VA_ARGS__)
 #else
-#define LOG_WARN(message, ...)
-#define LOG_DEBUG(message, ...)
-#endif
+#define LOG_WARN(message, ...) VOID_PROC
+#define LOG_DEBUG(message, ...) VOID_PROC
+#endif // DEBUG
+
+#ifdef EXTRA_INFO
+#define LOG_INFO(message, ...) log_message(LOG_INFO, __FILE__, __LINE__, message, ##__VA_ARGS__)
+#else
+#define LOG_INFO(message, ...) VOID_PROC
+#endif // EXTRA_INFO
 
 #endif // LOG_H

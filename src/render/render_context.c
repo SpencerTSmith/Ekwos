@@ -1,7 +1,6 @@
 #include "render_context.h"
 #include "core/log.h"
 
-#include <stdalign.h>
 #include <stdbool.h>
 #include <stdio.h>
 #include <stdlib.h>
@@ -9,16 +8,14 @@
 
 #ifdef DEBUG
 static const char *const enabled_validation_layers[] = {"VK_LAYER_KHRONOS_validation"};
-static const u32 num_enable_validation_layers = 1;
 static const bool enable_val_layers = true;
 #else
-const char *const enabled_validation_layers[] = NULL;
-const u32 num_enable_validation_layers = 0;
-const bool enable_val_layers = false;
-#endif
+static const char *const enabled_validation_layers[] = NULL;
+static const u32 num_enable_validation_layers = 0;
+static const bool enable_val_layers = false;
+#endif // DEBUG defined
 
 static const char *const device_extensions[] = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
-static const u32 device_extension_count = 1;
 
 // Internals //
 typedef struct Swap_Chain_Info Swap_Chain_Info;
@@ -73,136 +70,143 @@ void render_context_free(Render_Context *rc) {
         vkDestroyDebugUtilsMessengerEXT(rc->instance, rc->debug_msgr, NULL);
     }
     vkDestroyInstance(rc->instance, NULL);
+    ZERO_STRUCT(rc);
     LOG_DEBUG("Render Context resources destroyed");
 }
 
 bool render_begin_frame(Render_Context *rc, Window *window) {
     // get this into a register hopefully, more readable too
-    u32 current_frame = rc->swap.curr_frame;
+    u32 current_frame = rc->swap.current_frame_idx;
 
-    // TODO(ss): after doing a bit of research and thinking... is this nessecary?
-    // we wait for command buffer in reference to the current frame to finish
-    // But shouldn't the semaphores and the fact we rerecord every frame make this not matter
-    VkResult result = vkWaitForFences(rc->logical, 1, &rc->swap.in_flight_fence[current_frame],
-                                      VK_TRUE, UINT64_MAX);
-    if (result != VK_SUCCESS) {
-        LOG_ERROR("Failed to wait on in flight fence %u", current_frame);
-    }
+    VK_CHECK_ERROR(vkWaitForFences(rc->logical, 1, &render_get_current_frame(rc)->in_flight_fence,
+                                   VK_TRUE, UINT64_MAX),
+                   "Failed to wait on in flight fence %u", current_frame);
 
     // Which IMAGE... ie the actual framebuffer is ready to be drawn into
     // This is seperate than per frame resources we keep track of
-    VkResult image_acquire_result = vkAcquireNextImageKHR(
-        rc->logical, rc->swap.handle, UINT64_MAX, rc->swap.image_available_sem[current_frame],
-        VK_NULL_HANDLE, &rc->swap.curr_image_idx);
-    // LOG_DEBUG("Acquired next image, %u, from swap chain", &rc->swap.curr_image_idx);
+    VkResult result = vkAcquireNextImageKHR(rc->logical, rc->swap.handle, UINT64_MAX,
+                                            render_get_current_frame(rc)->image_available_sem,
+                                            VK_NULL_HANDLE, &rc->swap.current_target_idx);
+    LOG_INFO("Acquired next image, %u, from swap chain", rc->swap.current_target_idx);
 
-    if (image_acquire_result == VK_ERROR_OUT_OF_DATE_KHR ||
-        image_acquire_result == VK_SUBOPTIMAL_KHR || window->resized) {
-        LOG_DEBUG("Window resized (%u , %u), starting swap chain recreation", window->w, window->h);
+    if (result == VK_ERROR_OUT_OF_DATE_KHR || result == VK_SUBOPTIMAL_KHR || window->resized) {
         recreate_swap_chain(rc, window);
         window->resized = false;
+        LOG_DEBUG("Window resized (%u , %u), swap chain recreated", window->w, window->h);
         return false;
-    } else if (image_acquire_result != VK_SUCCESS) {
-        LOG_ERROR("Unable to acquire next swap chain image");
+    } else if (result != VK_SUCCESS) {
+        VK_CHECK_FATAL(result, EXT_VULKAN_IMAGE_ACQUIRE, "Unable to acquire next swap chain image");
     }
 
-    result = vkResetFences(rc->logical, 1, &rc->swap.in_flight_fence[current_frame]);
-    if (result != VK_SUCCESS) {
-        LOG_ERROR("Failed to reset in flight fence %u", current_frame);
-    }
+    VK_CHECK_ERROR(vkResetFences(rc->logical, 1, &render_get_current_frame(rc)->in_flight_fence),
+                   "Failed to reset in flight fence %u", current_frame);
+    LOG_INFO("Waited for and reset in flight fence %u", current_frame);
 
-    // LOG_DEBUG("Waited for and reset in flight fence %u", current_frame);
-
-    result = vkResetCommandBuffer(rc->swap.command_buffers[current_frame], 0);
-    if (result != VK_SUCCESS) {
-        LOG_ERROR("Failed to reset command buffer %u", current_frame);
-    }
+    VK_CHECK_ERROR(vkResetCommandBuffer(render_get_current_command(rc), 0),
+                   "Failed to reset command buffer %u", current_frame);
 
     // Ok now ready to start the next frame
     VkCommandBufferBeginInfo begin_info = {0};
     begin_info.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_BEGIN_INFO;
-    // more fields set later?
+    begin_info.flags =
+        VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT; // we rerecord every frame, check this
 
-    result = vkBeginCommandBuffer(rc->swap.command_buffers[current_frame], &begin_info);
-    if (result != VK_SUCCESS) {
-        LOG_ERROR("Failed to begin command buffer %u recording", current_frame);
-    }
-    // LOG_DEBUG("Began command buffer %u recording", current_frame);
+    VK_CHECK_ERROR(vkBeginCommandBuffer(render_get_current_command(rc), &begin_info),
+                   "Failed to begin command buffer %u recording", current_frame);
+    LOG_INFO("Began command buffer %u recording", current_frame);
+
+    VkOffset2D offset = {0, 0};
 
     VkRenderPassBeginInfo render_pass_info = {0};
     render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_BEGIN_INFO;
     render_pass_info.renderPass = rc->swap.render_pass;
-    render_pass_info.framebuffer = rc->swap.framebuffers[rc->swap.curr_image_idx];
-    render_pass_info.renderArea.offset = (VkOffset2D){0, 0};
+    render_pass_info.framebuffer = rc->swap.targets[rc->swap.current_target_idx].framebuffer;
+    render_pass_info.renderArea.offset = offset;
     render_pass_info.renderArea.extent = rc->swap.extent;
 
-    // TODO(ss): Probably would be good to lift this out into the context struct
-    VkClearValue clear_color = {.color = {.float32 = {0.2f, 0.3f, 0.2f, 1.0f}}};
+    VkClearValue clear_values[] = {{rc->swap.clear_color}};
+    render_pass_info.clearValueCount = STATIC_ARRAY_COUNT(clear_values);
+    render_pass_info.pClearValues = clear_values;
 
-    render_pass_info.clearValueCount = 1;
-    render_pass_info.pClearValues = &clear_color;
-    vkCmdBeginRenderPass(rc->swap.command_buffers[current_frame], &render_pass_info,
+    vkCmdBeginRenderPass(render_get_current_command(rc), &render_pass_info,
                          VK_SUBPASS_CONTENTS_INLINE);
-    // LOG_DEBUG("Began render pass");
+
+    VkViewport viewport = {
+        .x = 0.0f,
+        .y = 0.0f,
+        .width = (f32)rc->swap.extent.width,
+        .height = (f32)rc->swap.extent.height,
+        .minDepth = 0.0f,
+        .maxDepth = 1.0f,
+    };
+    VkRect2D scissor = {
+        .offset = offset,
+        .extent = rc->swap.extent,
+    };
+
+    vkCmdSetViewport(render_get_current_command(rc), 0, 1, &viewport);
+    vkCmdSetScissor(render_get_current_command(rc), 0, 1, &scissor);
+    LOG_INFO("Began render pass");
 
     return true;
 }
 
 void render_end_frame(Render_Context *rc) {
-    u32 current_frame = rc->swap.curr_frame;
+    u32 current_frame = rc->swap.current_frame_idx;
 
-    vkCmdEndRenderPass(rc->swap.command_buffers[current_frame]);
-    // LOG_DEBUG("Ended render_pass");
+    vkCmdEndRenderPass(render_get_current_command(rc));
+    LOG_INFO("Ended render_pass");
 
-    VkResult result = vkEndCommandBuffer(rc->swap.command_buffers[current_frame]);
-    if (result != VK_SUCCESS) {
-        LOG_ERROR("Failed to end command buffer %u recording", current_frame);
-    }
+    VK_CHECK_ERROR(vkEndCommandBuffer(render_get_current_command(rc)),
+                   "Failed to end command buffer %u recording", current_frame);
     // LOG_DEBUG("Ended command buffer %u recording", current_frame);
 
-    // Which semaphores to wait on
-    VkSemaphore wait_semaphores[] = {rc->swap.image_available_sem[current_frame]};
-    // Which semaphores to signal once finished
-    VkSemaphore signal_semaphores[] = {rc->swap.render_finished_sem[current_frame]};
+    VkSemaphore wait_semaphores[] = {render_get_current_frame(rc)->image_available_sem};
+    VkSemaphore signal_semaphores[] = {render_get_current_frame(rc)->render_finished_sem};
+
     VkPipelineStageFlags wait_stages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
 
+    VkCommandBuffer current_command_buffer = render_get_current_command(rc);
     VkSubmitInfo submit_info = {0};
     submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     submit_info.commandBufferCount = 1;
-    submit_info.pCommandBuffers = &rc->swap.command_buffers[current_frame];
-    submit_info.waitSemaphoreCount = 1;
+    submit_info.pCommandBuffers = &current_command_buffer;
+    submit_info.waitSemaphoreCount = STATIC_ARRAY_COUNT(wait_semaphores);
     submit_info.pWaitSemaphores = wait_semaphores;
     submit_info.pWaitDstStageMask = wait_stages;
-    submit_info.signalSemaphoreCount = 1;
+    submit_info.signalSemaphoreCount = STATIC_ARRAY_COUNT(signal_semaphores);
     submit_info.pSignalSemaphores = signal_semaphores;
 
     // Give it the fence so we know when it's safe to reuse that command buffer
-    result = vkQueueSubmit(rc->graphic_q, 1, &submit_info, rc->swap.in_flight_fence[current_frame]);
-    if (result != VK_SUCCESS) {
-        LOG_ERROR("Failed to submit command buffer %u to graphics queue ", current_frame);
-    }
-    // LOG_DEBUG("Submitted command buffer to graphics queue");
+    VK_CHECK_ERROR(vkQueueSubmit(rc->graphic_q, 1, &submit_info,
+                                 render_get_current_frame(rc)->in_flight_fence),
+                   "Failed to submit command buffer %u to graphics queue ", current_frame);
+    LOG_INFO("Submitted command buffer to graphics queue");
 
     VkPresentInfoKHR present_info = {0};
     present_info.sType = VK_STRUCTURE_TYPE_PRESENT_INFO_KHR;
-    present_info.waitSemaphoreCount = 1;
+    present_info.waitSemaphoreCount = STATIC_ARRAY_COUNT(signal_semaphores);
     present_info.pWaitSemaphores = signal_semaphores;
     present_info.swapchainCount = 1; // highly doubt we will ever have more than one
     present_info.pSwapchains = &rc->swap.handle;
-    present_info.pImageIndices = &rc->swap.curr_image_idx;
+    present_info.pImageIndices = &rc->swap.current_target_idx;
 
-    result = vkQueuePresentKHR(rc->present_q, &present_info);
-    if (result != VK_SUCCESS) {
-        LOG_ERROR("Failed to present image from queue");
-    }
-    // LOG_DEBUG("Queued presentation of image %u", &rc->swap.curr_image_idx);
+    VK_CHECK_ERROR(vkQueuePresentKHR(rc->present_q, &present_info),
+                   "Failed to present image from queue");
+    LOG_INFO("Queued presentation of image %u", rc->swap.current_target_idx);
 
     // And increment with wrap around to the next frame resourecs to use
-    rc->swap.curr_frame = (current_frame + 1) % MAX_FRAMES_IN_FLIGHT;
+    rc->swap.current_frame_idx = (current_frame + 1) % MAX_FRAMES_IN_FLIGHT;
 }
 
-u32 render_swap_height(Render_Context *rc) { return rc->swap.extent.height; }
-u32 render_swap_width(Render_Context *rc) { return rc->swap.extent.width; }
+u32 render_get_swap_height(const Render_Context *rc) {
+    assert(rc != NULL);
+    return rc->swap.extent.height;
+}
+u32 render_get_swap_width(const Render_Context *rc) {
+    assert(rc != NULL);
+    return rc->swap.extent.width;
+}
 
 static const char **get_glfw_required_extensions(Arena *arena, u32 *num_extensions) {
     u32 glfw_extension_count = 0;
@@ -217,11 +221,11 @@ static const char **get_glfw_required_extensions(Arena *arena, u32 *num_extensio
     const char **extensions = NULL;
     if (enable_val_layers) {
         *num_extensions = glfw_extension_count + 1;
-        extensions = arena_alloc(arena, *num_extensions * sizeof(char *), alignof(char *));
+        extensions = arena_calloc(arena, *num_extensions, const char *);
 
         for (u32 i = 0; i < glfw_extension_count; i++) {
             u32 extension_length = strlen(glfw_extensions[i]) + 1;
-            char *extension = arena_alloc(arena, extension_length * sizeof(char), alignof(char));
+            char *extension = arena_calloc(arena, extension_length, char);
 
             strcpy(extension, glfw_extensions[i]);
             extensions[i] = extension;
@@ -229,18 +233,17 @@ static const char **get_glfw_required_extensions(Arena *arena, u32 *num_extensio
 
         // Add debug utils layer extension
         u32 debug_layer_extension_length = strlen(VK_EXT_DEBUG_UTILS_EXTENSION_NAME) + 1;
-        char *debug_layer_extension =
-            arena_alloc(arena, debug_layer_extension_length * sizeof(char), alignof(char));
+        char *debug_layer_extension = arena_calloc(arena, debug_layer_extension_length, char);
 
         strcpy(debug_layer_extension, VK_EXT_DEBUG_UTILS_EXTENSION_NAME);
         extensions[*num_extensions - 1] = debug_layer_extension;
     } else {
         *num_extensions = glfw_extension_count;
-        extensions = arena_alloc(arena, *num_extensions * sizeof(char *), alignof(char *));
+        extensions = arena_calloc(arena, *num_extensions, const char *);
 
         for (u32 i = 0; i < glfw_extension_count; i++) {
             u32 extension_length = strlen(glfw_extensions[i]) + 1;
-            char *extension = arena_alloc(arena, extension_length * sizeof(char), alignof(char));
+            char *extension = arena_calloc(arena, extension_length, char);
 
             strcpy(extension, glfw_extensions[i]);
             extensions[i] = extension;
@@ -255,8 +258,8 @@ static bool check_val_layer_support(Arena *arena, const char *const *layers, u32
     VK_CHECK_ERROR(vkEnumerateInstanceLayerProperties(&num_supported_layers, NULL),
                    "Failed to enumerate instance layer properties");
 
-    VkLayerProperties *supported_layers = arena_alloc(
-        arena, num_supported_layers * sizeof(VkLayerProperties), alignof(VkLayerProperties));
+    VkLayerProperties *supported_layers =
+        arena_calloc(arena, num_supported_layers, VkLayerProperties);
     VK_CHECK_ERROR(vkEnumerateInstanceLayerProperties(&num_supported_layers, supported_layers),
                    "Failed to enumerate instance layer properties");
 
@@ -311,7 +314,7 @@ static void create_instance(Arena *arena, Render_Context *rc) {
     VkDebugUtilsMessengerCreateInfoEXT debug_info = {0};
     if (enable_val_layers) {
         if (!check_val_layer_support(arena, enabled_validation_layers,
-                                     num_enable_validation_layers)) {
+                                     STATIC_ARRAY_COUNT(enabled_validation_layers))) {
             LOG_FATAL("Failed to find specified Validation Layers");
             exit(EXT_VULKAN_LAYERS);
         }
@@ -328,7 +331,7 @@ static void create_instance(Arena *arena, Render_Context *rc) {
         // Add this extension so we get debug info about creating instances
         create_info.pNext = (VkDebugUtilsMessengerCreateInfoEXT *)&debug_info;
 
-        create_info.enabledLayerCount = num_enable_validation_layers;
+        create_info.enabledLayerCount = STATIC_ARRAY_COUNT(enabled_validation_layers);
         create_info.ppEnabledLayerNames = enabled_validation_layers;
         LOG_DEBUG("Found adequate layer support");
     }
@@ -391,8 +394,7 @@ static void choose_physical_device(Arena *arena, Render_Context *rc) {
     VK_CHECK_ERROR(vkEnumeratePhysicalDevices(instance, &device_count, NULL),
                    "Faield to enumerate physical devices");
 
-    VkPhysicalDevice *phys_devs =
-        arena_alloc(arena, device_count * sizeof(VkPhysicalDevice), alignof(VkPhysicalDevice));
+    VkPhysicalDevice *phys_devs = arena_calloc(arena, device_count, VkPhysicalDevice);
     VK_CHECK_ERROR(vkEnumeratePhysicalDevices(instance, &device_count, phys_devs),
                    "Faield to enumerate physical devices");
 
@@ -408,7 +410,7 @@ static void choose_physical_device(Arena *arena, Render_Context *rc) {
         // supports a swapchain
         if (dev_props.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU &&
             check_device_extension_support(arena, phys_devs[i], device_extensions,
-                                           device_extension_count)) {
+                                           STATIC_ARRAY_COUNT(device_extensions))) {
             physical_device = phys_devs[i];
             break;
         }
@@ -431,8 +433,7 @@ static Queue_Family_Indices get_queue_family_indices(Arena *arena, VkPhysicalDev
     vkGetPhysicalDeviceQueueFamilyProperties(device, &queue_family_count, NULL);
 
     VkQueueFamilyProperties *queue_family_props =
-        arena_alloc(arena, queue_family_count * sizeof(VkQueueFamilyProperties),
-                    alignof(VkQueueFamilyProperties));
+        arena_calloc(arena, queue_family_count, VkQueueFamilyProperties);
     vkGetPhysicalDeviceQueueFamilyProperties(device, &queue_family_count, queue_family_props);
 
     // Get the queue for graphics and presentation
@@ -505,11 +506,11 @@ static void create_logical_device(Arena *arena, Render_Context *rc) {
     device_create_info.queueCreateInfoCount = num_queue_creates;
     device_create_info.pQueueCreateInfos = queue_creates;
     device_create_info.pEnabledFeatures = &device_features;
-    device_create_info.enabledExtensionCount = device_extension_count;
+    device_create_info.enabledExtensionCount = STATIC_ARRAY_COUNT(device_extensions);
     device_create_info.ppEnabledExtensionNames = device_extensions;
 
     if (enable_val_layers) {
-        device_create_info.enabledLayerCount = num_enable_validation_layers;
+        device_create_info.enabledLayerCount = STATIC_ARRAY_COUNT(enabled_validation_layers);
         device_create_info.ppEnabledLayerNames = enabled_validation_layers;
     }
 
@@ -608,12 +609,9 @@ static VkExtent2D choose_swap_extent(VkSurfaceCapabilitiesKHR capabilities, GLFW
     return actual_extend;
 }
 
-static void create_image_views(Render_Context *rc);
-static void create_frame_buffers(Render_Context *rc);
 static void create_render_pass(Render_Context *rc);
-static void create_sync_objects(Render_Context *rc);
-static void create_command_pool(Render_Context *rc);
-static void alloc_command_buffers(Render_Context *rc);
+static void create_target_resources(Render_Context *rc);
+static void create_frame_resources(Render_Context *rc);
 
 static void create_swap_chain(Arena *arena, Render_Context *rc, GLFWwindow *window) {
     Swap_Chain_Info info = get_swap_chain_info(arena, rc->physical, rc->surface);
@@ -622,19 +620,19 @@ static void create_swap_chain(Arena *arena, Render_Context *rc, GLFWwindow *wind
     rc->swap.present_mode = choose_swap_present_mode(info.present_modes, info.present_mode_count);
     rc->swap.extent = choose_swap_extent(info.capabilities, window);
 
-    // Suggested to use at least one more
-    rc->swap.image_count = info.capabilities.minImageCount + 1;
+    rc->swap.clear_color = (VkClearColorValue){.float32 = {0.0f, 0.f, 0.0f, 1.0f}};
 
-    // Little clamp
-    rc->swap.image_count = CLAMP(rc->swap.image_count, 0, info.capabilities.maxImageCount);
-    // if (info.capabilities.maxImageCount > 0 && image_count > info.capabilities.maxImageCount) {
-    //     image_count = info.capabilities.maxImageCount;
-    // }
+    // Suggested to use at least one more
+    rc->swap.target_count = MAX(info.capabilities.minImageCount + 1, MAX_SWAP_IMAGES);
+    if (info.capabilities.maxImageCount > 0) {
+        rc->swap.target_count = CLAMP(rc->swap.target_count, info.capabilities.minImageCount,
+                                      info.capabilities.maxImageCount);
+    }
 
     VkSwapchainCreateInfoKHR create_info = {0};
     create_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
     create_info.surface = rc->surface;
-    create_info.minImageCount = rc->swap.image_count;
+    create_info.minImageCount = rc->swap.target_count;
     create_info.imageFormat = rc->swap.surface_format.format;
     create_info.imageExtent = rc->swap.extent;
     create_info.imageColorSpace = rc->swap.surface_format.colorSpace;
@@ -660,21 +658,19 @@ static void create_swap_chain(Arena *arena, Render_Context *rc, GLFWwindow *wind
     create_info.compositeAlpha = VK_COMPOSITE_ALPHA_OPAQUE_BIT_KHR;
     // Don't need to keep track of clipped pixels
     create_info.clipped = VK_TRUE;
-    // Creating for the first time
-    create_info.oldSwapchain = VK_NULL_HANDLE;
+    // We can always just do this, since this will be null if first time
+    create_info.oldSwapchain = rc->swap.handle;
 
     VK_CHECK_FATAL(vkCreateSwapchainKHR(rc->logical, &create_info, NULL, &rc->swap.handle),
                    EXT_VULKAN_SWAP_CHAIN_CREATE, "Failed to create swapchain");
     LOG_DEBUG("Created swap chain");
 
     create_render_pass(rc);
-    create_image_views(rc);
-    create_frame_buffers(rc);
-    create_command_pool(rc);
-    alloc_command_buffers(rc);
-    create_sync_objects(rc);
+    create_target_resources(rc);
+    create_frame_resources(rc);
 }
 
+// TODO(ss): solve this, make it so it just calls the original recreate swap chain
 static void recreate_swap_chain(Render_Context *rc, Window *window) {
     VkExtent2D extent = {window->w, window->h};
 
@@ -691,7 +687,7 @@ static void recreate_swap_chain(Render_Context *rc, Window *window) {
     VkSwapchainCreateInfoKHR create_info = {0};
     create_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
     create_info.surface = rc->surface;
-    create_info.minImageCount = rc->swap.image_count;
+    create_info.minImageCount = rc->swap.target_count;
     create_info.imageFormat = rc->swap.surface_format.format;
     create_info.imageExtent = rc->swap.extent;
     create_info.imageColorSpace = rc->swap.surface_format.colorSpace;
@@ -733,73 +729,10 @@ static void recreate_swap_chain(Render_Context *rc, Window *window) {
     rc->swap.handle = new_swap;
 
     create_render_pass(rc);
-    create_image_views(rc);
-    create_frame_buffers(rc);
-    create_command_pool(rc);
-    alloc_command_buffers(rc);
-    create_sync_objects(rc);
-}
 
-static void create_image_views(Render_Context *rc) {
-    VK_CHECK_ERROR(
-        vkGetSwapchainImagesKHR(rc->logical, rc->swap.handle, &rc->swap.image_count, NULL),
-        "Unable to get swap chain images");
-    LOG_DEBUG("Swap chain using %u images", rc->swap.image_count);
-
-    // Grab handles to the swap images
-    if (rc->swap.image_count > 0 && rc->swap.image_count <= MAX_SWAP_IMGS) {
-        vkGetSwapchainImagesKHR(rc->logical, rc->swap.handle, &rc->swap.image_count,
-                                rc->swap.images);
-    }
-
-    // Get image views
-    for (u32 i = 0; i < rc->swap.image_count; i++) {
-        VkImageViewCreateInfo iv_info = {0};
-        iv_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
-        iv_info.image = rc->swap.images[i];
-        iv_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
-        iv_info.format = rc->swap.surface_format.format;
-        iv_info.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
-        iv_info.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
-        iv_info.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
-        iv_info.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
-        iv_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
-        iv_info.subresourceRange.baseMipLevel = 0;
-        iv_info.subresourceRange.levelCount = 1;
-        iv_info.subresourceRange.baseArrayLayer = 0;
-        iv_info.subresourceRange.layerCount = 1;
-
-        VK_CHECK_FATAL(vkCreateImageView(rc->logical, &iv_info, NULL, &rc->swap.image_views[i]),
-                       EXT_VULKAN_SWAP_CHAIN_IMAGE_VIEW, "Failed to creat swap chain image view %u",
-                       i);
-        LOG_DEBUG("Created swap chain image view %u", i);
-    }
-}
-
-static void create_frame_buffers(Render_Context *rc) {
-    Swap_Chain *swap = &rc->swap;
-    // Create framebuffers from image views... may want to have more attachments in future...
-    // array
-    for (u32 i = 0; i < swap->image_count; i++) {
-        // NOTE(spencer): when changing this in future remember to change attachmentCount in
-        // fb_info
-        VkImageView attachments[] = {
-            swap->image_views[i],
-        };
-
-        VkFramebufferCreateInfo fb_info = {0};
-        fb_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
-        fb_info.renderPass = swap->render_pass;
-        fb_info.attachmentCount = 1;
-        fb_info.pAttachments = attachments;
-        fb_info.width = swap->extent.width;
-        fb_info.height = swap->extent.height;
-        fb_info.layers = 1;
-
-        VK_CHECK_FATAL(vkCreateFramebuffer(rc->logical, &fb_info, NULL, &swap->framebuffers[i]),
-                       EXT_VULKAN_LOGICAL_DEVICE, "Failed to create framebuffer %u", i);
-        LOG_DEBUG("Created framebuffer %u", i);
-    }
+    create_target_resources(rc);
+    create_frame_resources(rc);
+    // TODO(ss): Check if render pass is compatible with render pipelines
 }
 
 static void create_render_pass(Render_Context *rc) {
@@ -853,7 +786,70 @@ static void create_render_pass(Render_Context *rc) {
     LOG_DEBUG("Created render pass");
 }
 
-static void create_command_pool(Render_Context *rc) {
+static void create_target_resources(Render_Context *rc) {
+    VK_CHECK_ERROR(
+        vkGetSwapchainImagesKHR(rc->logical, rc->swap.handle, &rc->swap.target_count, NULL),
+        "Unable to get swap chain images");
+    LOG_DEBUG("Swap chain using %u images", rc->swap.target_count);
+
+    // Grab handles to the swap images
+    VkImage temp_image_array[MAX_SWAP_IMAGES] = {0};
+    if (rc->swap.target_count > 0 && rc->swap.target_count <= MAX_SWAP_IMAGES) {
+        vkGetSwapchainImagesKHR(rc->logical, rc->swap.handle, &rc->swap.target_count,
+                                temp_image_array);
+    }
+
+    // Get image views
+    for (u32 i = 0; i < rc->swap.target_count; i++) {
+        rc->swap.targets[i].image = temp_image_array[i];
+
+        VkImageViewCreateInfo iv_info = {0};
+        iv_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        iv_info.image = rc->swap.targets[i].image;
+        iv_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        iv_info.format = rc->swap.surface_format.format;
+        iv_info.components.r = VK_COMPONENT_SWIZZLE_IDENTITY;
+        iv_info.components.g = VK_COMPONENT_SWIZZLE_IDENTITY;
+        iv_info.components.b = VK_COMPONENT_SWIZZLE_IDENTITY;
+        iv_info.components.a = VK_COMPONENT_SWIZZLE_IDENTITY;
+        iv_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_COLOR_BIT;
+        iv_info.subresourceRange.baseMipLevel = 0;
+        iv_info.subresourceRange.levelCount = 1;
+        iv_info.subresourceRange.baseArrayLayer = 0;
+        iv_info.subresourceRange.layerCount = 1;
+
+        VK_CHECK_FATAL(
+            vkCreateImageView(rc->logical, &iv_info, NULL, &rc->swap.targets[i].image_view),
+            EXT_VULKAN_SWAP_CHAIN_IMAGE_VIEW, "Failed to creat swap chain image view %u", i);
+        LOG_DEBUG("Created swap chain image view %u", i);
+    }
+
+    // Create framebuffers from image views... may want to have more attachments in future...
+    // array
+    for (u32 i = 0; i < rc->swap.target_count; i++) {
+        // NOTE(spencer): when changing this in future remember to change attachmentCount in
+        // fb_info
+        VkImageView attachments[] = {
+            rc->swap.targets[i].image_view,
+        };
+
+        VkFramebufferCreateInfo fb_info = {0};
+        fb_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
+        fb_info.renderPass = rc->swap.render_pass;
+        fb_info.attachmentCount = 1;
+        fb_info.pAttachments = attachments;
+        fb_info.width = rc->swap.extent.width;
+        fb_info.height = rc->swap.extent.height;
+        fb_info.layers = 1;
+
+        VK_CHECK_FATAL(
+            vkCreateFramebuffer(rc->logical, &fb_info, NULL, &rc->swap.targets[i].framebuffer),
+            EXT_VULKAN_LOGICAL_DEVICE, "Failed to create framebuffer %u", i);
+        LOG_DEBUG("Created framebuffer %u", i);
+    }
+}
+
+static void create_frame_resources(Render_Context *rc) {
     VkCommandPoolCreateInfo pi = {0};
     pi.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     pi.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
@@ -863,21 +859,25 @@ static void create_command_pool(Render_Context *rc) {
     VK_CHECK_FATAL(vkCreateCommandPool(rc->logical, &pi, NULL, &rc->swap.command_pool),
                    EXT_VULKAN_COMMAND_POOL, "Failed to create command pool");
     LOG_DEBUG("Created command pool");
-}
 
-static void alloc_command_buffers(Render_Context *rc) {
+    // TODO(ss): some time of configuration or checks on this number
+    rc->swap.frames_in_flight = MAX_FRAMES_IN_FLIGHT;
+
     VkCommandBufferAllocateInfo cba = {0};
     cba.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     cba.commandPool = rc->swap.command_pool;
     cba.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
-    cba.commandBufferCount = MAX_FRAMES_IN_FLIGHT;
+    cba.commandBufferCount = rc->swap.frames_in_flight;
 
-    VK_CHECK_FATAL(vkAllocateCommandBuffers(rc->logical, &cba, rc->swap.command_buffers),
+    VkCommandBuffer temp_command_buffer_array[MAX_FRAMES_IN_FLIGHT];
+    VK_CHECK_FATAL(vkAllocateCommandBuffers(rc->logical, &cba, temp_command_buffer_array),
                    EXT_VULKAN_COMMAND_BUFFER, "Failed to allocate command buffer");
-    LOG_DEBUG("Allocated command buffer");
-}
+    for (u32 i = 0; i < rc->swap.frames_in_flight; i++) {
+        rc->swap.frames[i].command_buffer = temp_command_buffer_array[i];
+    }
 
-static void create_sync_objects(Render_Context *rc) {
+    LOG_DEBUG("Allocated command buffers");
+
     VkSemaphoreCreateInfo sem_info = {0};
     sem_info.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
@@ -885,36 +885,37 @@ static void create_sync_objects(Render_Context *rc) {
     fence_info.sType = VK_STRUCTURE_TYPE_FENCE_CREATE_INFO;
     fence_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
-    for (u32 i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-
-        VK_CHECK_FATAL(
-            vkCreateSemaphore(rc->logical, &sem_info, NULL, &rc->swap.image_available_sem[i]),
-            EXT_VULKAN_SYNC_OBJECT, "Failed to create image available semaphore");
+    for (u32 i = 0; i < rc->swap.frames_in_flight; i++) {
+        VK_CHECK_FATAL(vkCreateSemaphore(rc->logical, &sem_info, NULL,
+                                         &rc->swap.frames[i].image_available_sem),
+                       EXT_VULKAN_SYNC_OBJECT, "Failed to create image available semaphore");
         LOG_DEBUG("Created image available semaphore %u", i);
 
-        VK_CHECK_FATAL(
-            vkCreateSemaphore(rc->logical, &sem_info, NULL, &rc->swap.render_finished_sem[i]),
-            EXT_VULKAN_SYNC_OBJECT, "Failed to create render_finished semaphore");
+        VK_CHECK_FATAL(vkCreateSemaphore(rc->logical, &sem_info, NULL,
+                                         &rc->swap.frames[i].render_finished_sem),
+                       EXT_VULKAN_SYNC_OBJECT, "Failed to create render_finished semaphore");
         LOG_DEBUG("Created render finished semaphore %u", i);
 
-        VK_CHECK_FATAL(vkCreateFence(rc->logical, &fence_info, NULL, &rc->swap.in_flight_fence[i]),
-                       EXT_VULKAN_SYNC_OBJECT, "Failed to create in flight fence");
+        VK_CHECK_FATAL(
+            vkCreateFence(rc->logical, &fence_info, NULL, &rc->swap.frames[i].in_flight_fence),
+            EXT_VULKAN_SYNC_OBJECT, "Failed to create in flight fence");
         LOG_DEBUG("Created in flight fence %u", i);
     }
 }
 
 static void destroy_swap_chain(Render_Context *rc) {
     for (u32 i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-        vkDestroySemaphore(rc->logical, rc->swap.render_finished_sem[i], NULL);
-        vkDestroySemaphore(rc->logical, rc->swap.image_available_sem[i], NULL);
-        vkDestroyFence(rc->logical, rc->swap.in_flight_fence[i], NULL);
+        vkDestroySemaphore(rc->logical, rc->swap.frames[i].render_finished_sem, NULL);
+        vkDestroySemaphore(rc->logical, rc->swap.frames[i].image_available_sem, NULL);
+        vkDestroyFence(rc->logical, rc->swap.frames[i].in_flight_fence, NULL);
     }
     vkDestroyCommandPool(rc->logical, rc->swap.command_pool, NULL);
     vkDestroyRenderPass(rc->logical, rc->swap.render_pass, NULL);
-    for (u32 i = 0; i < rc->swap.image_count; i++) {
-        vkDestroyFramebuffer(rc->logical, rc->swap.framebuffers[i], NULL);
-        vkDestroyImageView(rc->logical, rc->swap.image_views[i], NULL);
+    for (u32 i = 0; i < rc->swap.target_count; i++) {
+        vkDestroyFramebuffer(rc->logical, rc->swap.targets[i].framebuffer, NULL);
+        vkDestroyImageView(rc->logical, rc->swap.targets[i].image_view, NULL);
     }
     vkDestroySwapchainKHR(rc->logical, rc->swap.handle, NULL);
+    // ZERO_STRUCT(&rc->swap);
     LOG_DEBUG("Destroyed swap chain resources");
 }

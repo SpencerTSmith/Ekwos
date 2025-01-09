@@ -11,6 +11,13 @@ struct Vertex {
     vec3 color;
 };
 
+// Remember alignment shit
+typedef struct Push_Constants Push_Constants;
+struct Push_Constants {
+    vec2 offset;
+    alignas(16) vec3 color;
+};
+
 typedef struct Render_Mesh Render_Mesh;
 struct Render_Mesh {
     VkBuffer vertex_buffer;
@@ -20,8 +27,8 @@ struct Render_Mesh {
 
 #define VERTEX_BINDING_NUM 1
 #define VERTEX_ATTRIBUTES_NUM 2
-extern const VkVertexInputBindingDescription vertex_binding_desc[VERTEX_BINDING_NUM];
-extern const VkVertexInputAttributeDescription vertex_attrib_desc[VERTEX_ATTRIBUTES_NUM];
+extern const VkVertexInputBindingDescription g_vertex_binding_desc[VERTEX_BINDING_NUM];
+extern const VkVertexInputAttributeDescription g_vertex_attrib_desc[VERTEX_ATTRIBUTES_NUM];
 
 // TODO(ss): Either need to use VMA (Vulkan Memory Allocator Library) or create our own gpu memory
 // allocator ASAP

@@ -6,6 +6,7 @@
 #include "core/log.h"
 #include "window.h"
 
+#include <assert.h>
 #include <stdbool.h>
 
 // Taken from Vulkan Samples, with couple modifications , the fatal version will exit with specified
@@ -29,19 +30,23 @@
 
 // Constants
 enum {
-    MAX_SWAP_IMGS = 3,
+    MAX_SWAP_IMAGES = 3,
     MAX_FRAMES_IN_FLIGHT = 2,
     QUEUE_NUM = 2,
 };
 
-typedef struct Swap_Chain Swap_Chain; // Just in case we want easy pointers
+// Just in case we want easy pointers
+typedef struct Swap_Chain Swap_Chain;
+typedef struct Swap_Target Swap_Target;
+typedef struct Swap_Frame Swap_Frame;
+
 typedef struct Render_Context Render_Context;
 struct Render_Context {
     VkInstance instance;
     VkDebugUtilsMessengerEXT debug_msgr;
     VkSurfaceKHR surface;
-
     VkPhysicalDevice physical;
+
     VkDevice logical;
     VkQueue graphic_q;
     u32 graphic_index;
@@ -52,27 +57,33 @@ struct Render_Context {
     // once I learn more this may not be the best practice
     struct Swap_Chain {
         VkSwapchainKHR handle;
+
+        VkClearColorValue clear_color;
+
         VkExtent2D extent;
         VkSurfaceFormatKHR surface_format;
         VkPresentModeKHR present_mode;
-        VkFramebuffer framebuffers[MAX_SWAP_IMGS];
-        VkImage images[MAX_SWAP_IMGS];
-        VkImageView image_views[MAX_SWAP_IMGS];
-        VkImage depth_images[MAX_SWAP_IMGS];
-        VkImageView depth_image_views[MAX_SWAP_IMGS];
-        u32 image_count;
-        u32 curr_image_idx;
+
         VkRenderPass render_pass;
         u32 subpass;
+
+        struct Swap_Target {
+            VkFramebuffer framebuffer;
+            VkImage image;
+            VkImageView image_view;
+        } targets[MAX_SWAP_IMAGES];
+        u32 current_target_idx;
+        u32 target_count;
+
         VkCommandPool command_pool;
-        // TODO(ss): Really think this out, we want all these resources to only ever be grouped with
-        // their fellows in the same frame... how best to do this? Struct, have a reference to the
-        // current struct? Or keep the curr_frame idx? Helper function?
-        VkCommandBuffer command_buffers[MAX_FRAMES_IN_FLIGHT];
-        VkSemaphore image_available_sem[MAX_FRAMES_IN_FLIGHT];
-        VkSemaphore render_finished_sem[MAX_FRAMES_IN_FLIGHT];
-        VkFence in_flight_fence[MAX_FRAMES_IN_FLIGHT];
-        u32 curr_frame;
+        struct Swap_Frame {
+            VkCommandBuffer command_buffer;
+            VkSemaphore image_available_sem;
+            VkSemaphore render_finished_sem;
+            VkFence in_flight_fence;
+        } frames[MAX_FRAMES_IN_FLIGHT];
+        u32 current_frame_idx;
+        u32 frames_in_flight;
     } swap;
 };
 
@@ -87,7 +98,14 @@ bool render_begin_frame(Render_Context *render_context, Window *window);
 void render_end_frame(Render_Context *render_context);
 
 // Utility Functions //
-u32 render_swap_height(Render_Context *render_context);
-u32 render_swap_width(Render_Context *render_context);
+u32 render_get_swap_height(const Render_Context *render_context);
+u32 render_get_swap_width(const Render_Context *render_context);
+static inline const Swap_Frame *render_get_current_frame(const Render_Context *rc) {
+    assert(rc != NULL);
+    return &rc->swap.frames[rc->swap.current_frame_idx];
+}
+static inline VkCommandBuffer render_get_current_command(const Render_Context *rc) {
+    return render_get_current_frame(rc)->command_buffer;
+}
 
 #endif // RENDER_CONTEXT_H
