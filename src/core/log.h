@@ -14,9 +14,35 @@ enum Log_Level {
     LOG_MAX_NUM,
 };
 
+enum Exit_Code {
+    EXT_SUCCESS,
+    EXT_GLFW_INIT,
+    EXT_VULKAN_SUPPORT,
+    EXT_GLFW_WINDOW_CREATION,
+    EXT_GLFW_EXTENSIONS,
+    EXT_ARENA_ALLOCATION,
+    EXT_ARENA_SIZE,
+    EXT_VULKAN_INSTANCE,
+    EXT_VULKAN_LAYERS,
+    EXT_VULKAN_DEBUG_MESSENGER,
+    EXT_VULKAN_NO_DEVICE,
+    EXT_VULKAN_QUEUE_FAMILIES,
+    EXT_VULKAN_LOGICAL_DEVICE,
+    EXT_VULKAN_SURFACE,
+    EXT_VULKAN_SWAP_CHAIN_INFO,
+    EXT_VULKAN_SWAP_CHAIN_CREATE,
+    EXT_VULKAN_SWAP_CHAIN_IMAGE_VIEW,
+    EXT_VULKAN_SYNC_OBJECT,
+    EXT_VULKAN_RENDER_PASS_CREATE,
+    EXT_VULKAN_COMMAND_POOL,
+    EXT_VULKAN_COMMAND_BUFFER,
+    NUM_EXT
+};
+
 // TODO(spencer): rewrite using platform layer file i/o
 void log_message(enum Log_Level level, const char *file, u64 line, const char *message, ...);
 
+// The ## is specific to GCC... need to see about others
 #define LOG_FATAL(message, ...) log_message(LOG_FATAL, __FILE__, __LINE__, message, ##__VA_ARGS__)
 #define LOG_ERROR(message, ...) log_message(LOG_ERROR, __FILE__, __LINE__, message, ##__VA_ARGS__)
 

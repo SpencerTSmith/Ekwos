@@ -5,18 +5,18 @@
 #include <stdlib.h>
 #include <string.h>
 
-#include "core/common.h"
+#include "core/log.h"
 
 static void framebuffer_resize_callback(GLFWwindow *window, int width, int height);
 
 void window_create(Window *window, const char *name, int width, int height) {
     if (!glfwInit()) {
-        fprintf(stderr, "GLFW failed to initialize\n");
+        LOG_FATAL("GLFW failed to initialize");
         exit(EXT_GLFW_INIT);
     }
 
     if (!glfwVulkanSupported()) {
-        fprintf(stderr, "Vulkan is not supported\n");
+        LOG_FATAL("Vulkan is not supported");
         glfwTerminate();
         exit(EXT_VULKAN_SUPPORT);
     }
@@ -26,7 +26,7 @@ void window_create(Window *window, const char *name, int width, int height) {
 
     window->handle = glfwCreateWindow(width, height, name, NULL, NULL);
     if (window->handle == NULL) {
-        fprintf(stderr, "Failed to create GLFW window\n");
+        LOG_FATAL("Failed to create GLFW window");
         glfwTerminate();
         exit(EXT_GLFW_WINDOW_CREATION);
     }

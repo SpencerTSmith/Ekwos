@@ -8,17 +8,17 @@
 #include <string.h>
 
 #ifdef DEBUG
-const char *const enabled_validation_layers[] = {"VK_LAYER_KHRONOS_validation"};
-const u32 num_enable_validation_layers = 1;
-const bool enable_val_layers = true;
+static const char *const enabled_validation_layers[] = {"VK_LAYER_KHRONOS_validation"};
+static const u32 num_enable_validation_layers = 1;
+static const bool enable_val_layers = true;
 #else
 const char *const enabled_validation_layers[] = NULL;
 const u32 num_enable_validation_layers = 0;
 const bool enable_val_layers = false;
 #endif
 
-const char *const device_extensions[] = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
-const u32 num_device_extensions = 1;
+static const char *const device_extensions[] = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+static const u32 device_extension_count = 1;
 
 // Internals //
 typedef struct Swap_Chain_Info Swap_Chain_Info;
@@ -30,7 +30,6 @@ struct Swap_Chain_Info {
     u32 present_mode_count;
 };
 
-#define QUEUE_NUM 2
 typedef struct Queue_Family_Indices Queue_Family_Indices;
 struct Queue_Family_Indices {
     u32 graphic;
@@ -71,7 +70,7 @@ void render_context_free(Render_Context *rc) {
     vkDestroySurfaceKHR(rc->instance, rc->surface, NULL);
     vkDestroyDevice(rc->logical, NULL);
     if (enable_val_layers) {
-        vkDestroyDebugUtilsMessengerEXT(rc->instance, rc->debug_messenger, NULL);
+        vkDestroyDebugUtilsMessengerEXT(rc->instance, rc->debug_msgr, NULL);
     }
     vkDestroyInstance(rc->instance, NULL);
     LOG_DEBUG("Render Context resources destroyed");
@@ -253,11 +252,13 @@ static const char **get_glfw_required_extensions(Arena *arena, u32 *num_extensio
 
 static bool check_val_layer_support(Arena *arena, const char *const *layers, u32 num_layers) {
     u32 num_supported_layers;
-    vkEnumerateInstanceLayerProperties(&num_supported_layers, NULL);
+    VK_CHECK_ERROR(vkEnumerateInstanceLayerProperties(&num_supported_layers, NULL),
+                   "Failed to enumerate instance layer properties");
 
     VkLayerProperties *supported_layers = arena_alloc(
         arena, num_supported_layers * sizeof(VkLayerProperties), alignof(VkLayerProperties));
-    vkEnumerateInstanceLayerProperties(&num_supported_layers, supported_layers);
+    VK_CHECK_ERROR(vkEnumerateInstanceLayerProperties(&num_supported_layers, supported_layers),
+                   "Failed to enumerate instance layer properties");
 
     for (u32 i = 0; i < num_layers; i++) {
         bool found = false;
@@ -280,7 +281,7 @@ static bool check_val_layer_support(Arena *arena, const char *const *layers, u32
 VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(
     VkDebugUtilsMessageSeverityFlagsEXT msg_severity, VkDebugUtilsMessageTypeFlagsEXT msg_type,
     const VkDebugUtilsMessengerCallbackDataEXT *callback_data, void *user_data) {
-    if (msg_severity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
+    if (msg_severity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_INFO_BIT_EXT) {
         LOG_FATAL("Validation layer: %s", callback_data->pMessage);
     }
     return VK_FALSE;
@@ -307,25 +308,25 @@ static void create_instance(Arena *arena, Render_Context *rc) {
     create_info.enabledExtensionCount = num_extensions;
     create_info.ppEnabledExtensionNames = extensions;
 
-    VkDebugUtilsMessengerCreateInfoEXT debug_create_info = {0};
+    VkDebugUtilsMessengerCreateInfoEXT debug_info = {0};
     if (enable_val_layers) {
         if (!check_val_layer_support(arena, enabled_validation_layers,
                                      num_enable_validation_layers)) {
             LOG_FATAL("Failed to find specified Validation Layers");
             exit(EXT_VULKAN_LAYERS);
         }
-        debug_create_info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
+        debug_info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
         // Add back in VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT if needed
-        debug_create_info.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
-                                            VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
-        debug_create_info.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
-                                        VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
-                                        VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
-        debug_create_info.pfnUserCallback = debug_callback;
-        debug_create_info.pUserData = NULL; // something to add later?
+        debug_info.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT |
+                                     VK_DEBUG_UTILS_MESSAGE_SEVERITY_ERROR_BIT_EXT;
+        debug_info.messageType = VK_DEBUG_UTILS_MESSAGE_TYPE_GENERAL_BIT_EXT |
+                                 VK_DEBUG_UTILS_MESSAGE_TYPE_VALIDATION_BIT_EXT |
+                                 VK_DEBUG_UTILS_MESSAGE_TYPE_PERFORMANCE_BIT_EXT;
+        debug_info.pfnUserCallback = debug_callback;
+        debug_info.pUserData = NULL; // something to add later?
 
         // Add this extension so we get debug info about creating instances
-        create_info.pNext = (VkDebugUtilsMessengerCreateInfoEXT *)&debug_create_info;
+        create_info.pNext = (VkDebugUtilsMessengerCreateInfoEXT *)&debug_info;
 
         create_info.enabledLayerCount = num_enable_validation_layers;
         create_info.ppEnabledLayerNames = enabled_validation_layers;
@@ -333,42 +334,37 @@ static void create_instance(Arena *arena, Render_Context *rc) {
     }
 
     // finally, we create insance
-    VkResult result = vkCreateInstance(&create_info, NULL, &rc->instance);
-    if (result != VK_SUCCESS) {
-        LOG_FATAL("Failed to create Vulkan Instance");
-        exit(EXT_VULKAN_INSTANCE);
-    }
+    VK_CHECK_FATAL(vkCreateInstance(&create_info, NULL, &rc->instance), EXT_VULKAN_INSTANCE,
+                   "Failed to create Vulkan Instance");
     LOG_DEBUG("Created vulkan instance");
 
     // Messenger needs to be created AFTER vulkan instance creation
     if (enable_val_layers) {
-        result = vkCreateDebugUtilsMessengerEXT(rc->instance, &debug_create_info, NULL,
-                                                &rc->debug_messenger);
-        if (result != VK_SUCCESS) {
-            LOG_FATAL("Failed to create debug messenger");
-            exit(EXT_VULKAN_DEBUG_MESSENGER);
-        }
+        VK_CHECK_FATAL(
+            vkCreateDebugUtilsMessengerEXT(rc->instance, &debug_info, NULL, &rc->debug_msgr),
+            EXT_VULKAN_DEBUG_MESSENGER, "Failed to create debug messenger");
         LOG_DEBUG("Created validation messenger");
     }
 }
 
 static void create_surface(Render_Context *rc, GLFWwindow *window_handle) {
-    VkResult result = glfwCreateWindowSurface(rc->instance, window_handle, NULL, &rc->surface);
-    if (result != VK_SUCCESS) {
-        LOG_FATAL("Failed to create render surface");
-        exit(EXT_VULKAN_SURFACE);
-    }
+    VK_CHECK_FATAL(glfwCreateWindowSurface(rc->instance, window_handle, NULL, &rc->surface),
+                   EXT_VULKAN_SURFACE, "Failed to create render surface");
     LOG_DEBUG("Created surface");
 }
 
 static bool check_device_extension_support(Arena *arena, VkPhysicalDevice device,
                                            const char *const *extensions, u32 num_extensions) {
     u32 extension_count = 0;
-    vkEnumerateDeviceExtensionProperties(device, NULL, &extension_count, NULL);
+
+    VK_CHECK_ERROR(vkEnumerateDeviceExtensionProperties(device, NULL, &extension_count, NULL),
+                   "Failed to enumerate device extension properties");
 
     VkExtensionProperties *available_extensions =
         arena_calloc(arena, extension_count, VkExtensionProperties);
-    vkEnumerateDeviceExtensionProperties(device, NULL, &extension_count, available_extensions);
+    VK_CHECK_ERROR(
+        vkEnumerateDeviceExtensionProperties(device, NULL, &extension_count, available_extensions),
+        "Failed to enumerate device extension properties");
 
     for (u32 i = 0; i < num_extensions; i++) {
         bool found = false;
@@ -392,11 +388,13 @@ static void choose_physical_device(Arena *arena, Render_Context *rc) {
     u32 device_count = 0;
     VkInstance instance = rc->instance;
 
-    vkEnumeratePhysicalDevices(instance, &device_count, NULL);
+    VK_CHECK_ERROR(vkEnumeratePhysicalDevices(instance, &device_count, NULL),
+                   "Faield to enumerate physical devices");
 
     VkPhysicalDevice *phys_devs =
         arena_alloc(arena, device_count * sizeof(VkPhysicalDevice), alignof(VkPhysicalDevice));
-    vkEnumeratePhysicalDevices(instance, &device_count, phys_devs);
+    VK_CHECK_ERROR(vkEnumeratePhysicalDevices(instance, &device_count, phys_devs),
+                   "Faield to enumerate physical devices");
 
     // Check all devices
     VkPhysicalDevice physical_device = VK_NULL_HANDLE;
@@ -410,7 +408,7 @@ static void choose_physical_device(Arena *arena, Render_Context *rc) {
         // supports a swapchain
         if (dev_props.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU &&
             check_device_extension_support(arena, phys_devs[i], device_extensions,
-                                           num_device_extensions)) {
+                                           device_extension_count)) {
             physical_device = phys_devs[i];
             break;
         }
@@ -418,7 +416,7 @@ static void choose_physical_device(Arena *arena, Render_Context *rc) {
 
     if (physical_device == VK_NULL_HANDLE) {
         LOG_FATAL("Failed to find suitable graphics device");
-        exit(EXT_VULKAN_DEVICE);
+        exit(EXT_VULKAN_NO_DEVICE);
     }
     LOG_DEBUG("Chose physical device");
 
@@ -447,7 +445,8 @@ static Queue_Family_Indices get_queue_family_indices(Arena *arena, VkPhysicalDev
         }
 
         VkBool32 present_support = VK_FALSE;
-        vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &present_support);
+        VK_CHECK_ERROR(vkGetPhysicalDeviceSurfaceSupportKHR(device, i, surface, &present_support),
+                       "Failed  to query physical device surface support");
         if (present_support) {
             present_index = i;
         }
@@ -470,7 +469,9 @@ static void create_logical_device(Arena *arena, Render_Context *rc) {
     VkPhysicalDevice physical_device = rc->physical;
     VkSurfaceKHR surface = rc->surface;
 
-    Queue_Family_Indices q_fam_indxs = get_queue_family_indices(arena, physical_device, surface);
+    Queue_Family_Indices family_indices = get_queue_family_indices(arena, physical_device, surface);
+    rc->graphic_index = family_indices.graphic;
+    rc->present_index = family_indices.present;
 
     float queue_priority = 1.0f;
 
@@ -480,16 +481,16 @@ static void create_logical_device(Arena *arena, Render_Context *rc) {
 
     VkDeviceQueueCreateInfo graphic_create = {0};
     graphic_create.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-    graphic_create.queueFamilyIndex = q_fam_indxs.graphic;
+    graphic_create.queueFamilyIndex = rc->graphic_index;
     graphic_create.queueCount = 1;
     graphic_create.pQueuePriorities = &queue_priority;
 
     queue_creates[num_queue_creates++] = graphic_create;
 
-    if (q_fam_indxs.graphic != q_fam_indxs.present) {
+    if (rc->graphic_index != rc->present_index) {
         VkDeviceQueueCreateInfo present_create = {0};
         present_create.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
-        present_create.queueFamilyIndex = q_fam_indxs.present;
+        present_create.queueFamilyIndex = rc->present_index;
         present_create.queueCount = 1;
         present_create.pQueuePriorities = &queue_priority;
 
@@ -504,7 +505,7 @@ static void create_logical_device(Arena *arena, Render_Context *rc) {
     device_create_info.queueCreateInfoCount = num_queue_creates;
     device_create_info.pQueueCreateInfos = queue_creates;
     device_create_info.pEnabledFeatures = &device_features;
-    device_create_info.enabledExtensionCount = num_device_extensions;
+    device_create_info.enabledExtensionCount = device_extension_count;
     device_create_info.ppEnabledExtensionNames = device_extensions;
 
     if (enable_val_layers) {
@@ -512,52 +513,47 @@ static void create_logical_device(Arena *arena, Render_Context *rc) {
         device_create_info.ppEnabledLayerNames = enabled_validation_layers;
     }
 
-    VkDevice device = NULL;
-    VkResult result = vkCreateDevice(physical_device, &device_create_info, NULL, &device);
-    if (result != VK_SUCCESS) {
-        LOG_FATAL("Failed to create logical device");
-        exit(EXT_VULKAN_LOGICAL_DEVICE);
-    }
+    VK_CHECK_FATAL(vkCreateDevice(physical_device, &device_create_info, NULL, &rc->logical),
+                   EXT_VULKAN_LOGICAL_DEVICE, "Failed to create logical device");
     LOG_DEBUG("Created logical device");
 
-    VkQueue graphic_queue = NULL;
-    vkGetDeviceQueue(device, q_fam_indxs.graphic, 0, &graphic_queue);
-    LOG_DEBUG("Got graphics device queue with index %u", q_fam_indxs.graphic);
+    vkGetDeviceQueue(rc->logical, rc->graphic_index, 0, &rc->graphic_q);
+    LOG_DEBUG("Got graphics device queue with index %u", rc->graphic_index);
 
-    VkQueue present_queue = NULL;
-    vkGetDeviceQueue(device, q_fam_indxs.present, 0, &present_queue);
-    LOG_DEBUG("Got present device queue with index %u", q_fam_indxs.present);
-
-    rc->logical = device;
-    rc->present_q = present_queue;
-    rc->present_index = q_fam_indxs.present;
-    rc->graphic_q = graphic_queue;
-    rc->graphic_index = q_fam_indxs.graphic;
+    vkGetDeviceQueue(rc->logical, rc->present_index, 0, &rc->present_q);
+    LOG_DEBUG("Got present device queue with index %u", rc->present_index);
 }
 
 static Swap_Chain_Info get_swap_chain_info(Arena *arena, VkPhysicalDevice device,
                                            VkSurfaceKHR surface) {
     Swap_Chain_Info info = {0};
-    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &info.capabilities);
+    VK_CHECK_ERROR(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &info.capabilities),
+                   "Unable to query device surface capabilities");
 
-    vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &info.format_count, NULL);
+    VK_CHECK_ERROR(vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &info.format_count, NULL),
+                   "Unable to query device surface formats");
     if (info.format_count == 0) {
         LOG_FATAL("Swap chain support inadequate");
         exit(EXT_VULKAN_SWAP_CHAIN_INFO);
     }
 
     info.formats = arena_calloc(arena, info.format_count, VkSurfaceFormatKHR);
-    vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &info.format_count, info.formats);
+    VK_CHECK_ERROR(
+        vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &info.format_count, info.formats),
+        "Unable to query device surface formats");
 
-    vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &info.present_mode_count, NULL);
+    VK_CHECK_ERROR(
+        vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &info.present_mode_count, NULL),
+        "Unable to query device surface present modes");
     if (info.format_count == 0) {
         LOG_FATAL("Swap chain support inadequate");
         exit(EXT_VULKAN_SWAP_CHAIN_INFO);
     }
 
     info.present_modes = arena_calloc(arena, info.present_mode_count, VkPresentModeKHR);
-    vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &info.present_mode_count,
-                                              info.present_modes);
+    VK_CHECK_ERROR(vkGetPhysicalDeviceSurfacePresentModesKHR(
+                       device, surface, &info.present_mode_count, info.present_modes),
+                   "Unable to query device surface present modes");
 
     return info;
 }
@@ -667,11 +663,8 @@ static void create_swap_chain(Arena *arena, Render_Context *rc, GLFWwindow *wind
     // Creating for the first time
     create_info.oldSwapchain = VK_NULL_HANDLE;
 
-    VkResult result = vkCreateSwapchainKHR(rc->logical, &create_info, NULL, &rc->swap.handle);
-    if (result != VK_SUCCESS) {
-        LOG_FATAL("Failed to create swap chain");
-        exit(EXT_VULKAN_SWAP_CHAIN_CREATE);
-    }
+    VK_CHECK_FATAL(vkCreateSwapchainKHR(rc->logical, &create_info, NULL, &rc->swap.handle),
+                   EXT_VULKAN_SWAP_CHAIN_CREATE, "Failed to create swapchain");
     LOG_DEBUG("Created swap chain");
 
     create_render_pass(rc);
@@ -692,10 +685,8 @@ static void recreate_swap_chain(Render_Context *rc, Window *window) {
         glfwWaitEvents();
     }
 
-    VkResult result = vkDeviceWaitIdle(rc->logical);
-    if (result != VK_SUCCESS) {
-        LOG_ERROR("Failed to wait for device idle in recreation of swap_chain");
-    }
+    VK_CHECK_ERROR(vkDeviceWaitIdle(rc->logical),
+                   "Failed to wait for device idle in recreation of swap_chain");
 
     VkSwapchainCreateInfoKHR create_info = {0};
     create_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
@@ -720,7 +711,9 @@ static void recreate_swap_chain(Render_Context *rc, Window *window) {
     }
 
     VkSurfaceCapabilitiesKHR capabilities = {0};
-    vkGetPhysicalDeviceSurfaceCapabilitiesKHR(rc->physical, rc->surface, &capabilities);
+    VK_CHECK_ERROR(
+        vkGetPhysicalDeviceSurfaceCapabilitiesKHR(rc->physical, rc->surface, &capabilities),
+        "Unable to query device surface capabilities");
     // Any transformations we want to apply to images in swapchain
     create_info.preTransform = capabilities.currentTransform;
 
@@ -733,11 +726,8 @@ static void recreate_swap_chain(Render_Context *rc, Window *window) {
     create_info.oldSwapchain = rc->swap.handle;
 
     VkSwapchainKHR new_swap = {0};
-    result = vkCreateSwapchainKHR(rc->logical, &create_info, NULL, &new_swap);
-    if (result != VK_SUCCESS) {
-        LOG_FATAL("Failed to create swap chain");
-        exit(EXT_VULKAN_SWAP_CHAIN_CREATE);
-    }
+    VK_CHECK_FATAL(vkCreateSwapchainKHR(rc->logical, &create_info, NULL, &new_swap),
+                   EXT_VULKAN_SWAP_CHAIN_CREATE, "Failed to create swap chain");
     LOG_DEBUG("Recreated swap chain");
     destroy_swap_chain(rc);
     rc->swap.handle = new_swap;
@@ -751,11 +741,9 @@ static void recreate_swap_chain(Render_Context *rc, Window *window) {
 }
 
 static void create_image_views(Render_Context *rc) {
-    VkResult result =
-        vkGetSwapchainImagesKHR(rc->logical, rc->swap.handle, &rc->swap.image_count, NULL);
-    if (result != VK_SUCCESS) {
-        LOG_ERROR("Unable to get swap chain images");
-    }
+    VK_CHECK_ERROR(
+        vkGetSwapchainImagesKHR(rc->logical, rc->swap.handle, &rc->swap.image_count, NULL),
+        "Unable to get swap chain images");
     LOG_DEBUG("Swap chain using %u images", rc->swap.image_count);
 
     // Grab handles to the swap images
@@ -781,11 +769,9 @@ static void create_image_views(Render_Context *rc) {
         iv_info.subresourceRange.baseArrayLayer = 0;
         iv_info.subresourceRange.layerCount = 1;
 
-        result = vkCreateImageView(rc->logical, &iv_info, NULL, &rc->swap.image_views[i]);
-        if (result != VK_SUCCESS) {
-            LOG_FATAL("Failed to creat swap chain image view %u", i);
-            exit(EXT_VULKAN_SWAP_CHAIN_IMAGE_VIEW);
-        }
+        VK_CHECK_FATAL(vkCreateImageView(rc->logical, &iv_info, NULL, &rc->swap.image_views[i]),
+                       EXT_VULKAN_SWAP_CHAIN_IMAGE_VIEW, "Failed to creat swap chain image view %u",
+                       i);
         LOG_DEBUG("Created swap chain image view %u", i);
     }
 }
@@ -810,11 +796,8 @@ static void create_frame_buffers(Render_Context *rc) {
         fb_info.height = swap->extent.height;
         fb_info.layers = 1;
 
-        VkResult result = vkCreateFramebuffer(rc->logical, &fb_info, NULL, &swap->framebuffers[i]);
-        if (result != VK_SUCCESS) {
-            LOG_FATAL("Failed to create framebuffer %u", i);
-            exit(EXT_VULKAN_LOGICAL_DEVICE);
-        }
+        VK_CHECK_FATAL(vkCreateFramebuffer(rc->logical, &fb_info, NULL, &swap->framebuffers[i]),
+                       EXT_VULKAN_LOGICAL_DEVICE, "Failed to create framebuffer %u", i);
         LOG_DEBUG("Created framebuffer %u", i);
     }
 }
@@ -865,11 +848,8 @@ static void create_render_pass(Render_Context *rc) {
     render_pass_info.dependencyCount = 1;
     render_pass_info.pDependencies = &dependency;
 
-    VkResult result =
-        vkCreateRenderPass(rc->logical, &render_pass_info, NULL, &rc->swap.render_pass);
-    if (result != VK_SUCCESS) {
-        LOG_FATAL("Failed to create render pass");
-    }
+    VK_CHECK_FATAL(vkCreateRenderPass(rc->logical, &render_pass_info, NULL, &rc->swap.render_pass),
+                   EXT_VULKAN_RENDER_PASS_CREATE, "Failed to create render pass");
     LOG_DEBUG("Created render pass");
 }
 
@@ -880,10 +860,8 @@ static void create_command_pool(Render_Context *rc) {
     // NOTE(ss): research this
     pi.queueFamilyIndex = rc->graphic_index;
 
-    VkResult result = vkCreateCommandPool(rc->logical, &pi, NULL, &rc->swap.command_pool);
-    if (result != VK_SUCCESS) {
-        LOG_ERROR("Failed to create command pool");
-    }
+    VK_CHECK_FATAL(vkCreateCommandPool(rc->logical, &pi, NULL, &rc->swap.command_pool),
+                   EXT_VULKAN_COMMAND_POOL, "Failed to create command pool");
     LOG_DEBUG("Created command pool");
 }
 
@@ -894,10 +872,8 @@ static void alloc_command_buffers(Render_Context *rc) {
     cba.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
     cba.commandBufferCount = MAX_FRAMES_IN_FLIGHT;
 
-    VkResult result = vkAllocateCommandBuffers(rc->logical, &cba, rc->swap.command_buffers);
-    if (result != VK_SUCCESS) {
-        LOG_ERROR("Failed to allocate command buffer");
-    }
+    VK_CHECK_FATAL(vkAllocateCommandBuffers(rc->logical, &cba, rc->swap.command_buffers),
+                   EXT_VULKAN_COMMAND_BUFFER, "Failed to allocate command buffer");
     LOG_DEBUG("Allocated command buffer");
 }
 
@@ -910,26 +886,19 @@ static void create_sync_objects(Render_Context *rc) {
     fence_info.flags = VK_FENCE_CREATE_SIGNALED_BIT;
 
     for (u32 i = 0; i < MAX_FRAMES_IN_FLIGHT; i++) {
-        VkResult result =
-            vkCreateSemaphore(rc->logical, &sem_info, NULL, &rc->swap.image_available_sem[i]);
-        if (result != VK_SUCCESS) {
-            LOG_FATAL("Failed to create image available semaphore");
-            exit(EXT_VULKAN_SYNC_OBJECT);
-        }
+
+        VK_CHECK_FATAL(
+            vkCreateSemaphore(rc->logical, &sem_info, NULL, &rc->swap.image_available_sem[i]),
+            EXT_VULKAN_SYNC_OBJECT, "Failed to create image available semaphore");
         LOG_DEBUG("Created image available semaphore %u", i);
 
-        result = vkCreateSemaphore(rc->logical, &sem_info, NULL, &rc->swap.render_finished_sem[i]);
-        if (result != VK_SUCCESS) {
-            LOG_FATAL("Failed to create render finished semaphore");
-            exit(EXT_VULKAN_SYNC_OBJECT);
-        }
+        VK_CHECK_FATAL(
+            vkCreateSemaphore(rc->logical, &sem_info, NULL, &rc->swap.render_finished_sem[i]),
+            EXT_VULKAN_SYNC_OBJECT, "Failed to create render_finished semaphore");
         LOG_DEBUG("Created render finished semaphore %u", i);
 
-        result = vkCreateFence(rc->logical, &fence_info, NULL, &rc->swap.in_flight_fence[i]);
-        if (result != VK_SUCCESS) {
-            LOG_FATAL("Failed to create in flight fence");
-            exit(EXT_VULKAN_SYNC_OBJECT);
-        }
+        VK_CHECK_FATAL(vkCreateFence(rc->logical, &fence_info, NULL, &rc->swap.in_flight_fence[i]),
+                       EXT_VULKAN_SYNC_OBJECT, "Failed to create in flight fence");
         LOG_DEBUG("Created in flight fence %u", i);
     }
 }

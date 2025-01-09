@@ -3,27 +3,42 @@
 
 #include "core/arena.h"
 #include "core/common.h"
+#include "core/log.h"
 #include "window.h"
 
 #include <stdbool.h>
 
-// What validation layers, may move this out of here
-extern const char *const enabled_validation_layers[];
-extern const u32 num_enable_validation_layers;
-extern const bool enable_val_layers;
+// Taken from Vulkan Samples, with couple modifications , the fatal version will exit with specified
+// code for you
+#define VK_CHECK_FATAL(x, exit_code, message, ...)                                                 \
+    do {                                                                                           \
+        VkResult check = x;                                                                        \
+        if (check != VK_SUCCESS) {                                                                 \
+            LOG_FATAL(message, ##__VA_ARGS__);                                                     \
+            exit(exit_code);                                                                       \
+        }                                                                                          \
+    } while (0)
 
-// What device extensions do we need
-extern const char *const device_extensions[];
-extern const u32 num_device_extensions;
+#define VK_CHECK_ERROR(x, message, ...)                                                            \
+    do {                                                                                           \
+        VkResult check = x;                                                                        \
+        if (check != VK_SUCCESS) {                                                                 \
+            LOG_ERROR(message, ##__VA_ARGS__);                                                     \
+        }                                                                                          \
+    } while (0)
 
-#define MAX_SWAP_IMGS 3
-#define MAX_FRAMES_IN_FLIGHT (MAX_SWAP_IMGS - 1)
+// Constants
+enum {
+    MAX_SWAP_IMGS = 3,
+    MAX_FRAMES_IN_FLIGHT = 2,
+    QUEUE_NUM = 2,
+};
 
 typedef struct Swap_Chain Swap_Chain; // Just in case we want easy pointers
 typedef struct Render_Context Render_Context;
 struct Render_Context {
     VkInstance instance;
-    VkDebugUtilsMessengerEXT debug_messenger;
+    VkDebugUtilsMessengerEXT debug_msgr;
     VkSurfaceKHR surface;
 
     VkPhysicalDevice physical;
