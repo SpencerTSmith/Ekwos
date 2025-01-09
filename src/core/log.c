@@ -1,4 +1,6 @@
 #include "core/log.h"
+
+#include <stdarg.h>
 #include <stdio.h>
 
 static const char *level_strings[LOG_MAX_NUM] = {"FATAL", "ERROR", "WARNING", "DEBUG"};

@@ -3,9 +3,6 @@
 
 #include "core/common.h"
 
-#include <assert.h>
-#include <stdarg.h>
-
 enum Log_Level {
     LOG_FATAL,
     LOG_ERROR,
