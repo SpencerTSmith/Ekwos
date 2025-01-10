@@ -387,7 +387,6 @@ static inline vec4 mat4_mul_vec4(mat4 m, vec4 v) {
     return result;
 }
 
-// Easily vectorized when -O2
 static inline mat4 mat4_mul(mat4 left, mat4 right) {
     mat4 result;
     result.cols[0] = mat4_mul_vec4(left, right.cols[0]);

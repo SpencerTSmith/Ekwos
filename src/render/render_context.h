@@ -28,11 +28,12 @@
         }                                                                                          \
     } while (0)
 
-// Constants
-enum {
-    MAX_SWAP_IMAGES = 3,
-    MAX_FRAMES_IN_FLIGHT = 2,
-    QUEUE_NUM = 2,
+enum Render_Context_Constants {
+    RENDER_CONTEXT_MAX_SWAP_IMAGES = 3,
+    RENDER_CONTEXT_MAX_FRAMES_IN_FLIGHT = 2,
+    RENDER_CONTEXT_MAX_QUEUE_NUM = 2,
+    RENDER_CONTEXT_MAX_PRESENT_MODES = 16,   // This could maybe change? I counted 7 in the enum
+    RENDER_CONTEXT_MAX_SURFACE_FORMATS = 16, // no idea for this, made of 2 enums, lots of elems
 };
 
 // Just in case we want easy pointers
@@ -43,7 +44,7 @@ typedef struct Swap_Frame Swap_Frame;
 typedef struct Render_Context Render_Context;
 struct Render_Context {
     VkInstance instance;
-    VkDebugUtilsMessengerEXT debug_msgr;
+    VkDebugUtilsMessengerEXT debug_messenger;
     VkSurfaceKHR surface;
     VkPhysicalDevice physical;
 
@@ -62,6 +63,7 @@ struct Render_Context {
 
         VkExtent2D extent;
         VkSurfaceFormatKHR surface_format;
+        VkFormat depth_format;
         VkPresentModeKHR present_mode;
 
         VkRenderPass render_pass;
@@ -69,9 +71,11 @@ struct Render_Context {
 
         struct Swap_Target {
             VkFramebuffer framebuffer;
-            VkImage image;
-            VkImageView image_view;
-        } targets[MAX_SWAP_IMAGES];
+            VkImage color_image;
+            VkImageView color_image_view;
+            VkImage depth_image;
+            VkImageView depth_image_view;
+        } targets[RENDER_CONTEXT_MAX_SWAP_IMAGES];
         u32 current_target_idx;
         u32 target_count;
 
@@ -81,7 +85,7 @@ struct Render_Context {
             VkSemaphore image_available_sem;
             VkSemaphore render_finished_sem;
             VkFence in_flight_fence;
-        } frames[MAX_FRAMES_IN_FLIGHT];
+        } frames[RENDER_CONTEXT_MAX_FRAMES_IN_FLIGHT];
         u32 current_frame_idx;
         u32 frames_in_flight;
     } swap;
@@ -94,7 +98,7 @@ struct Render_Context {
 void render_context_init(Arena *arena, Render_Context *render_context, GLFWwindow *window_handle);
 void render_context_free(Render_Context *render_context);
 
-bool render_begin_frame(Render_Context *render_context, Window *window);
+void render_begin_frame(Render_Context *render_context, Window *window);
 void render_end_frame(Render_Context *render_context);
 
 // Utility Functions //
@@ -104,7 +108,7 @@ static inline const Swap_Frame *render_get_current_frame(const Render_Context *r
     assert(rc != NULL);
     return &rc->swap.frames[rc->swap.current_frame_idx];
 }
-static inline VkCommandBuffer render_get_current_command(const Render_Context *rc) {
+static inline VkCommandBuffer render_get_current_cmd(const Render_Context *rc) {
     return render_get_current_frame(rc)->command_buffer;
 }
 

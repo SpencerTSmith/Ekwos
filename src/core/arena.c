@@ -10,7 +10,7 @@
 // alignment... binary math
 #define ALIGN_ROUND_UP(x, b) (((x) + (b) - 1) & (~((b) - 1)))
 
-Arena arena_create(u64 reserve_size) {
+Arena arena_create(u64 reserve_size, Arena_Flags flags) {
     Arena arena = {0};
 
     // NOTE(spencer): this will return page-aligned memory (obviously) so I don't think it is

@@ -2,6 +2,7 @@
 
 #include "core/log.h"
 #include "render/render_context.h"
+#include "render/render_pipeline.h"
 
 const VkVertexInputBindingDescription g_vertex_binding_desc[VERTEX_BINDING_NUM] = {{
     .binding = 0,
@@ -33,11 +34,11 @@ void render_mesh_init(Render_Context *rc, Render_Mesh *mesh, Vertex *verts, u32 
 void render_mesh_bind(Render_Context *rc, Render_Mesh *mesh) {
     VkBuffer buffers[] = {mesh->vertex_buffer};
     VkDeviceSize offsets[] = {0};
-    vkCmdBindVertexBuffers(render_get_current_command(rc), 0, 1, buffers, offsets);
+    vkCmdBindVertexBuffers(render_get_current_cmd(rc), 0, 1, buffers, offsets);
 }
 
 void render_mesh_draw(Render_Context *rc, Render_Mesh *mesh) {
-    vkCmdDraw(render_get_current_command(rc), mesh->vertex_count, 1, 0, 0);
+    vkCmdDraw(render_get_current_cmd(rc), mesh->vertex_count, 1, 0, 0);
 }
 
 void render_mesh_free(Render_Context *rc, Render_Mesh *mesh) {

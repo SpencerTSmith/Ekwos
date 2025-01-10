@@ -3,6 +3,7 @@
 
 #include "core/common.h"
 
+typedef u64 Log_Level;
 enum Log_Level {
     LOG_FATAL,
     LOG_ERROR,
@@ -12,6 +13,7 @@ enum Log_Level {
     LOG_MAX_NUM,
 };
 
+typedef u64 Exit_Code;
 enum Exit_Code {
     EXT_SUCCESS,
     EXT_GLFW_INIT,
@@ -43,7 +45,7 @@ enum Exit_Code {
 
 // TODO(spencer): rewrite using platform layer file i/o
 // also look into custom asserts
-void log_message(enum Log_Level level, const char *file, u64 line, const char *message, ...);
+void log_message(Log_Level level, const char *file, u64 line, const char *message, ...);
 
 // The ## is specific to GCC... need to see about others
 #define LOG_FATAL(message, ...) log_message(LOG_FATAL, __FILE__, __LINE__, message, ##__VA_ARGS__)

@@ -5,7 +5,7 @@
 
 static const char *level_strings[LOG_MAX_NUM] = {"FATAL", "ERROR", "WARNING", "DEBUG"};
 
-void log_message(enum Log_Level level, const char *file, u64 line, const char *message, ...) {
+void log_message(Log_Level level, const char *file, u64 line, const char *message, ...) {
     if (level <= LOG_WARN) {
         fprintf(stderr, "[Ekwos %s] %s:%lu: ", level_strings[level], file, line);
     } else {

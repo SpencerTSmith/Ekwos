@@ -124,11 +124,11 @@ void render_pipeline_free(Render_Context *rc, Render_Pipeline *pl) {
 }
 
 void render_pipeline_bind(Render_Context *rc, Render_Pipeline *pl) {
-    vkCmdBindPipeline(render_get_current_command(rc), VK_PIPELINE_BIND_POINT_GRAPHICS, pl->handle);
+    vkCmdBindPipeline(render_get_current_cmd(rc), VK_PIPELINE_BIND_POINT_GRAPHICS, pl->handle);
 }
 
 void render_push_constants(Render_Context *rc, Render_Pipeline *pl, Push_Constants push) {
-    vkCmdPushConstants(render_get_current_command(rc), pl->layout,
+    vkCmdPushConstants(render_get_current_cmd(rc), pl->layout,
                        VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0,
                        sizeof(Push_Constants), &push);
 }
