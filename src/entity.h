@@ -10,9 +10,11 @@ struct Entity {
     u32 id;
     u32 flags;
 
+    // Transforms
+    vec3 scale;
     vec3 position;
     vec3 rotation;
-    vec3 scale;
+
     vec3 color;
 
     // TODO(ss): Handles into an asset manager, instead

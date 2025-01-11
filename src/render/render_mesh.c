@@ -2,7 +2,6 @@
 
 #include "core/log.h"
 #include "render/render_context.h"
-#include "render/render_pipeline.h"
 
 const VkVertexInputBindingDescription g_vertex_binding_desc[VERTEX_BINDING_NUM] = {{
     .binding = 0,

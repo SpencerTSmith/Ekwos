@@ -8,6 +8,7 @@
 
 #include <assert.h>
 #include <stdbool.h>
+#include <vk_mem_alloc.h>
 
 // Taken from Vulkan Samples, with couple modifications , the fatal version will exit with specified
 // code for you
@@ -34,6 +35,7 @@ enum Render_Context_Constants {
     RENDER_CONTEXT_MAX_QUEUE_NUM = 2,
     RENDER_CONTEXT_MAX_PRESENT_MODES = 16,   // This could maybe change? I counted 7 in the enum
     RENDER_CONTEXT_MAX_SURFACE_FORMATS = 16, // no idea for this, made of 2 enums, lots of elems
+    RENDER_CONTEXT_ATTACHMENT_COUNT = 2,
 };
 
 // Just in case we want easy pointers
@@ -53,6 +55,7 @@ struct Render_Context {
     u32 graphic_index;
     VkQueue present_q;
     u32 present_index;
+    VmaAllocator allocator; // For now using a library for memory
 
     // NOTE(ss): For now we group the render pass with the swap chain,
     // once I learn more this may not be the best practice

@@ -16,13 +16,15 @@ static const bool enable_val_layers = false;
 #endif // DEBUG defined
 
 static const char *const device_extensions[] = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+static VkFormat possible_depth_formats[] = {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT,
+                                            VK_FORMAT_D24_UNORM_S8_UINT};
 
 // Internals //
 typedef struct Swap_Chain_Info Swap_Chain_Info;
 struct Swap_Chain_Info {
     VkSurfaceCapabilitiesKHR capabilities;
-    VkSurfaceFormatKHR formats[RENDER_CONTEXT_MAX_SURFACE_FORMATS];
-    u32 format_count;
+    VkSurfaceFormatKHR surface_formats[RENDER_CONTEXT_MAX_SURFACE_FORMATS];
+    u32 surface_format_count;
     VkPresentModeKHR present_modes[RENDER_CONTEXT_MAX_PRESENT_MODES];
     u32 present_mode_count;
 };
@@ -72,6 +74,12 @@ void render_context_free(Render_Context *rc) {
             LOG_ERROR("Tried to destroyed nonexistent vulkan surface");
         }
 
+        if (rc->allocator != VK_NULL_HANDLE) {
+            vmaDestroyAllocator(rc->allocator);
+        } else {
+            LOG_ERROR("Tried to destroy nonexistent vulkan memory allocator");
+        }
+
         if (rc->logical != VK_NULL_HANDLE) {
             vkDestroyDevice(rc->logical, NULL);
         } else {
@@ -92,7 +100,7 @@ void render_context_free(Render_Context *rc) {
     }
 }
 
-// Returns if results of acquiring the image, stores the current image index into the
+// Returns result of acquiring the image, stores the current image index into the
 // right field in rc->swap
 static VkResult acquire_next_image(Render_Context *rc);
 
@@ -552,6 +560,22 @@ static void create_logical_device(Arena *arena, Render_Context *rc) {
 
     vkGetDeviceQueue(rc->logical, rc->present_index, 0, &rc->present_q);
     LOG_DEBUG("Got present device queue with index %u", rc->present_index);
+
+    VmaVulkanFunctions vulkanFunctions = {0};
+    vulkanFunctions.vkGetInstanceProcAddr = &vkGetInstanceProcAddr;
+    vulkanFunctions.vkGetDeviceProcAddr = &vkGetDeviceProcAddr;
+
+    VmaAllocatorCreateInfo allocatorCreateInfo = {0};
+    allocatorCreateInfo.vulkanApiVersion = VK_API_VERSION_1_0;
+    allocatorCreateInfo.physicalDevice = rc->physical;
+    allocatorCreateInfo.device = rc->logical;
+    allocatorCreateInfo.instance = rc->instance;
+    allocatorCreateInfo.pVulkanFunctions = &vulkanFunctions;
+    allocatorCreateInfo.flags = 0;
+
+    VmaAllocator allocator;
+    VK_CHECK_FATAL(vmaCreateAllocator(&allocatorCreateInfo, &allocator), EXT_VULKAN_ALLOCATOR_INIT,
+                   "Failed to create vulkan memory allocator");
 }
 
 static Swap_Chain_Info get_swap_chain_info(VkPhysicalDevice device, VkSurfaceKHR surface) {
@@ -559,21 +583,22 @@ static Swap_Chain_Info get_swap_chain_info(VkPhysicalDevice device, VkSurfaceKHR
     VK_CHECK_ERROR(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &info.capabilities),
                    "Unable to query device surface capabilities");
 
-    VK_CHECK_ERROR(vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &info.format_count, NULL),
-                   "Unable to query device surface formats");
-    if (info.format_count == 0) {
+    VK_CHECK_ERROR(
+        vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &info.surface_format_count, NULL),
+        "Unable to query device surface formats");
+    if (info.surface_format_count == 0) {
         LOG_FATAL("Swap chain support inadequate");
         exit(EXT_VULKAN_SWAP_CHAIN_INFO);
     }
 
-    VK_CHECK_ERROR(
-        vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &info.format_count, info.formats),
-        "Unable to query device surface formats");
+    VK_CHECK_ERROR(vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &info.surface_format_count,
+                                                        info.surface_formats),
+                   "Unable to query device surface formats");
 
     VK_CHECK_ERROR(
         vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &info.present_mode_count, NULL),
         "Unable to query device surface present modes");
-    if (info.format_count == 0) {
+    if (info.present_mode_count == 0) {
         LOG_FATAL("Swap chain support inadequate");
         exit(EXT_VULKAN_SWAP_CHAIN_INFO);
     }
@@ -597,6 +622,25 @@ static VkSurfaceFormatKHR choose_swap_surface_format(VkSurfaceFormatKHR *formats
     // use the first if we can't find the one we want
     LOG_DEBUG("Failed to find best surface format, falling back to default");
     return formats[0];
+}
+
+static VkFormat choose_swap_depth_format(VkPhysicalDevice device, VkFormat *formats,
+                                         u32 num_formats, VkImageTiling tiling,
+                                         VkFormatFeatureFlags features) {
+    for (u32 i = 0; i < num_formats; i++) {
+        VkFormatProperties props;
+        vkGetPhysicalDeviceFormatProperties(device, formats[i], &props);
+        if (tiling == VK_IMAGE_TILING_LINEAR &&
+            (props.linearTilingFeatures & features) == features) {
+            return formats[i];
+        } else if (tiling == VK_IMAGE_TILING_OPTIMAL &&
+                   (props.optimalTilingFeatures & features) == features) {
+            return formats[i];
+        }
+    }
+
+    LOG_FATAL("Failed to find supported depth format");
+    exit(EXT_VULKAN_DEPTH_FORMAT);
 }
 
 static VkPresentModeKHR choose_swap_present_mode(VkPresentModeKHR *modes, u32 num_modes) {
@@ -642,9 +686,14 @@ static void create_frame_resources(Render_Context *rc);
 static void create_swap_chain(Render_Context *rc, GLFWwindow *window) {
     Swap_Chain_Info info = get_swap_chain_info(rc->physical, rc->surface);
 
-    rc->swap.surface_format = choose_swap_surface_format(info.formats, info.format_count);
+    // Get all that info in there
+    rc->swap.surface_format =
+        choose_swap_surface_format(info.surface_formats, info.surface_format_count);
     rc->swap.present_mode = choose_swap_present_mode(info.present_modes, info.present_mode_count);
     rc->swap.extent = choose_swap_extent(info.capabilities, window);
+    rc->swap.depth_format = choose_swap_depth_format(
+        rc->physical, possible_depth_formats, STATIC_ARRAY_COUNT(possible_depth_formats),
+        VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
 
     rc->swap.clear_color = (VkClearColorValue){.float32 = {0.0f, 0.f, 0.0f, 1.0f}};
 
@@ -787,9 +836,9 @@ static void create_target_resources(Render_Context *rc) {
         vkGetSwapchainImagesKHR(rc->logical, rc->swap.handle, &rc->swap.target_count,
                                 temp_image_array);
     }
-
     // Get image views
     for (u32 i = 0; i < rc->swap.target_count; i++) {
+        // Color Resources
         rc->swap.targets[i].color_image = temp_image_array[i];
 
         VkImageViewCreateInfo iv_info = {0};
@@ -811,6 +860,29 @@ static void create_target_resources(Render_Context *rc) {
             vkCreateImageView(rc->logical, &iv_info, NULL, &rc->swap.targets[i].color_image_view),
             EXT_VULKAN_SWAP_CHAIN_IMAGE_VIEW, "Failed to creat swap chain image view %u", i);
         LOG_DEBUG("Created swap chain image view %u", i);
+
+        // Depth Resources
+        VkImageCreateInfo depth_image_info = {0}; // Image
+        depth_image_info.sType = VK_STRUCTURE_TYPE_IMAGE_CREATE_INFO;
+        depth_image_info.imageType = VK_IMAGE_TYPE_2D;
+        depth_image_info.extent.width = rc->swap.extent.width;
+        depth_image_info.extent.height = rc->swap.extent.height;
+        depth_image_info.extent.depth = 1;
+        depth_image_info.mipLevels = 1;
+        depth_image_info.arrayLayers = 1;
+        depth_image_info.format = rc->swap.depth_format;
+        depth_image_info.tiling = VK_IMAGE_TILING_OPTIMAL;
+        depth_image_info.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+        depth_image_info.usage = VK_IMAGE_USAGE_DEPTH_STENCIL_ATTACHMENT_BIT;
+        depth_image_info.samples = VK_SAMPLE_COUNT_1_BIT;
+        depth_image_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+        depth_image_info.flags = 0;
+
+        VK_CHECK_FATAL(
+            vkCreateImage(rc->logical, &depth_image_info, NULL, &rc->swap.targets[i].depth_image),
+            EXT_VULKAN_DEPTH_IMAGE_CREATE, "Failed to create swap chain depth image %u", i);
+
+        VkMemoryRequirements memory_reqs = {0};
     }
 
     // Create framebuffers from image views... may want to have more attachments in future...
@@ -818,14 +890,15 @@ static void create_target_resources(Render_Context *rc) {
     for (u32 i = 0; i < rc->swap.target_count; i++) {
         // NOTE(spencer): when changing this in future remember to change attachmentCount in
         // fb_info
-        VkImageView attachments[] = {
+        VkImageView attachments[RENDER_CONTEXT_ATTACHMENT_COUNT] = {
             rc->swap.targets[i].color_image_view,
+            rc->swap.targets[i].depth_image_view,
         };
 
         VkFramebufferCreateInfo fb_info = {0};
         fb_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
         fb_info.renderPass = rc->swap.render_pass;
-        fb_info.attachmentCount = 1;
+        fb_info.attachmentCount = RENDER_CONTEXT_ATTACHMENT_COUNT;
         fb_info.pAttachments = attachments;
         fb_info.width = rc->swap.extent.width;
         fb_info.height = rc->swap.extent.height;
