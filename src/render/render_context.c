@@ -74,12 +74,6 @@ void render_context_free(Render_Context *rc) {
             LOG_ERROR("Tried to destroyed nonexistent vulkan surface");
         }
 
-        if (rc->allocator != VK_NULL_HANDLE) {
-            vmaDestroyAllocator(rc->allocator);
-        } else {
-            LOG_ERROR("Tried to destroy nonexistent vulkan memory allocator");
-        }
-
         if (rc->logical != VK_NULL_HANDLE) {
             vkDestroyDevice(rc->logical, NULL);
         } else {
@@ -117,7 +111,7 @@ void render_begin_frame(Render_Context *rc, Window *window) {
     }
 
     if (result != VK_SUCCESS) {
-        VK_CHECK_FATAL(result, EXT_VULKAN_IMAGE_ACQUIRE, "Unable to acquire next swap chain image");
+        VK_CHECK_FATAL(result, EXT_VK_IMAGE_ACQUIRE, "Unable to acquire next swap chain image");
     }
     LOG_INFO("Acquired next image, %u, from swap chain", rc->swap.current_target_idx);
 
@@ -147,7 +141,8 @@ void render_begin_frame(Render_Context *rc, Window *window) {
     render_pass_info.renderArea.offset = offset;
     render_pass_info.renderArea.extent = rc->swap.extent;
 
-    VkClearValue clear_values[] = {{rc->swap.clear_color}};
+    VkClearValue clear_values[] = {{.color = rc->swap.clear_color},
+                                   {.depthStencil = rc->swap.clear_depth}};
     render_pass_info.clearValueCount = STATIC_ARRAY_COUNT(clear_values);
     render_pass_info.pClearValues = clear_values;
 
@@ -353,7 +348,7 @@ static void create_instance(Arena *arena, Render_Context *rc) {
         if (!check_val_layer_support(arena, enabled_validation_layers,
                                      STATIC_ARRAY_COUNT(enabled_validation_layers))) {
             LOG_FATAL("Failed to find specified Validation Layers");
-            exit(EXT_VULKAN_LAYERS);
+            exit(EXT_VK_LAYERS);
         }
         debug_info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
         debug_info.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
@@ -374,7 +369,7 @@ static void create_instance(Arena *arena, Render_Context *rc) {
     }
 
     // finally, we create insance
-    VK_CHECK_FATAL(vkCreateInstance(&create_info, NULL, &rc->instance), EXT_VULKAN_INSTANCE,
+    VK_CHECK_FATAL(vkCreateInstance(&create_info, NULL, &rc->instance), EXT_VK_INSTANCE,
                    "Failed to create Vulkan Instance");
     LOG_DEBUG("Created vulkan instance");
 
@@ -382,14 +377,14 @@ static void create_instance(Arena *arena, Render_Context *rc) {
     if (enable_val_layers) {
         VK_CHECK_FATAL(
             vkCreateDebugUtilsMessengerEXT(rc->instance, &debug_info, NULL, &rc->debug_messenger),
-            EXT_VULKAN_DEBUG_MESSENGER, "Failed to create debug messenger");
+            EXT_VK_DEBUG_MESSENGER, "Failed to create debug messenger");
         LOG_DEBUG("Created validation messenger");
     }
 }
 
 static void create_surface(Render_Context *rc, GLFWwindow *window_handle) {
     VK_CHECK_FATAL(glfwCreateWindowSurface(rc->instance, window_handle, NULL, &rc->surface),
-                   EXT_VULKAN_SURFACE, "Failed to create render surface");
+                   EXT_VK_SURFACE, "Failed to create render surface");
     LOG_DEBUG("Created surface");
 }
 
@@ -455,7 +450,7 @@ static void choose_physical_device(Arena *arena, Render_Context *rc) {
 
     if (physical_device == VK_NULL_HANDLE) {
         LOG_FATAL("Failed to find suitable graphics device");
-        exit(EXT_VULKAN_NO_DEVICE);
+        exit(EXT_VK_NO_DEVICE);
     }
     LOG_DEBUG("Chose physical device");
 
@@ -497,7 +492,7 @@ static Queue_Family_Indices get_queue_family_indices(Arena *arena, VkPhysicalDev
 
     if (graphic_index == VK_QUEUE_FAMILY_IGNORED || present_index == VK_QUEUE_FAMILY_IGNORED) {
         LOG_FATAL("Failed to find suitable queue families");
-        exit(EXT_VULKAN_QUEUE_FAMILIES);
+        exit(EXT_VK_QUEUE_FAMILIES);
     }
 
     return (Queue_Family_Indices){.graphic = graphic_index, .present = present_index};
@@ -552,7 +547,7 @@ static void create_logical_device(Arena *arena, Render_Context *rc) {
     }
 
     VK_CHECK_FATAL(vkCreateDevice(physical_device, &device_create_info, NULL, &rc->logical),
-                   EXT_VULKAN_LOGICAL_DEVICE, "Failed to create logical device");
+                   EXT_VK_LOGICAL_DEVICE, "Failed to create logical device");
     LOG_DEBUG("Created logical device");
 
     vkGetDeviceQueue(rc->logical, rc->graphic_index, 0, &rc->graphic_q);
@@ -560,22 +555,6 @@ static void create_logical_device(Arena *arena, Render_Context *rc) {
 
     vkGetDeviceQueue(rc->logical, rc->present_index, 0, &rc->present_q);
     LOG_DEBUG("Got present device queue with index %u", rc->present_index);
-
-    VmaVulkanFunctions vulkanFunctions = {0};
-    vulkanFunctions.vkGetInstanceProcAddr = &vkGetInstanceProcAddr;
-    vulkanFunctions.vkGetDeviceProcAddr = &vkGetDeviceProcAddr;
-
-    VmaAllocatorCreateInfo allocatorCreateInfo = {0};
-    allocatorCreateInfo.vulkanApiVersion = VK_API_VERSION_1_0;
-    allocatorCreateInfo.physicalDevice = rc->physical;
-    allocatorCreateInfo.device = rc->logical;
-    allocatorCreateInfo.instance = rc->instance;
-    allocatorCreateInfo.pVulkanFunctions = &vulkanFunctions;
-    allocatorCreateInfo.flags = 0;
-
-    VmaAllocator allocator;
-    VK_CHECK_FATAL(vmaCreateAllocator(&allocatorCreateInfo, &allocator), EXT_VULKAN_ALLOCATOR_INIT,
-                   "Failed to create vulkan memory allocator");
 }
 
 static Swap_Chain_Info get_swap_chain_info(VkPhysicalDevice device, VkSurfaceKHR surface) {
@@ -588,7 +567,7 @@ static Swap_Chain_Info get_swap_chain_info(VkPhysicalDevice device, VkSurfaceKHR
         "Unable to query device surface formats");
     if (info.surface_format_count == 0) {
         LOG_FATAL("Swap chain support inadequate");
-        exit(EXT_VULKAN_SWAP_CHAIN_INFO);
+        exit(EXT_VK_SWAP_CHAIN_INFO);
     }
 
     VK_CHECK_ERROR(vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &info.surface_format_count,
@@ -600,7 +579,7 @@ static Swap_Chain_Info get_swap_chain_info(VkPhysicalDevice device, VkSurfaceKHR
         "Unable to query device surface present modes");
     if (info.present_mode_count == 0) {
         LOG_FATAL("Swap chain support inadequate");
-        exit(EXT_VULKAN_SWAP_CHAIN_INFO);
+        exit(EXT_VK_SWAP_CHAIN_INFO);
     }
 
     VK_CHECK_ERROR(vkGetPhysicalDeviceSurfacePresentModesKHR(
@@ -640,7 +619,7 @@ static VkFormat choose_swap_depth_format(VkPhysicalDevice device, VkFormat *form
     }
 
     LOG_FATAL("Failed to find supported depth format");
-    exit(EXT_VULKAN_DEPTH_FORMAT);
+    exit(EXT_VK_DEPTH_FORMAT);
 }
 
 static VkPresentModeKHR choose_swap_present_mode(VkPresentModeKHR *modes, u32 num_modes) {
@@ -696,6 +675,7 @@ static void create_swap_chain(Render_Context *rc, GLFWwindow *window) {
         VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
 
     rc->swap.clear_color = (VkClearColorValue){.float32 = {0.0f, 0.f, 0.0f, 1.0f}};
+    rc->swap.clear_depth = (VkClearDepthStencilValue){.depth = 0.0f, .stencil = 0};
 
     // Suggested to use at least one more
     rc->swap.target_count =
@@ -741,7 +721,7 @@ static void create_swap_chain(Render_Context *rc, GLFWwindow *window) {
     create_info.oldSwapchain = old_swapchain;
 
     VK_CHECK_FATAL(vkCreateSwapchainKHR(rc->logical, &create_info, NULL, &rc->swap.handle),
-                   EXT_VULKAN_SWAP_CHAIN_CREATE, "Failed to create swapchain");
+                   EXT_VK_SWAP_CHAIN_CREATE, "Failed to create swapchain");
     LOG_DEBUG("Created swap chain");
 
     if (old_swapchain != VK_NULL_HANDLE) {
@@ -749,6 +729,7 @@ static void create_swap_chain(Render_Context *rc, GLFWwindow *window) {
     }
 
     // TODO(ss): check if we need to recreate the render pass, we may not need to
+    rc->swap.arena = render_arena_init(rc, 1024);
     create_render_pass(rc);
     create_target_resources(rc);
     create_frame_resources(rc);
@@ -790,37 +771,50 @@ static void create_render_pass(Render_Context *rc) {
     color_attachment_ref.attachment = 0;
     color_attachment_ref.layout = VK_IMAGE_LAYOUT_COLOR_ATTACHMENT_OPTIMAL;
 
+    VkAttachmentDescription depth_attachment = {0};
+    depth_attachment.format = rc->swap.depth_format;
+    depth_attachment.samples = VK_SAMPLE_COUNT_1_BIT;
+    depth_attachment.loadOp = VK_ATTACHMENT_LOAD_OP_CLEAR;
+    depth_attachment.storeOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    depth_attachment.stencilLoadOp = VK_ATTACHMENT_LOAD_OP_DONT_CARE;
+    depth_attachment.stencilStoreOp = VK_ATTACHMENT_STORE_OP_DONT_CARE;
+    depth_attachment.initialLayout = VK_IMAGE_LAYOUT_UNDEFINED;
+    depth_attachment.finalLayout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
+    VkAttachmentReference depth_attachment_ref = {0};
+    depth_attachment_ref.attachment = 1;
+    depth_attachment_ref.layout = VK_IMAGE_LAYOUT_DEPTH_STENCIL_ATTACHMENT_OPTIMAL;
+
     VkSubpassDescription subpass = {0};
     subpass.pipelineBindPoint = VK_PIPELINE_BIND_POINT_GRAPHICS;
     subpass.colorAttachmentCount = 1;
     subpass.pColorAttachments = &color_attachment_ref;
+    subpass.pDepthStencilAttachment = &depth_attachment_ref;
 
     VkSubpassDependency dependency = {0};
-    // We want to wait on the implicit subpass before render pass, basically waiting
-    // in render pass
-    dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
     dependency.dstSubpass = 0;
-
-    // What operation to wait on... waiting on swap chain to finish reading image, waiting on color
-    // attachment
-    dependency.srcStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
+    dependency.dstAccessMask =
+        VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT | VK_ACCESS_DEPTH_STENCIL_ATTACHMENT_WRITE_BIT;
+    dependency.dstStageMask =
+        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
+    dependency.srcSubpass = VK_SUBPASS_EXTERNAL;
     dependency.srcAccessMask = 0;
+    dependency.srcStageMask =
+        VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
 
-    // We wait to to do color attachment stage
-    dependency.dstStageMask = VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT;
-    dependency.dstAccessMask = VK_ACCESS_COLOR_ATTACHMENT_WRITE_BIT;
-
+    VkAttachmentDescription attachments[RENDER_CONTEXT_ATTACHMENT_COUNT] = {color_attachment,
+                                                                            depth_attachment};
     VkRenderPassCreateInfo render_pass_info = {0};
     render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-    render_pass_info.attachmentCount = 1;
-    render_pass_info.pAttachments = &color_attachment;
+    render_pass_info.attachmentCount = 2;
+    render_pass_info.pAttachments = attachments;
     render_pass_info.subpassCount = 1;
     render_pass_info.pSubpasses = &subpass;
     render_pass_info.dependencyCount = 1;
     render_pass_info.pDependencies = &dependency;
 
     VK_CHECK_FATAL(vkCreateRenderPass(rc->logical, &render_pass_info, NULL, &rc->swap.render_pass),
-                   EXT_VULKAN_RENDER_PASS_CREATE, "Failed to create render pass");
+                   EXT_VK_RENDER_PASS_CREATE, "Failed to create render pass");
     LOG_DEBUG("Created render pass");
 }
 
@@ -836,6 +830,7 @@ static void create_target_resources(Render_Context *rc) {
         vkGetSwapchainImagesKHR(rc->logical, rc->swap.handle, &rc->swap.target_count,
                                 temp_image_array);
     }
+
     // Get image views
     for (u32 i = 0; i < rc->swap.target_count; i++) {
         // Color Resources
@@ -858,7 +853,7 @@ static void create_target_resources(Render_Context *rc) {
 
         VK_CHECK_FATAL(
             vkCreateImageView(rc->logical, &iv_info, NULL, &rc->swap.targets[i].color_image_view),
-            EXT_VULKAN_SWAP_CHAIN_IMAGE_VIEW, "Failed to creat swap chain image view %u", i);
+            EXT_VK_SWAP_CHAIN_IMAGE_VIEW, "Failed to creat swap chain image view %u", i);
         LOG_DEBUG("Created swap chain image view %u", i);
 
         // Depth Resources
@@ -878,11 +873,24 @@ static void create_target_resources(Render_Context *rc) {
         depth_image_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
         depth_image_info.flags = 0;
 
-        VK_CHECK_FATAL(
-            vkCreateImage(rc->logical, &depth_image_info, NULL, &rc->swap.targets[i].depth_image),
-            EXT_VULKAN_DEPTH_IMAGE_CREATE, "Failed to create swap chain depth image %u", i);
+        render_arena_alloc_image(
+            &rc->swap.arena, rc, depth_image_info, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+            &rc->swap.targets[i].depth_image, rc->swap.targets[i].depth_memory);
 
-        VkMemoryRequirements memory_reqs = {0};
+        VkImageViewCreateInfo depth_view_info = {0};
+        depth_view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
+        depth_view_info.image = rc->swap.targets[i].depth_image;
+        depth_view_info.viewType = VK_IMAGE_VIEW_TYPE_2D;
+        depth_view_info.format = rc->swap.depth_format;
+        depth_view_info.subresourceRange.aspectMask = VK_IMAGE_ASPECT_DEPTH_BIT;
+        depth_view_info.subresourceRange.baseMipLevel = 0;
+        depth_view_info.subresourceRange.levelCount = 1;
+        depth_view_info.subresourceRange.baseArrayLayer = 0;
+        depth_view_info.subresourceRange.layerCount = 1;
+
+        VK_CHECK_FATAL(vkCreateImageView(rc->logical, &depth_view_info, NULL,
+                                         &rc->swap.targets[i].depth_image_view),
+                       EXT_VK_DEPTH_VIEW, "Failed to create swap chain depth image veiw");
     }
 
     // Create framebuffers from image views... may want to have more attachments in future...
@@ -906,7 +914,7 @@ static void create_target_resources(Render_Context *rc) {
 
         VK_CHECK_FATAL(
             vkCreateFramebuffer(rc->logical, &fb_info, NULL, &rc->swap.targets[i].framebuffer),
-            EXT_VULKAN_LOGICAL_DEVICE, "Failed to create framebuffer %u", i);
+            EXT_VK_LOGICAL_DEVICE, "Failed to create framebuffer %u", i);
         LOG_DEBUG("Created framebuffer %u", i);
     }
 }
@@ -919,7 +927,7 @@ static void create_frame_resources(Render_Context *rc) {
     pi.queueFamilyIndex = rc->graphic_index;
 
     VK_CHECK_FATAL(vkCreateCommandPool(rc->logical, &pi, NULL, &rc->swap.command_pool),
-                   EXT_VULKAN_COMMAND_POOL, "Failed to create command pool");
+                   EXT_VK_COMMAND_POOL, "Failed to create command pool");
     LOG_DEBUG("Created command pool");
 
     // TODO(ss): some time of configuration or checks on this number
@@ -933,7 +941,7 @@ static void create_frame_resources(Render_Context *rc) {
 
     VkCommandBuffer temp_command_buffer_array[RENDER_CONTEXT_MAX_FRAMES_IN_FLIGHT];
     VK_CHECK_FATAL(vkAllocateCommandBuffers(rc->logical, &cba, temp_command_buffer_array),
-                   EXT_VULKAN_COMMAND_BUFFER, "Failed to allocate command buffer");
+                   EXT_VK_COMMAND_BUFFER, "Failed to allocate command buffer");
     for (u32 i = 0; i < rc->swap.frames_in_flight; i++) {
         rc->swap.frames[i].command_buffer = temp_command_buffer_array[i];
     }
@@ -950,17 +958,17 @@ static void create_frame_resources(Render_Context *rc) {
     for (u32 i = 0; i < rc->swap.frames_in_flight; i++) {
         VK_CHECK_FATAL(vkCreateSemaphore(rc->logical, &sem_info, NULL,
                                          &rc->swap.frames[i].image_available_sem),
-                       EXT_VULKAN_SYNC_OBJECT, "Failed to create image available semaphore");
+                       EXT_VK_SYNC_OBJECT, "Failed to create image available semaphore");
         LOG_DEBUG("Created image available semaphore %u", i);
 
         VK_CHECK_FATAL(vkCreateSemaphore(rc->logical, &sem_info, NULL,
                                          &rc->swap.frames[i].render_finished_sem),
-                       EXT_VULKAN_SYNC_OBJECT, "Failed to create render_finished semaphore");
+                       EXT_VK_SYNC_OBJECT, "Failed to create render_finished semaphore");
         LOG_DEBUG("Created render finished semaphore %u", i);
 
         VK_CHECK_FATAL(
             vkCreateFence(rc->logical, &fence_info, NULL, &rc->swap.frames[i].in_flight_fence),
-            EXT_VULKAN_SYNC_OBJECT, "Failed to create in flight fence");
+            EXT_VK_SYNC_OBJECT, "Failed to create in flight fence");
         LOG_DEBUG("Created in flight fence %u", i);
     }
 }

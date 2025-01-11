@@ -76,7 +76,7 @@ Render_Pipeline render_pipeline_create(Arena *arena, Render_Context *rc,
     layout_info.pPushConstantRanges = &push_constants_range;
 
     VK_CHECK_FATAL(vkCreatePipelineLayout(rc->logical, &layout_info, NULL, &pipeline.layout),
-                   EXT_VULKAN_PIPELINE_LAYOUT, "Failed to create pipeline layout");
+                   EXT_VK_PIPELINE_LAYOUT, "Failed to create pipeline layout");
 
     VkGraphicsPipelineCreateInfo pipeline_info = {0};
     pipeline_info.sType = VK_STRUCTURE_TYPE_GRAPHICS_PIPELINE_CREATE_INFO;
@@ -106,7 +106,7 @@ Render_Pipeline render_pipeline_create(Arena *arena, Render_Context *rc,
 
     VK_CHECK_FATAL(vkCreateGraphicsPipelines(rc->logical, VK_NULL_HANDLE, 1, &pipeline_info, NULL,
                                              &pipeline.handle),
-                   EXT_VULKAN_PIPELINE_CREATE, "Failed to create pipeline");
+                   EXT_VK_PIPELINE_CREATE, "Failed to create pipeline");
 
     // We can clean up any shader modules now
     vkDestroyShaderModule(rc->logical, vert_mod, NULL);
@@ -234,8 +234,8 @@ VkShaderModule create_shader_module(Shader_Code code, VkDevice device) {
     ci.pCode = (const u32 *)code.data;
 
     VkShaderModule shader_module;
-    VK_CHECK_FATAL(vkCreateShaderModule(device, &ci, NULL, &shader_module),
-                   EXT_VULKAN_SHADER_MODULE, "Failed to create shader module");
+    VK_CHECK_FATAL(vkCreateShaderModule(device, &ci, NULL, &shader_module), EXT_VK_SHADER_MODULE,
+                   "Failed to create shader module");
 
     return shader_module;
 }

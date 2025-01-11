@@ -4,30 +4,12 @@
 #include "core/arena.h"
 #include "core/common.h"
 #include "core/log.h"
+#include "render/render_allocator.h"
+#include "render/render_common.h"
 #include "window.h"
 
 #include <assert.h>
 #include <stdbool.h>
-#include <vk_mem_alloc.h>
-
-// Taken from Vulkan Samples, with couple modifications , the fatal version will exit with specified
-// code for you
-#define VK_CHECK_FATAL(x, exit_code, message, ...)                                                 \
-    do {                                                                                           \
-        VkResult check = x;                                                                        \
-        if (check != VK_SUCCESS) {                                                                 \
-            LOG_FATAL(message, ##__VA_ARGS__);                                                     \
-            exit(exit_code);                                                                       \
-        }                                                                                          \
-    } while (0)
-
-#define VK_CHECK_ERROR(x, message, ...)                                                            \
-    do {                                                                                           \
-        VkResult check = x;                                                                        \
-        if (check != VK_SUCCESS) {                                                                 \
-            LOG_ERROR(message, ##__VA_ARGS__);                                                     \
-        }                                                                                          \
-    } while (0)
 
 enum Render_Context_Constants {
     RENDER_CONTEXT_MAX_SWAP_IMAGES = 3,
@@ -55,13 +37,13 @@ struct Render_Context {
     u32 graphic_index;
     VkQueue present_q;
     u32 present_index;
-    VmaAllocator allocator; // For now using a library for memory
 
     // NOTE(ss): For now we group the render pass with the swap chain,
     // once I learn more this may not be the best practice
     struct Swap_Chain {
         VkSwapchainKHR handle;
 
+        VkClearDepthStencilValue clear_depth;
         VkClearColorValue clear_color;
 
         VkExtent2D extent;
@@ -72,12 +54,14 @@ struct Render_Context {
         VkRenderPass render_pass;
         u32 subpass;
 
+        Render_Arena arena;
         struct Swap_Target {
             VkFramebuffer framebuffer;
             VkImage color_image;
             VkImageView color_image_view;
             VkImage depth_image;
             VkImageView depth_image_view;
+            VkDeviceMemory depth_memory;
         } targets[RENDER_CONTEXT_MAX_SWAP_IMAGES];
         u32 current_target_idx;
         u32 target_count;
@@ -107,6 +91,7 @@ void render_end_frame(Render_Context *render_context);
 // Utility Functions //
 u32 render_get_swap_height(const Render_Context *render_context);
 u32 render_get_swap_width(const Render_Context *render_context);
+
 static inline const Swap_Frame *render_get_current_frame(const Render_Context *rc) {
     assert(rc != NULL);
     return &rc->swap.frames[rc->swap.current_frame_idx];
@@ -114,5 +99,9 @@ static inline const Swap_Frame *render_get_current_frame(const Render_Context *r
 static inline VkCommandBuffer render_get_current_cmd(const Render_Context *rc) {
     return render_get_current_frame(rc)->command_buffer;
 }
+// static inline const Swap_Target *render_get_current_target(const Render_Context *rc) {
+//     assert(rc != NULL);
+//     return &rc->swap.targets[rc->swap.current_target_idx];
+// }
 
 #endif // RENDER_CONTEXT_H
