@@ -177,6 +177,17 @@ static Pipeline_Config default_pipeline_config(void) {
     config.color_blend_attachment_state.dstAlphaBlendFactor = VK_BLEND_FACTOR_ZERO;
     config.color_blend_attachment_state.alphaBlendOp = VK_BLEND_OP_ADD;
 
+    config.depth_stencil_info.sType = VK_STRUCTURE_TYPE_PIPELINE_DEPTH_STENCIL_STATE_CREATE_INFO;
+    config.depth_stencil_info.depthTestEnable = VK_TRUE;
+    config.depth_stencil_info.depthWriteEnable = VK_TRUE;
+    config.depth_stencil_info.depthCompareOp = VK_COMPARE_OP_LESS;
+    config.depth_stencil_info.depthBoundsTestEnable = VK_FALSE;
+    config.depth_stencil_info.minDepthBounds = 0.0f;
+    config.depth_stencil_info.maxDepthBounds = 1.0f;
+    config.depth_stencil_info.stencilTestEnable = VK_FALSE;
+    config.depth_stencil_info.front = (VkStencilOpState){0};
+    config.depth_stencil_info.back = (VkStencilOpState){0};
+
     // Dynamic yo
     config.viewport_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VIEWPORT_STATE_CREATE_INFO;
     config.viewport_info.viewportCount = 1;

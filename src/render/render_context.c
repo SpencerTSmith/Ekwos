@@ -175,7 +175,7 @@ void rnd_end_frame(RND_Context *rc) {
 
     VK_CHECK_ERROR(vkEndCommandBuffer(rnd_get_current_cmd(rc)),
                    "Failed to end command buffer %u recording", current_frame);
-    // LOG_DEBUG("Ended command buffer %u recording", current_frame);
+    LOG_INFO("Ended command buffer %u recording", current_frame);
 
     VkSemaphore wait_semaphores[] = {rnd_get_current_frame(rc)->image_available_sem};
     VkSemaphore signal_semaphores[] = {rnd_get_current_frame(rc)->render_finished_sem};
@@ -666,19 +666,18 @@ static void create_swap_chain(RND_Context *rc, Window *window) {
         VK_IMAGE_TILING_OPTIMAL, VK_FORMAT_FEATURE_DEPTH_STENCIL_ATTACHMENT_BIT);
 
     rc->swap.clear_color = (VkClearColorValue){.float32 = {0.0f, 0.f, 0.0f, 1.0f}};
-    rc->swap.clear_depth = (VkClearDepthStencilValue){.depth = 0.0f, .stencil = 0};
+    rc->swap.clear_depth = (VkClearDepthStencilValue){.depth = 1.0f, .stencil = 0};
 
-    // Suggested to use at least one more
+    // Suggested to use at least one more, if possible
     rc->swap.target_count =
         MIN(info.capabilities.minImageCount + 1, RENDER_CONTEXT_MAX_SWAP_IMAGES);
-
     if (info.capabilities.maxImageCount > 0) {
         rc->swap.target_count =
             MIN(RENDER_CONTEXT_MAX_SWAP_IMAGES, info.capabilities.maxImageCount);
     }
 
     // If we are recreating
-    VkSwapchainKHR old_swapchain = rc->swap.handle != 0 ? rc->swap.handle : VK_NULL_HANDLE;
+    VkSwapchainKHR old_swapchain = rc->swap.handle != NULL ? rc->swap.handle : VK_NULL_HANDLE;
 
     VkSwapchainCreateInfoKHR create_info = {0};
     create_info.sType = VK_STRUCTURE_TYPE_SWAPCHAIN_CREATE_INFO_KHR;
@@ -742,8 +741,6 @@ static void recreate_swap_chain(RND_Context *rc, Window *window) {
                    "Failed to wait for device idle in recreation of swap_chain");
 
     create_swap_chain(rc, window);
-
-    // TODO(ss): Check if render pass is compatible with render pipelines
 }
 
 static void create_render_pass(RND_Context *rc) {
@@ -794,11 +791,13 @@ static void create_render_pass(RND_Context *rc) {
     dependency.srcStageMask =
         VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT | VK_PIPELINE_STAGE_EARLY_FRAGMENT_TESTS_BIT;
 
-    VkAttachmentDescription attachments[RENDER_CONTEXT_ATTACHMENT_COUNT] = {color_attachment,
-                                                                            depth_attachment};
+    VkAttachmentDescription attachments[] = {
+        color_attachment,
+        depth_attachment,
+    };
     VkRenderPassCreateInfo render_pass_info = {0};
     render_pass_info.sType = VK_STRUCTURE_TYPE_RENDER_PASS_CREATE_INFO;
-    render_pass_info.attachmentCount = 2;
+    render_pass_info.attachmentCount = STATIC_ARRAY_COUNT(attachments);
     render_pass_info.pAttachments = attachments;
     render_pass_info.subpassCount = 1;
     render_pass_info.pSubpasses = &subpass;
@@ -867,7 +866,8 @@ static void create_target_resources(RND_Context *rc) {
 
         rnd_arena_alloc_image(&rc->swap.arena, rc, depth_image_info,
                               VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &rc->swap.targets[i].depth_image,
-                              rc->swap.targets[i].depth_memory);
+                              &rc->swap.targets[i].depth_memory);
+        LOG_DEBUG("Allocated memory for swap chain depth image %u", i);
 
         VkImageViewCreateInfo depth_view_info = {0};
         depth_view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -883,14 +883,13 @@ static void create_target_resources(RND_Context *rc) {
         VK_CHECK_FATAL(vkCreateImageView(rc->logical, &depth_view_info, NULL,
                                          &rc->swap.targets[i].depth_image_view),
                        EXT_VK_DEPTH_VIEW, "Failed to create swap chain depth image veiw");
+        LOG_DEBUG("Created swap chain depth image view %u", i);
     }
 
     // Create framebuffers from image views... may want to have more attachments in future...
     // array
     for (u32 i = 0; i < rc->swap.target_count; i++) {
-        // NOTE(spencer): when changing this in future remember to change attachmentCount in
-        // fb_info
-        VkImageView attachments[RENDER_CONTEXT_ATTACHMENT_COUNT] = {
+        VkImageView attachments[] = {
             rc->swap.targets[i].color_image_view,
             rc->swap.targets[i].depth_image_view,
         };
@@ -898,7 +897,7 @@ static void create_target_resources(RND_Context *rc) {
         VkFramebufferCreateInfo fb_info = {0};
         fb_info.sType = VK_STRUCTURE_TYPE_FRAMEBUFFER_CREATE_INFO;
         fb_info.renderPass = rc->swap.render_pass;
-        fb_info.attachmentCount = RENDER_CONTEXT_ATTACHMENT_COUNT;
+        fb_info.attachmentCount = STATIC_ARRAY_COUNT(attachments);
         fb_info.pAttachments = attachments;
         fb_info.width = rc->swap.extent.width;
         fb_info.height = rc->swap.extent.height;
@@ -998,6 +997,7 @@ static void destroy_swap_chain(RND_Context *rc, VkSwapchainKHR swap_handle) {
         } else {
             LOG_ERROR("Tried to destroy nonexistent vulkan render pass");
         }
+
         for (u32 i = 0; i < rc->swap.target_count; i++) {
             if (rc->swap.targets[i].framebuffer != VK_NULL_HANDLE) {
                 vkDestroyFramebuffer(rc->logical, rc->swap.targets[i].framebuffer, NULL);
@@ -1010,7 +1010,16 @@ static void destroy_swap_chain(RND_Context *rc, VkSwapchainKHR swap_handle) {
             } else {
                 LOG_ERROR("Tried to destroy nonexistent vulkan image view");
             }
+
+            if (rc->swap.targets[i].depth_image_view != VK_NULL_HANDLE) {
+                vkDestroyImage(rc->logical, rc->swap.targets[i].depth_image, NULL);
+                vkDestroyImageView(rc->logical, rc->swap.targets[i].depth_image_view, NULL);
+                vkFreeMemory(rc->logical, rc->swap.targets[i].depth_memory, NULL);
+            } else {
+                LOG_ERROR("Tried to destroy nonexistent vulkan depth image view");
+            }
         }
+
         vkDestroySwapchainKHR(rc->logical, swap_handle, NULL);
         // ZERO_STRUCT(&rc->swap);
         LOG_DEBUG("Destroyed swap chain resources");

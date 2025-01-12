@@ -18,7 +18,7 @@ void rnd_arena_free(RND_Context *rc, RND_Arena *allocator) {
 
 void rnd_arena_alloc_image(RND_Arena *allocator, RND_Context *rc, VkImageCreateInfo info,
                            VkMemoryPropertyFlags memory_prop_flags, VkImage *image,
-                           VkDeviceMemory memory) {
+                           VkDeviceMemory *memory) {
     assert(allocator->capacity != 0 && "Tried to use rendering memory arena before initialization");
 
     VK_CHECK_FATAL(vkCreateImage(rc->logical, &info, NULL, image), EXT_VK_IMAGE_CREATE,
@@ -45,9 +45,9 @@ void rnd_arena_alloc_image(RND_Arena *allocator, RND_Context *rc, VkImageCreateI
     alloc_info.allocationSize = memory_reqs.size;
     alloc_info.memoryTypeIndex = memory_type_index;
 
-    VK_CHECK_FATAL(vkAllocateMemory(rc->logical, &alloc_info, NULL, &memory), EXT_VK_ALLOCATION,
+    VK_CHECK_FATAL(vkAllocateMemory(rc->logical, &alloc_info, NULL, memory), EXT_VK_ALLOCATION,
                    "Failed to allocate vulkan memory for image");
 
-    VK_CHECK_FATAL(vkBindImageMemory(rc->logical, *image, memory, 0), EXT_VK_MEMORY_BIND,
+    VK_CHECK_FATAL(vkBindImageMemory(rc->logical, *image, *memory, 0), EXT_VK_MEMORY_BIND,
                    "Failed to bind vulkan memory for image");
 }

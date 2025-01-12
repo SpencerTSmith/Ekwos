@@ -21,7 +21,7 @@ void rnd_arena_free(RND_Context *rc, RND_Arena *allocator);
 // Finds best memory type, etc, binds
 void rnd_arena_alloc_image(RND_Arena *arena, RND_Context *rc, VkImageCreateInfo info,
                            VkMemoryPropertyFlags memory_prop_flag, VkImage *image,
-                           VkDeviceMemory memory);
+                           VkDeviceMemory *memory);
 
 void rnd_arena_pop(RND_Arena *arena, RND_Context *rc, u64 size);
 void rnd_arena_pop_to(RND_Arena *arena, RND_Context *rc, u64 size);
