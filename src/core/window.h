@@ -3,6 +3,7 @@
 
 #include "core/common.h"
 
+#define GLFW_INCLUDE_VULKAN
 #include <GLFW/glfw3.h>
 
 #include <stdbool.h>
@@ -22,6 +23,11 @@ struct Window {
 
 void window_create(Window *window, const char *name, int width, int height);
 void window_free(Window *window);
-bool window_should_close(Window window);
+
+bool window_should_close(Window *window);
+void window_set_to_close(Window *window);
+
+typedef struct RND_Context RND_Context;
+VkSurfaceKHR window_surface_create(Window *window, RND_Context *rc);
 
 #endif // WINDOW_H

@@ -10,8 +10,9 @@
     We assume a 0 - > 1 NDC and a right handed system, with z pointing inwards
 */
 
-// TODO(ss): SIMDify explicitly, don't leave it up to compiler
-// And look into inlining everything
+// TODO(ss): I've been looking through godbolt, and mat4_mul_vec4 seems to easily autovectorise in
+// case -O3 and -mavx, we may not need to so explicit SIMD intrinsics but something to look into as
+// we progress
 
 typedef union vec2 vec2;
 union vec2 {
@@ -310,20 +311,20 @@ static inline mat4 mat4_identity(void) {
     return i;
 }
 
-static inline mat4 mat4_make_scale(f32 sx, f32 sy, f32 sz) {
+static inline mat4 mat4_make_scale(vec3 v) {
     mat4 s = mat4_identity();
-    s.cols[0].x = sx;
-    s.cols[1].y = sy;
-    s.cols[2].z = sz;
+    s.cols[0].x = v.x;
+    s.cols[1].y = v.y;
+    s.cols[2].z = v.z;
 
     return s;
 }
 
-static inline mat4 mat4_make_translation(f32 tx, f32 ty, f32 tz) {
+static inline mat4 mat4_make_translation(vec3 v) {
     mat4 t = mat4_identity();
-    t.cols[3].x = tx;
-    t.cols[3].y = ty;
-    t.cols[3].z = tz;
+    t.cols[3].x = v.x;
+    t.cols[3].y = v.y;
+    t.cols[3].z = v.z;
 
     return t;
 }

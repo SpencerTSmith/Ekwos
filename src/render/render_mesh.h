@@ -3,39 +3,43 @@
 
 #include "core/common.h"
 #include "core/linear_algebra.h"
+
+#include "render/render_common.h"
 #include "render/render_context.h"
 
-typedef struct Vertex Vertex;
-struct Vertex {
+typedef struct RND_Vertex RND_Vertex;
+struct RND_Vertex {
     vec2 position;
     vec3 color;
 };
 
 // Remember alignment shit
-typedef struct Push_Constants Push_Constants;
-struct Push_Constants {
+typedef struct RND_Push_Constants RND_Push_Constants;
+struct RND_Push_Constants {
     vec3 offset;
     alignas(16) vec3 color;
 };
 
-typedef struct Render_Mesh Render_Mesh;
-struct Render_Mesh {
+typedef struct RND_Mesh RND_Mesh;
+struct RND_Mesh {
     VkBuffer vertex_buffer;
     VkDeviceMemory memory;
     u32 vertex_count;
 };
 
-#define VERTEX_BINDING_NUM 1
-#define VERTEX_ATTRIBUTES_NUM 2
-extern const VkVertexInputBindingDescription g_vertex_binding_desc[VERTEX_BINDING_NUM];
-extern const VkVertexInputAttributeDescription g_vertex_attrib_desc[VERTEX_ATTRIBUTES_NUM];
+enum RND_Mesh_Constants {
+    RND_VERTEX_BINDING_NUM = 1,
+    RND_VERTEX_ATTRIBUTES_NUM = 2,
+};
+extern const VkVertexInputBindingDescription g_vertex_binding_desc[RND_VERTEX_BINDING_NUM];
+extern const VkVertexInputAttributeDescription g_vertex_attrib_desc[RND_VERTEX_ATTRIBUTES_NUM];
 
 // TODO(ss): Either need to use VMA (Vulkan Memory Allocator) library or create our own gpu memory
 // allocator ASAP
 
-void render_mesh_init(Render_Context *rc, Render_Mesh *mesh, Vertex *verts, u32 vert_count);
-void render_mesh_bind(Render_Context *rc, Render_Mesh *mesh);
-void render_mesh_draw(Render_Context *rc, Render_Mesh *mesh);
-void render_mesh_free(Render_Context *rc, Render_Mesh *mesh);
+void rnd_mesh_init(RND_Context *rc, RND_Mesh *mesh, RND_Vertex *verts, u32 vert_count);
+void rnd_mesh_bind(RND_Context *rc, RND_Mesh *mesh);
+void rnd_mesh_draw(RND_Context *rc, RND_Mesh *mesh);
+void rnd_mesh_free(RND_Context *rc, RND_Mesh *mesh);
 
 #endif // RENDER_MODEL_H

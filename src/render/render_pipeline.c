@@ -8,20 +8,27 @@
 #include <stdlib.h>
 #include <string.h>
 
-// Sets all besides pipeline_layout, render_pass, and subpass
+typedef struct Shader_Code Shader_Code;
+struct Shader_Code {
+    u8 *data;
+    u64 size;
+};
 
+// Sets all besides pipeline_layout, render_pass, and subpass
 static Pipeline_Config default_pipeline_config(void);
 
-Render_Pipeline render_pipeline_create(Arena *arena, Render_Context *rc,
-                                       const char *vert_shader_path, const char *frag_shader_path,
-                                       const Pipeline_Config *config) {
+static Shader_Code read_shader_file(Arena *arena, const char *file_path);
+static VkShaderModule create_shader_module(Shader_Code code, VkDevice device);
+
+RND_Pipeline rnd_pipeline_create(Arena *arena, RND_Context *rc, const char *vert_shader_path,
+                                 const char *frag_shader_path, const Pipeline_Config *config) {
     // Use a default if none passed in
     Pipeline_Config pl_config = config == NULL ? default_pipeline_config() : *config;
 
     // Don't need to keep the shader code memory around
     Scratch scratch = scratch_begin(arena);
 
-    Render_Pipeline pipeline = {0};
+    RND_Pipeline pipeline = {0};
     Shader_Code vert_code = read_shader_file(arena, vert_shader_path);
     Shader_Code frag_code = read_shader_file(arena, frag_shader_path);
     VkShaderModule vert_mod = create_shader_module(vert_code, rc->logical);
@@ -42,9 +49,9 @@ Render_Pipeline render_pipeline_create(Arena *arena, Render_Context *rc,
 
     VkPipelineVertexInputStateCreateInfo vertex_input_info = {0};
     vertex_input_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-    vertex_input_info.vertexAttributeDescriptionCount = VERTEX_ATTRIBUTES_NUM;
-    vertex_input_info.vertexBindingDescriptionCount = VERTEX_BINDING_NUM;
+    vertex_input_info.vertexAttributeDescriptionCount = RND_VERTEX_ATTRIBUTES_NUM;
     vertex_input_info.pVertexAttributeDescriptions = g_vertex_attrib_desc;
+    vertex_input_info.vertexBindingDescriptionCount = RND_VERTEX_BINDING_NUM;
     vertex_input_info.pVertexBindingDescriptions = g_vertex_binding_desc;
 
     VkPipelineColorBlendStateCreateInfo color_blend_info = {0};
@@ -66,7 +73,7 @@ Render_Pipeline render_pipeline_create(Arena *arena, Render_Context *rc,
     VkPushConstantRange push_constants_range = {0};
     push_constants_range.stageFlags = VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT;
     push_constants_range.offset = 0;
-    push_constants_range.size = sizeof(Push_Constants);
+    push_constants_range.size = sizeof(RND_Push_Constants);
 
     VkPipelineLayoutCreateInfo layout_info = {0};
     layout_info.sType = VK_STRUCTURE_TYPE_PIPELINE_LAYOUT_CREATE_INFO;
@@ -116,21 +123,21 @@ Render_Pipeline render_pipeline_create(Arena *arena, Render_Context *rc,
     return pipeline;
 }
 
-void render_pipeline_free(Render_Context *rc, Render_Pipeline *pl) {
+void rnd_pipeline_free(RND_Context *rc, RND_Pipeline *pl) {
     vkDestroyPipelineLayout(rc->logical, pl->layout, NULL);
     vkDestroyPipeline(rc->logical, pl->handle, NULL);
     ZERO_STRUCT(pl);
     LOG_DEBUG("Render Pipeline resources destroyed");
 }
 
-void render_pipeline_bind(Render_Context *rc, Render_Pipeline *pl) {
-    vkCmdBindPipeline(render_get_current_cmd(rc), VK_PIPELINE_BIND_POINT_GRAPHICS, pl->handle);
+void rnd_pipeline_bind(RND_Context *rc, RND_Pipeline *pl) {
+    vkCmdBindPipeline(rnd_get_current_cmd(rc), VK_PIPELINE_BIND_POINT_GRAPHICS, pl->handle);
 }
 
-void render_push_constants(Render_Context *rc, Render_Pipeline *pl, Push_Constants push) {
-    vkCmdPushConstants(render_get_current_cmd(rc), pl->layout,
+void rnd_push_constants(RND_Context *rc, RND_Pipeline *pl, RND_Push_Constants push) {
+    vkCmdPushConstants(rnd_get_current_cmd(rc), pl->layout,
                        VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0,
-                       sizeof(Push_Constants), &push);
+                       sizeof(RND_Push_Constants), &push);
 }
 
 static Pipeline_Config default_pipeline_config(void) {
@@ -184,7 +191,7 @@ static Pipeline_Config default_pipeline_config(void) {
     return config;
 }
 
-Shader_Code read_shader_file(Arena *arena, const char *file_path) {
+static Shader_Code read_shader_file(Arena *arena, const char *file_path) {
     Shader_Code shader_data = {0};
 
     FILE *shader_file = fopen(file_path, "rb");
@@ -226,7 +233,7 @@ Shader_Code read_shader_file(Arena *arena, const char *file_path) {
     return shader_data;
 }
 
-VkShaderModule create_shader_module(Shader_Code code, VkDevice device) {
+static VkShaderModule create_shader_module(Shader_Code code, VkDevice device) {
     VkShaderModuleCreateInfo ci = {0};
     ci.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
     ci.codeSize = code.size;

@@ -22,6 +22,10 @@ typedef double f64;
 #define MAX(first, second) ((first) > (second) ? (first) : (second))
 #define MIN(first, second) ((first) > (second) ? (second) : (first))
 
+// adds the alignment and then masks the lower bits to get the next (higher) multiple of that
+// alignment... binary math
+#define ALIGN_ROUND_UP(x, b) (((x) + (b) - 1) & (~((b) - 1)))
+
 #define STATIC_ARRAY_COUNT(arr) (sizeof(arr) / sizeof(arr[0]))
 
 #define ZERO_STRUCT(ptr) (memset((ptr), 0, sizeof(*(ptr))))

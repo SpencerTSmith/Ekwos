@@ -3,6 +3,8 @@
 #include <stdlib.h>
 
 #include "core/log.h"
+#include "render/render_common.h"
+#include "render/render_context.h"
 
 static void framebuffer_resize_callback(GLFWwindow *window, int width, int height);
 
@@ -41,7 +43,17 @@ void window_free(Window *window) {
     glfwTerminate();
 }
 
-bool window_should_close(Window window) { return glfwWindowShouldClose(window.handle); }
+bool window_should_close(Window *window) { return glfwWindowShouldClose(window->handle); }
+
+void window_set_to_close(Window *window) { glfwSetWindowShouldClose(window->handle, true); }
+
+VkSurfaceKHR window_surface_create(Window *window, RND_Context *rc) {
+    VkSurfaceKHR surface;
+    VK_CHECK_FATAL(glfwCreateWindowSurface(rc->instance, window->handle, NULL, &surface),
+                   EXT_VK_SURFACE, "Failed to create render surface");
+    LOG_DEBUG("Created surface");
+    return surface;
+}
 
 // TODO(ss): look into window refresh callback for smoother window resize
 static void framebuffer_resize_callback(GLFWwindow *handle, int width, int height) {

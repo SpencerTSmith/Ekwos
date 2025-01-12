@@ -3,50 +3,50 @@
 #include "core/log.h"
 #include "render/render_context.h"
 
-const VkVertexInputBindingDescription g_vertex_binding_desc[VERTEX_BINDING_NUM] = {{
+const VkVertexInputBindingDescription g_vertex_binding_desc[RND_VERTEX_BINDING_NUM] = {{
     .binding = 0,
-    .stride = sizeof(Vertex),
+    .stride = sizeof(RND_Vertex),
     .inputRate = VK_VERTEX_INPUT_RATE_VERTEX,
 }};
-const VkVertexInputAttributeDescription g_vertex_attrib_desc[VERTEX_ATTRIBUTES_NUM] = {
+const VkVertexInputAttributeDescription g_vertex_attrib_desc[RND_VERTEX_ATTRIBUTES_NUM] = {
     {
         .binding = 0,
         .location = 0,
         .format = VK_FORMAT_R32G32_SFLOAT,
-        .offset = offsetof(Vertex, position),
+        .offset = offsetof(RND_Vertex, position),
     },
     {
         .binding = 0,
         .location = 1,
         .format = VK_FORMAT_R32G32B32_SFLOAT,
-        .offset = offsetof(Vertex, color),
+        .offset = offsetof(RND_Vertex, color),
     },
 };
 
-static void create_vertex_buffers(Render_Context *rc, Render_Mesh *mesh, Vertex *verts,
+static void create_vertex_buffers(RND_Context *rc, RND_Mesh *mesh, RND_Vertex *verts,
                                   u32 vert_count);
 
-void render_mesh_init(Render_Context *rc, Render_Mesh *mesh, Vertex *verts, u32 vert_count) {
+void rnd_mesh_init(RND_Context *rc, RND_Mesh *mesh, RND_Vertex *verts, u32 vert_count) {
     create_vertex_buffers(rc, mesh, verts, vert_count);
 }
 
-void render_mesh_bind(Render_Context *rc, Render_Mesh *mesh) {
+void rnd_mesh_bind(RND_Context *rc, RND_Mesh *mesh) {
     VkBuffer buffers[] = {mesh->vertex_buffer};
     VkDeviceSize offsets[] = {0};
-    vkCmdBindVertexBuffers(render_get_current_cmd(rc), 0, 1, buffers, offsets);
+    vkCmdBindVertexBuffers(rnd_get_current_cmd(rc), 0, 1, buffers, offsets);
 }
 
-void render_mesh_draw(Render_Context *rc, Render_Mesh *mesh) {
-    vkCmdDraw(render_get_current_cmd(rc), mesh->vertex_count, 1, 0, 0);
+void rnd_mesh_draw(RND_Context *rc, RND_Mesh *mesh) {
+    vkCmdDraw(rnd_get_current_cmd(rc), mesh->vertex_count, 1, 0, 0);
 }
 
-void render_mesh_free(Render_Context *rc, Render_Mesh *mesh) {
+void rnd_mesh_free(RND_Context *rc, RND_Mesh *mesh) {
     vkDestroyBuffer(rc->logical, mesh->vertex_buffer, NULL);
     vkFreeMemory(rc->logical, mesh->memory, NULL);
     ZERO_STRUCT(mesh);
 }
 
-static void create_buffer(Render_Context *rc, VkDeviceSize size, VkBufferUsageFlags usage,
+static void create_buffer(RND_Context *rc, VkDeviceSize size, VkBufferUsageFlags usage,
                           VkMemoryPropertyFlags properties, VkBuffer *buffer,
                           VkDeviceMemory *buffer_memory) {
     VkBufferCreateInfo buffer_info = {0};
@@ -85,7 +85,7 @@ static void create_buffer(Render_Context *rc, VkDeviceSize size, VkBufferUsageFl
                    "Failed to bind buffer memory");
 }
 
-static void create_vertex_buffers(Render_Context *rc, Render_Mesh *mesh, Vertex *verts,
+static void create_vertex_buffers(RND_Context *rc, RND_Mesh *mesh, RND_Vertex *verts,
                                   u32 vert_count) {
     mesh->vertex_count = vert_count;
     if (vert_count < 3) {
@@ -93,7 +93,7 @@ static void create_vertex_buffers(Render_Context *rc, Render_Mesh *mesh, Vertex 
         return;
     }
 
-    VkDeviceSize buffer_size = sizeof(Vertex) * vert_count;
+    VkDeviceSize buffer_size = sizeof(RND_Vertex) * vert_count;
     create_buffer(rc, buffer_size, VK_BUFFER_USAGE_VERTEX_BUFFER_BIT,
                   VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                   &mesh->vertex_buffer, &mesh->memory);

@@ -6,10 +6,6 @@
 #include <malloc.h>
 #include <stdlib.h>
 
-// adds the alignment and then masks the lower bits to get the next (higher) multiple of that
-// alignment... binary math
-#define ALIGN_ROUND_UP(x, b) (((x) + (b) - 1) & (~((b) - 1)))
-
 Arena arena_create(u64 reserve_size, Arena_Flags flags) {
     Arena arena = {0};
 
@@ -46,11 +42,6 @@ void *arena_alloc(Arena *arena, u64 size, u64 alignment) {
         // TODO(spencer): Hmm, should we have arena chaining, fixed size arenas, offsets instead of
         // raw pointers?
         u64 needed_capacity = aligned_offset + size;
-
-        // // kind of high for now, but once we can profile this... better number
-        // u64 new_capacity = arena->capacity * 1.5;
-        // new_capacity = new_capacity > needed_capacity ? new_capacity : needed_capacity;
-        // arena->base_ptr = realloc(arena->base_ptr, new_capacity);
 
         LOG_DEBUG("Not enough memory in arena,\nNEED: %lu bytes\nHAVE: %lu bytes\n",
                   needed_capacity, arena->capacity);

@@ -5,25 +5,25 @@
 #include "render/render_common.h"
 
 // forward declaration
-typedef struct Render_Context Render_Context;
+typedef struct RND_Context RND_Context;
 
-typedef struct Render_Arena Render_Arena;
-struct Render_Arena {
-    VkPhysicalDeviceMemoryProperties memory_props;
+typedef struct RND_Arena RND_Arena;
+struct RND_Arena {
+    VkPhysicalDeviceMemoryProperties device_memory_props;
     VkDeviceMemory memory;
     u64 capacity;
 };
 
 // TODO(ss): actually implement management of memory on the allocator side instead of caller side
-Render_Arena render_arena_init(Render_Context *rc, u64 initial_size);
-void render_arena_free(Render_Context *rc, Render_Arena *allocator);
+RND_Arena rnd_arena_init(RND_Context *rc, u64 initial_size);
+void rnd_arena_free(RND_Context *rc, RND_Arena *allocator);
 
 // Finds best memory type, etc, binds
-void render_arena_alloc_image(Render_Arena *arena, Render_Context *rc, VkImageCreateInfo info,
-                              VkMemoryPropertyFlags memory_prop_flag, VkImage *image,
-                              VkDeviceMemory memory);
+void rnd_arena_alloc_image(RND_Arena *arena, RND_Context *rc, VkImageCreateInfo info,
+                           VkMemoryPropertyFlags memory_prop_flag, VkImage *image,
+                           VkDeviceMemory memory);
 
-void render_arena_pop(Render_Arena *arena, Render_Context *rc, u64 size);
-void render_arena_pop_to(Render_Arena *arena, Render_Context *rc, u64 size);
+void rnd_arena_pop(RND_Arena *arena, RND_Context *rc, u64 size);
+void rnd_arena_pop_to(RND_Arena *arena, RND_Context *rc, u64 size);
 
 #endif // RENDER_ALLOCATOR_H

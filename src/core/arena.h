@@ -7,10 +7,10 @@
 // TODO(ss): actually write the rest of this
 typedef u64 Arena_Flags;
 enum Arena_Flags {
-    ARENA_DEFAULT_FLAGS = 0,
-    ARENA_FREE_LIST = (1 << 0),
-    ARENA_RESIZABLE = (1 << 1),
-    ARENA_CHAINABLE = (1 << 2),
+    ARENA_FLAG_DEFAULTS = 0,
+    ARENA_FLAG_FREE_LIST = (1 << 0),
+    ARENA_FLAG_RESIZABLE = (1 << 1),
+    ARENA_FLAG_CHAINABLE = (1 << 2),
 };
 
 typedef struct Arena Arena;

@@ -1,4 +1,5 @@
 #include "render_context.h"
+
 #include "core/log.h"
 
 #include <stdbool.h>
@@ -36,28 +37,27 @@ struct Queue_Family_Indices {
 };
 
 // Forward declarations //
-static void create_instance(Arena *arena, Render_Context *rc);
-static void create_surface(Render_Context *rc, GLFWwindow *window_handle);
-static void choose_physical_device(Arena *arena, Render_Context *rc);
-static void create_logical_device(Arena *arena, Render_Context *rc);
+static void create_instance(Arena *arena, RND_Context *rc);
+static void choose_physical_device(Arena *arena, RND_Context *rc);
+static void create_logical_device(Arena *arena, RND_Context *rc);
 
 // Swap Chain Stuff //
-static void create_swap_chain(Render_Context *rc, GLFWwindow *window);
+static void create_swap_chain(RND_Context *rc, Window *window);
 // Takes in a handle in case we are recreating a swap chain, we can just destroy the old one, as
 // specified by the handle
-static void destroy_swap_chain(Render_Context *rc, VkSwapchainKHR swap_handle);
-static void recreate_swap_chain(Render_Context *rc, Window *window);
+static void destroy_swap_chain(RND_Context *rc, VkSwapchainKHR swap_handle);
+static void recreate_swap_chain(RND_Context *rc, Window *window);
 
-void render_context_init(Arena *arena, Render_Context *rc, GLFWwindow *window_handle) {
+void rnd_context_init(Arena *arena, RND_Context *rc, Window *window) {
     // Get some temporary memory to hold our queries and such about device supports
     // we don't need it later
     Scratch scratch = scratch_begin(arena);
 
     create_instance(scratch.arena, rc);
-    create_surface(rc, window_handle);
+    rc->surface = window_surface_create(window, rc);
     choose_physical_device(scratch.arena, rc);
     create_logical_device(scratch.arena, rc);
-    create_swap_chain(rc, window_handle);
+    create_swap_chain(rc, window);
 
     // Memory storing all those queries not nessecary anymore
     scratch_end(&scratch);
@@ -65,7 +65,7 @@ void render_context_init(Arena *arena, Render_Context *rc, GLFWwindow *window_ha
     LOG_DEBUG("Render Context resources initialized");
 }
 
-void render_context_free(Render_Context *rc) {
+void rnd_context_free(RND_Context *rc) {
     if (rc->instance != VK_NULL_HANDLE) {
         destroy_swap_chain(rc, rc->swap.handle);
         if (rc->surface != VK_NULL_HANDLE) {
@@ -96,9 +96,9 @@ void render_context_free(Render_Context *rc) {
 
 // Returns result of acquiring the image, stores the current image index into the
 // right field in rc->swap
-static VkResult acquire_next_image(Render_Context *rc);
+static VkResult acquire_next_image(RND_Context *rc);
 
-void render_begin_frame(Render_Context *rc, Window *window) {
+void rnd_begin_frame(RND_Context *rc, Window *window) {
     u32 current_frame = rc->swap.current_frame_idx;
 
     VkResult result = acquire_next_image(rc);
@@ -115,11 +115,11 @@ void render_begin_frame(Render_Context *rc, Window *window) {
     }
     LOG_INFO("Acquired next image, %u, from swap chain", rc->swap.current_target_idx);
 
-    VK_CHECK_ERROR(vkResetFences(rc->logical, 1, &render_get_current_frame(rc)->in_flight_fence),
+    VK_CHECK_ERROR(vkResetFences(rc->logical, 1, &rnd_get_current_frame(rc)->in_flight_fence),
                    "Failed to reset in flight fence %u", current_frame);
     LOG_INFO("Waited for and reset in flight fence %u", current_frame);
 
-    VK_CHECK_ERROR(vkResetCommandBuffer(render_get_current_cmd(rc), 0),
+    VK_CHECK_ERROR(vkResetCommandBuffer(rnd_get_current_cmd(rc), 0),
                    "Failed to reset command buffer %u", current_frame);
 
     // Ok now ready to start the next frame
@@ -128,7 +128,7 @@ void render_begin_frame(Render_Context *rc, Window *window) {
     begin_info.flags =
         VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT; // we rerecord every frame, check this
 
-    VK_CHECK_ERROR(vkBeginCommandBuffer(render_get_current_cmd(rc), &begin_info),
+    VK_CHECK_ERROR(vkBeginCommandBuffer(rnd_get_current_cmd(rc), &begin_info),
                    "Failed to begin command buffer %u recording", current_frame);
     LOG_INFO("Began command buffer %u recording", current_frame);
 
@@ -146,7 +146,7 @@ void render_begin_frame(Render_Context *rc, Window *window) {
     render_pass_info.clearValueCount = STATIC_ARRAY_COUNT(clear_values);
     render_pass_info.pClearValues = clear_values;
 
-    vkCmdBeginRenderPass(render_get_current_cmd(rc), &render_pass_info, VK_SUBPASS_CONTENTS_INLINE);
+    vkCmdBeginRenderPass(rnd_get_current_cmd(rc), &render_pass_info, VK_SUBPASS_CONTENTS_INLINE);
 
     // Dynamic State!
     VkViewport viewport = {
@@ -162,28 +162,28 @@ void render_begin_frame(Render_Context *rc, Window *window) {
         .extent = rc->swap.extent,
     };
 
-    vkCmdSetViewport(render_get_current_cmd(rc), 0, 1, &viewport);
-    vkCmdSetScissor(render_get_current_cmd(rc), 0, 1, &scissor);
+    vkCmdSetViewport(rnd_get_current_cmd(rc), 0, 1, &viewport);
+    vkCmdSetScissor(rnd_get_current_cmd(rc), 0, 1, &scissor);
     LOG_INFO("Began render pass");
 }
 
-void render_end_frame(Render_Context *rc) {
+void rnd_end_frame(RND_Context *rc) {
     u32 current_frame = rc->swap.current_frame_idx;
 
-    vkCmdEndRenderPass(render_get_current_cmd(rc));
+    vkCmdEndRenderPass(rnd_get_current_cmd(rc));
     LOG_INFO("Ended render_pass");
 
-    VK_CHECK_ERROR(vkEndCommandBuffer(render_get_current_cmd(rc)),
+    VK_CHECK_ERROR(vkEndCommandBuffer(rnd_get_current_cmd(rc)),
                    "Failed to end command buffer %u recording", current_frame);
     // LOG_DEBUG("Ended command buffer %u recording", current_frame);
 
-    VkSemaphore wait_semaphores[] = {render_get_current_frame(rc)->image_available_sem};
-    VkSemaphore signal_semaphores[] = {render_get_current_frame(rc)->render_finished_sem};
+    VkSemaphore wait_semaphores[] = {rnd_get_current_frame(rc)->image_available_sem};
+    VkSemaphore signal_semaphores[] = {rnd_get_current_frame(rc)->render_finished_sem};
 
     // NOTE(ss): Maybe this one? VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT
     VkPipelineStageFlags wait_stages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
 
-    VkCommandBuffer cmd = render_get_current_cmd(rc);
+    VkCommandBuffer cmd = rnd_get_current_cmd(rc);
     VkSubmitInfo submit_info = {0};
     submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     submit_info.commandBufferCount = 1;
@@ -195,9 +195,9 @@ void render_end_frame(Render_Context *rc) {
     submit_info.pSignalSemaphores = signal_semaphores;
 
     // Give it the fence so we know when it's safe to reuse that command buffer
-    VK_CHECK_ERROR(vkQueueSubmit(rc->graphic_q, 1, &submit_info,
-                                 render_get_current_frame(rc)->in_flight_fence),
-                   "Failed to submit command buffer %u to graphics queue ", current_frame);
+    VK_CHECK_ERROR(
+        vkQueueSubmit(rc->graphic_q, 1, &submit_info, rnd_get_current_frame(rc)->in_flight_fence),
+        "Failed to submit command buffer %u to graphics queue ", current_frame);
     LOG_INFO("Submitted command buffer to graphics queue");
 
     VkPresentInfoKHR present_info = {0};
@@ -216,26 +216,26 @@ void render_end_frame(Render_Context *rc) {
     rc->swap.current_frame_idx = (current_frame + 1) % rc->swap.frames_in_flight;
 }
 
-u32 render_get_swap_height(const Render_Context *rc) {
+u32 rnd_get_swap_height(const RND_Context *rc) {
     assert(rc != NULL);
     return rc->swap.extent.height;
 }
-u32 render_get_swap_width(const Render_Context *rc) {
+u32 rnd_get_swap_width(const RND_Context *rc) {
     assert(rc != NULL);
     return rc->swap.extent.width;
 }
 
-static VkResult acquire_next_image(Render_Context *rc) {
+static VkResult acquire_next_image(RND_Context *rc) {
     u32 current_frame = rc->swap.current_frame_idx;
 
-    VK_CHECK_ERROR(vkWaitForFences(rc->logical, 1, &render_get_current_frame(rc)->in_flight_fence,
+    VK_CHECK_ERROR(vkWaitForFences(rc->logical, 1, &rnd_get_current_frame(rc)->in_flight_fence,
                                    VK_TRUE, UINT64_MAX),
                    "Failed to wait on in flight fence %u", current_frame);
 
     // Which IMAGE... ie the actual framebuffer is ready to be drawn into
     // This is seperate than per frame resources we keep track of
     VkResult result = vkAcquireNextImageKHR(rc->logical, rc->swap.handle, UINT64_MAX,
-                                            render_get_current_frame(rc)->image_available_sem,
+                                            rnd_get_current_frame(rc)->image_available_sem,
                                             VK_NULL_HANDLE, &rc->swap.current_target_idx);
     return result;
 }
@@ -322,7 +322,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(
     return VK_FALSE;
 }
 
-static void create_instance(Arena *arena, Render_Context *rc) {
+static void create_instance(Arena *arena, RND_Context *rc) {
     // Info needed to create vulkan instance... similar to opengl context
     VkApplicationInfo app_info = {0};
     app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -382,12 +382,6 @@ static void create_instance(Arena *arena, Render_Context *rc) {
     }
 }
 
-static void create_surface(Render_Context *rc, GLFWwindow *window_handle) {
-    VK_CHECK_FATAL(glfwCreateWindowSurface(rc->instance, window_handle, NULL, &rc->surface),
-                   EXT_VK_SURFACE, "Failed to create render surface");
-    LOG_DEBUG("Created surface");
-}
-
 static bool check_device_extension_support(Arena *arena, VkPhysicalDevice device,
                                            const char *const *extensions, u32 num_extensions) {
     u32 extension_count = 0;
@@ -419,7 +413,7 @@ static bool check_device_extension_support(Arena *arena, VkPhysicalDevice device
     return true;
 }
 
-static void choose_physical_device(Arena *arena, Render_Context *rc) {
+static void choose_physical_device(Arena *arena, RND_Context *rc) {
     u32 device_count = 0;
     VkInstance instance = rc->instance;
 
@@ -498,7 +492,7 @@ static Queue_Family_Indices get_queue_family_indices(Arena *arena, VkPhysicalDev
     return (Queue_Family_Indices){.graphic = graphic_index, .present = present_index};
 }
 
-static void create_logical_device(Arena *arena, Render_Context *rc) {
+static void create_logical_device(Arena *arena, RND_Context *rc) {
     VkPhysicalDevice physical_device = rc->physical;
     VkSurfaceKHR surface = rc->surface;
 
@@ -636,33 +630,30 @@ static VkPresentModeKHR choose_swap_present_mode(VkPresentModeKHR *modes, u32 nu
     return VK_PRESENT_MODE_FIFO_KHR;
 }
 
-static VkExtent2D choose_swap_extent(VkSurfaceCapabilitiesKHR capabilities, GLFWwindow *window) {
+static VkExtent2D choose_swap_extent(VkSurfaceCapabilitiesKHR capabilities, Window *window) {
     // Window manager already specified it for us
     if (capabilities.currentExtent.width != UINT32_MAX) {
         return capabilities.currentExtent;
     }
 
-    i32 w, h;
-    glfwGetFramebufferSize(window, &w, &h);
-
-    u32 width = w, height = h;
-    width = CLAMP(width, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
-    height = CLAMP(height, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
+    u32 w = window->w, h = window->h;
+    w = CLAMP(w, capabilities.minImageExtent.width, capabilities.maxImageExtent.width);
+    h = CLAMP(h, capabilities.minImageExtent.height, capabilities.maxImageExtent.height);
 
     VkExtent2D actual_extend = {
-        .width = width,
-        .height = height,
+        .width = w,
+        .height = h,
     };
 
     LOG_DEBUG("Surface extent: (%u, %u)", w, h);
     return actual_extend;
 }
 
-static void create_render_pass(Render_Context *rc);
-static void create_target_resources(Render_Context *rc);
-static void create_frame_resources(Render_Context *rc);
+static void create_render_pass(RND_Context *rc);
+static void create_target_resources(RND_Context *rc);
+static void create_frame_resources(RND_Context *rc);
 
-static void create_swap_chain(Render_Context *rc, GLFWwindow *window) {
+static void create_swap_chain(RND_Context *rc, Window *window) {
     Swap_Chain_Info info = get_swap_chain_info(rc->physical, rc->surface);
 
     // Get all that info in there
@@ -679,10 +670,11 @@ static void create_swap_chain(Render_Context *rc, GLFWwindow *window) {
 
     // Suggested to use at least one more
     rc->swap.target_count =
-        MAX(info.capabilities.minImageCount + 1, RENDER_CONTEXT_MAX_SWAP_IMAGES);
+        MIN(info.capabilities.minImageCount + 1, RENDER_CONTEXT_MAX_SWAP_IMAGES);
+
     if (info.capabilities.maxImageCount > 0) {
-        rc->swap.target_count = CLAMP(rc->swap.target_count, info.capabilities.minImageCount,
-                                      info.capabilities.maxImageCount);
+        rc->swap.target_count =
+            MIN(RENDER_CONTEXT_MAX_SWAP_IMAGES, info.capabilities.maxImageCount);
     }
 
     // If we are recreating
@@ -729,14 +721,14 @@ static void create_swap_chain(Render_Context *rc, GLFWwindow *window) {
     }
 
     // TODO(ss): check if we need to recreate the render pass, we may not need to
-    rc->swap.arena = render_arena_init(rc, 1024);
+    rc->swap.arena = rnd_arena_init(rc, 1024);
     create_render_pass(rc);
     create_target_resources(rc);
     create_frame_resources(rc);
 }
 
 // TODO(ss): solve this, make it so it just calls the original recreate swap chain
-static void recreate_swap_chain(Render_Context *rc, Window *window) {
+static void recreate_swap_chain(RND_Context *rc, Window *window) {
     VkExtent2D extent = {window->w, window->h};
 
     // Wait while either dimension is 0, and until device is idle
@@ -749,12 +741,12 @@ static void recreate_swap_chain(Render_Context *rc, Window *window) {
     VK_CHECK_ERROR(vkDeviceWaitIdle(rc->logical),
                    "Failed to wait for device idle in recreation of swap_chain");
 
-    create_swap_chain(rc, window->handle);
+    create_swap_chain(rc, window);
 
     // TODO(ss): Check if render pass is compatible with render pipelines
 }
 
-static void create_render_pass(Render_Context *rc) {
+static void create_render_pass(RND_Context *rc) {
     VkAttachmentDescription color_attachment = {0};
     color_attachment.format = rc->swap.surface_format.format;
     color_attachment.samples = VK_SAMPLE_COUNT_1_BIT;        // maybe more if multisampling?
@@ -818,7 +810,7 @@ static void create_render_pass(Render_Context *rc) {
     LOG_DEBUG("Created render pass");
 }
 
-static void create_target_resources(Render_Context *rc) {
+static void create_target_resources(RND_Context *rc) {
     VK_CHECK_ERROR(
         vkGetSwapchainImagesKHR(rc->logical, rc->swap.handle, &rc->swap.target_count, NULL),
         "Unable to get swap chain images");
@@ -873,9 +865,9 @@ static void create_target_resources(Render_Context *rc) {
         depth_image_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
         depth_image_info.flags = 0;
 
-        render_arena_alloc_image(
-            &rc->swap.arena, rc, depth_image_info, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
-            &rc->swap.targets[i].depth_image, rc->swap.targets[i].depth_memory);
+        rnd_arena_alloc_image(&rc->swap.arena, rc, depth_image_info,
+                              VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &rc->swap.targets[i].depth_image,
+                              rc->swap.targets[i].depth_memory);
 
         VkImageViewCreateInfo depth_view_info = {0};
         depth_view_info.sType = VK_STRUCTURE_TYPE_IMAGE_VIEW_CREATE_INFO;
@@ -919,7 +911,7 @@ static void create_target_resources(Render_Context *rc) {
     }
 }
 
-static void create_frame_resources(Render_Context *rc) {
+static void create_frame_resources(RND_Context *rc) {
     VkCommandPoolCreateInfo pi = {0};
     pi.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     pi.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
@@ -973,7 +965,7 @@ static void create_frame_resources(Render_Context *rc) {
     }
 }
 
-static void destroy_swap_chain(Render_Context *rc, VkSwapchainKHR swap_handle) {
+static void destroy_swap_chain(RND_Context *rc, VkSwapchainKHR swap_handle) {
     if (swap_handle != VK_NULL_HANDLE && rc->logical != VK_NULL_HANDLE) {
         for (u32 i = 0; i < rc->swap.frames_in_flight; i++) {
             if (rc->swap.frames[i].render_finished_sem != VK_NULL_HANDLE) {
