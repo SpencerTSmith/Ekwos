@@ -43,13 +43,36 @@ int main(int argc, char **argv) {
     RND_Mesh mesh = {0};
     rnd_mesh_init(&game.rctx, &mesh, verts, verts_count);
 
+    Entity base_entity = {
+        .mesh = &mesh,
+        .color = vec3(0.1f, 0.5f, 0.1f),
+        .position.x = 0.3f,
+        .position.y = -0.3f,
+        .scale = vec3(1.0f, 1.0f, 1.0f),
+    };
+
     Pool entity_pool = pool_create(5, sizeof(Entity));
+    Entity *entity0 = pool_alloc(&entity_pool, 1);
+    *entity0 = base_entity;
+    entity0->position.z = 1.0f;
+    Entity *entity1 = pool_alloc(&entity_pool, 1);
+    *entity1 = base_entity;
+    entity1->scale.x = 1.0f;
+    Entity *entity2 = pool_alloc(&entity_pool, 1);
+    *entity2 = base_entity;
+    entity2->color.r = 1.0f;
+
+    pool_pop(&entity_pool, entity1);
+
+    Entity *entity3 = pool_alloc(&entity_pool, 1);
+    *entity3 = base_entity;
+    entity3->mesh = NULL;
 
     pool_free(&entity_pool);
 
     Entity entities[5] = {0};
     for (u32 i = 0; i < STATIC_ARRAY_COUNT(entities); i++) {
-        // Just a tast of future asset management...
+        // Just a taste of future asset management...
         // Will want referenc counters... using handles and not raw pointers probably
         // Maybe lazy loading on a seperate thread, we load a mesh the first time an entity that
         // needs it is created, and is deallocated when all entities needing it are destroyed
