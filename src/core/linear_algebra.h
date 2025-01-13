@@ -4,7 +4,6 @@
 
 #include "core/common.h"
 
-#define PI 3.14159265358979323846
 /*
     Obviously huge inspiration from HandmadeMath
     Vectors are column vectors, Matrices are column major
@@ -320,9 +319,9 @@ static inline mat4 mat4_scale(vec3 v) {
     return s;
 }
 
-#define mat4_make_rotation_x(radians) mat4_rotation(radians, vec3(1.0f, 0.0f, 0.0f))
-#define mat4_make_rotation_y(radians) mat4_rotation(radians, vec3(0.0f, 1.0f, 0.0f))
-#define mat4_make_rotation_z(radians) mat4_rotation(radians, vec3(0.0f, 0.0f, 1.0f))
+#define mat4_rotation_x(radians) mat4_rotation(radians, vec3(1.0f, 0.0f, 0.0f))
+#define mat4_rotation_y(radians) mat4_rotation(radians, vec3(0.0f, 1.0f, 0.0f))
+#define mat4_rotation_z(radians) mat4_rotation(radians, vec3(0.0f, 0.0f, 1.0f))
 
 // General form taken from wikipedia, but makes sense,
 static inline mat4 mat4_rotation(f32 radians, vec3 axis) {
@@ -378,29 +377,31 @@ static inline mat4 mat4_look_at(vec3 eye, vec3 target, vec3 up) {
     return m;
 }
 
-// For Vulkan's canonical with z from 0 -> 1
-// We will use a left handed coordinate system
-static inline mat4 mat4_orthographic(f32 left, f32 right, f32 top, f32 bottom, f32 far, f32 near) {
-    // translate the otrthographic view space into origin of canonical view and scale it its
-    // inverse
+// For Vulkan's canonical with x left to right -1 -> 1, y top to bottom -1 to 1, and z near to far
+// from 0 -> 1. Assumes orthographic view volum is using a right handed coordinate system, ie
+// x grows left to right, y grows top to bottom, and z grows far to near
+static inline mat4 mat4_orthographic(f32 left, f32 right, f32 bottom, f32 top, f32 near, f32 far) {
     mat4 o = mat4_identity();
-    o.m[0][0] = 2.0f / (right - left);
-    o.m[1][1] = 2.0f / (top - bottom);
-    o.m[2][2] = 1.0f / (near - far);
-    o.m[3][0] = -(right + left) / (right - left);
-    o.m[3][1] = -(bottom + top) / (top - bottom);
-    o.m[3][2] = -(near) / (near - far);
+    o.m[0][0] = 2.0f / (right - left);  // Scale to NDC
+    o.m[1][1] = -2.0f / (top - bottom); // Scale to NDC,
+    o.m[2][2] = -1.0f / (near - far);   // Scale to NDC, vulkan goes opposite, z grows to far
+
+    o.m[3][0] = -(right + left) / (right - left); // translate x to canoncial origin
+    o.m[3][1] = -(bottom + top) / (top - bottom); // translate y to canoncial origin
+    o.m[3][2] = -(near) / (far - near);           // translate z to canoncial origin
 
     return o;
 }
 
+// Right handed coordinate system, DO NOT MAKE THE SAME MISTAKE... z_near, and z_far are ABSOLUTE
+// distances from the view position!!!!!! Even in right handed system... they are still positive!!!
 static inline mat4 mat4_perspective(f32 fov, f32 aspect_ratio, f32 z_near, f32 z_far) {
     mat4 p = {0};
-    f32 cotangent = 1.0f / tan(fov / 2.0f);
-    p.m[0][0] = cotangent / aspect_ratio;            // x normalization
-    p.m[1][1] = cotangent;                           // y normalization
+    f32 cotan = 1.0f / tanf(fov / 2.0f);
+    p.m[0][0] = cotan / aspect_ratio;                // x normalization
+    p.m[1][1] = cotan;                               // y normalization
     p.m[2][2] = z_far / (z_near - z_far);            // z normalization
-    p.m[3][2] = (z_far * z_near) / (z_near - z_far); // z offset by znear
+    p.m[3][2] = (z_far * z_near) / (z_near - z_far); // z offset
     p.m[2][3] = -1.0f;                               // z stored in w, for perspective divide
 
     return p;

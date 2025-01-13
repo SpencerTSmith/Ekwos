@@ -216,13 +216,19 @@ void rnd_end_frame(RND_Context *rc) {
     rc->swap.current_frame_idx = (current_frame + 1) % rc->swap.frames_in_flight;
 }
 
-u32 rnd_get_swap_height(const RND_Context *rc) {
-    assert(rc != NULL);
-    return rc->swap.extent.height;
+u32 rnd_swap_height(const RND_Context *rc) { return rc->swap.extent.height; }
+u32 rnd_swap_width(const RND_Context *rc) { return rc->swap.extent.width; }
+
+f32 rnd_swap_aspect_ratio(const RND_Context *rc) {
+    return (f32)rc->swap.extent.width / rc->swap.extent.height;
 }
-u32 rnd_get_swap_width(const RND_Context *rc) {
-    assert(rc != NULL);
-    return rc->swap.extent.width;
+
+const RND_Swap_Frame *rnd_get_current_frame(const RND_Context *rc) {
+    return &rc->swap.frames[rc->swap.current_frame_idx];
+}
+
+VkCommandBuffer rnd_get_current_cmd(const RND_Context *rc) {
+    return rnd_get_current_frame(rc)->command_buffer;
 }
 
 static VkResult acquire_next_image(RND_Context *rc) {

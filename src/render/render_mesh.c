@@ -68,15 +68,15 @@ void rnd_mesh_cube(RND_Context *rc, RND_Mesh *mesh) {
         {.position = {{.5f, .5f, -.5f}}, {{.8f, .8f, .1f}}},
         {.position = {{.5f, .5f, .5f}}, {{.8f, .8f, .1f}}},
 
-        // top face (orange, remember y axis points down)
-        {.position = {{-.5f, -.5f, -.5f}}, {{.9f, .6f, .1f}}},
-        {.position = {{.5f, -.5f, .5f}}, {{.9f, .6f, .1f}}},
-        {.position = {{-.5f, -.5f, .5f}}, {{.9f, .6f, .1f}}},
-        {.position = {{-.5f, -.5f, -.5f}}, {{.9f, .6f, .1f}}},
-        {.position = {{.5f, -.5f, -.5f}}, {{.9f, .6f, .1f}}},
-        {.position = {{.5f, -.5f, .5f}}, {{.9f, .6f, .1f}}},
+        // bottom face (orange)
+        {.position = {{-.5f, -.5f, -.5f}}, {{1.0f, .35f, .0f}}},
+        {.position = {{.5f, -.5f, .5f}}, {{1.0f, .35f, .0f}}},
+        {.position = {{-.5f, -.5f, .5f}}, {{1.0f, .35f, .0f}}},
+        {.position = {{-.5f, -.5f, -.5f}}, {{1.0f, .35f, .0f}}},
+        {.position = {{.5f, -.5f, -.5f}}, {{1.0f, .35f, .0f}}},
+        {.position = {{.5f, -.5f, .5f}}, {{1.0f, .35f, .0f}}},
 
-        // bottom face (red)
+        // top face (red)
         {.position = {{-.5f, .5f, -.5f}}, {{.8f, .1f, .1f}}},
         {.position = {{.5f, .5f, .5f}}, {{.8f, .1f, .1f}}},
         {.position = {{-.5f, .5f, .5f}}, {{.8f, .1f, .1f}}},

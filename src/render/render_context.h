@@ -88,19 +88,11 @@ void rnd_begin_frame(RND_Context *render_context, Window *window);
 void rnd_end_frame(RND_Context *render_context);
 
 // Utility Functions //
-u32 rnd_get_swap_height(const RND_Context *render_context);
-u32 rnd_get_swap_width(const RND_Context *render_context);
+u32 rnd_swap_height(const RND_Context *render_context);
+u32 rnd_swap_width(const RND_Context *render_context);
+f32 rnd_swap_aspect_ratio(const RND_Context *render_context);
 
-static inline const RND_Swap_Frame *rnd_get_current_frame(const RND_Context *rc) {
-    assert(rc != NULL);
-    return &rc->swap.frames[rc->swap.current_frame_idx];
-}
-static inline VkCommandBuffer rnd_get_current_cmd(const RND_Context *rc) {
-    return rnd_get_current_frame(rc)->command_buffer;
-}
-// static inline const Swap_Target *render_get_current_target(const Render_Context *rc) {
-//     assert(rc != NULL);
-//     return &rc->swap.targets[rc->swap.current_target_idx];
-// }
+const RND_Swap_Frame *rnd_get_current_frame(const RND_Context *rc);
+VkCommandBuffer rnd_get_current_cmd(const RND_Context *rc);
 
 #endif // RENDER_CONTEXT_H

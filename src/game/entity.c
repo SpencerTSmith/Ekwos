@@ -33,9 +33,9 @@ Entity *entity_create(Entity_Pool *entity_pool, Entity_Flags flags, vec3 positio
 
 mat4 entity_world_transform(Entity *entity) {
     // mat4 transform = mat4_mul(mat4_translation(entity->position),
-    //                           mat4_mul(mat4_make_rotation_y(entity->rotation.y),
-    //                                    mat4_mul(mat4_make_rotation_x(entity->rotation.x),
-    //                                             mat4_mul(mat4_make_rotation_z(entity->rotation.z),
+    //                           mat4_mul(mat4_rotation_y(entity->rotation.y),
+    //                                    mat4_mul(mat4_rotation_x(entity->rotation.x),
+    //                                             mat4_mul(mat4_rotation_z(entity->rotation.z),
     //                                                      mat4_scale(entity->scale)))));
 
     // Taken algebra from Brendan Galea, couldn't be bothered, tait bryan angles, Y, X, Z

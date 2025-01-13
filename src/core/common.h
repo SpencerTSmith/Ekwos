@@ -26,6 +26,9 @@ typedef double f64;
 // alignment... binary math
 #define ALIGN_ROUND_UP(x, b) (((x) + (b) - 1) & (~((b) - 1)))
 
+#define PI 3.14159265358979323846
+#define RADIANS(degrees) ((degrees) * (PI / 180))
+
 #define STATIC_ARRAY_COUNT(arr) (sizeof(arr) / sizeof(arr[0]))
 
 #define ZERO_STRUCT(ptr) (memset((ptr), 0, sizeof(*(ptr))))
