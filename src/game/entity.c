@@ -38,7 +38,7 @@ mat4 entity_world_transform(Entity *entity) {
     //                                             mat4_mul(mat4_make_rotation_z(entity->rotation.z),
     //                                                      mat4_scale(entity->scale)))));
 
-    // Taken algebra from Brendan Galea, couldn't be bothered
+    // Taken algebra from Brendan Galea, couldn't be bothered, tait bryan angles, Y, X, Z
     f32 sinx = sinf(entity->rotation.x);
     f32 cosx = cosf(entity->rotation.x);
     f32 siny = sinf(entity->rotation.y);
@@ -47,25 +47,26 @@ mat4 entity_world_transform(Entity *entity) {
     f32 cosz = cosf(entity->rotation.z);
 
     // We can algebraically simplify the above like so, throwing it into godbolt,
-    // it turned ~500 ASM instructions into ~100, simulating just his transform for 10,000 entities
+    // it turned ~500 ASM instructions into ~100, simulating just his transform for 10,000
+    // entities
     // this is faster on my computer by about 20 fps
     mat4 transform = {.cols = {
                           {
-                              .x = entity->scale.x * (cosx * cosz + sinx * siny * sinz),
-                              .y = entity->scale.x * (cosy * sinz),
-                              .z = entity->scale.x * (cosx * siny * sinz - cosz * sinx),
+                              .x = entity->scale.x * (cosy * cosz + siny * sinx * sinz),
+                              .y = entity->scale.x * (cosx * sinz),
+                              .z = entity->scale.x * (cosy * sinx * sinz - cosz * siny),
                               .w = 0.0f,
                           },
                           {
-                              .x = entity->scale.y * (cosz * sinx * siny - cosx * sinz),
-                              .y = entity->scale.y * (cosy * cosz),
-                              .z = entity->scale.y * (cosx * cosz * siny + sinx * sinz),
+                              .x = entity->scale.y * (cosz * siny * sinx - cosy * sinz),
+                              .y = entity->scale.y * (cosx * cosz),
+                              .z = entity->scale.y * (cosy * cosz * sinx + siny * sinz),
                               .w = 0.0f,
                           },
                           {
-                              .x = entity->scale.z * (cosy * sinx),
-                              .y = entity->scale.z * (-siny),
-                              .z = entity->scale.z * (cosx * cosy),
+                              .x = entity->scale.z * (cosx * siny),
+                              .y = entity->scale.z * (-sinx),
+                              .z = entity->scale.z * (cosy * cosx),
                               .w = 0.0f,
                           },
                           {

@@ -324,7 +324,7 @@ static inline mat4 mat4_scale(vec3 v) {
 #define mat4_make_rotation_y(radians) mat4_rotation(radians, vec3(0.0f, 1.0f, 0.0f))
 #define mat4_make_rotation_z(radians) mat4_rotation(radians, vec3(0.0f, 0.0f, 1.0f))
 
-// General form taken from wikipedia
+// General form taken from wikipedia, but makes sense,
 static inline mat4 mat4_rotation(f32 radians, vec3 axis) {
     axis = vec3_norm(axis);
     f32 sin = sinf(radians);
@@ -346,10 +346,6 @@ static inline mat4 mat4_rotation(f32 radians, vec3 axis) {
 
     return r;
 }
-
-// static inline mat4 mat4_rotation_tait_zxy(vec3 rotations) {
-//
-// }
 
 static inline mat4 mat4_translation(vec3 v) {
     mat4 t = mat4_identity();
@@ -380,6 +376,22 @@ static inline mat4 mat4_look_at(vec3 eye, vec3 target, vec3 up) {
     m.cols[3] = vec4(x_dot, y_dot, z_dot, 1.0f);
 
     return m;
+}
+
+// For Vulkan's canonical with z from 0 -> 1
+// We will use a left handed coordinate system
+static inline mat4 mat4_orthographic(f32 left, f32 right, f32 top, f32 bottom, f32 far, f32 near) {
+    // translate the otrthographic view space into origin of canonical view and scale it its
+    // inverse
+    mat4 o = mat4_identity();
+    o.m[0][0] = 2.0f / (right - left);
+    o.m[1][1] = 2.0f / (top - bottom);
+    o.m[2][2] = 1.0f / (near - far);
+    o.m[3][0] = -(right + left) / (right - left);
+    o.m[3][1] = -(bottom + top) / (top - bottom);
+    o.m[3][2] = -(near) / (near - far);
+
+    return o;
 }
 
 static inline mat4 mat4_perspective(f32 fov, f32 aspect_ratio, f32 z_near, f32 z_far) {

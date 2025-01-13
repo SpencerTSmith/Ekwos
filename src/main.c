@@ -81,9 +81,9 @@ int main(int argc, char **argv) {
         rnd_mesh_bind(&game.rctx, &mesh);
         Entity *entities = (Entity *)pool_as_array(&entity_pool);
         for (u32 i = 0; i < entity_pool.block_last_index; i++) {
-            entities[i].rotation.x += 0.001f * 2 * PI;
+            entities[i].rotation.x += 0.001f * PI;
             entities[i].rotation.y += 0.001f * 2 * PI;
-            // entities[i].rotation.z += 0.00001f * 2 * PI;
+            // entities[i].rotation.z += 0.001f * 2 * PI;
 
             RND_Push_Constants push = {0};
             push.transform = entity_world_transform(&entities[i]);
