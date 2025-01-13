@@ -322,7 +322,6 @@ static inline mat4 mat4_scale(vec3 v) {
 #define mat4_rotation_x(radians) mat4_rotation(radians, vec3(1.0f, 0.0f, 0.0f))
 #define mat4_rotation_y(radians) mat4_rotation(radians, vec3(0.0f, 1.0f, 0.0f))
 #define mat4_rotation_z(radians) mat4_rotation(radians, vec3(0.0f, 0.0f, 1.0f))
-
 // General form taken from wikipedia, but makes sense,
 static inline mat4 mat4_rotation(f32 radians, vec3 axis) {
     axis = vec3_norm(axis);
@@ -383,7 +382,7 @@ static inline mat4 mat4_look_at(vec3 eye, vec3 target, vec3 up) {
 static inline mat4 mat4_orthographic(f32 left, f32 right, f32 bottom, f32 top, f32 near, f32 far) {
     mat4 o = mat4_identity();
     o.m[0][0] = 2.0f / (right - left);  // Scale to NDC
-    o.m[1][1] = -2.0f / (top - bottom); // Scale to NDC,
+    o.m[1][1] = -2.0f / (top - bottom); // Scale to NDC, vulkan goes oppsoite, y grows down
     o.m[2][2] = -1.0f / (near - far);   // Scale to NDC, vulkan goes opposite, z grows to far
 
     o.m[3][0] = -(right + left) / (right - left); // translate x to canoncial origin
@@ -399,7 +398,7 @@ static inline mat4 mat4_perspective(f32 fov, f32 aspect_ratio, f32 z_near, f32 z
     mat4 p = {0};
     f32 cotan = 1.0f / tanf(fov / 2.0f);
     p.m[0][0] = cotan / aspect_ratio;                // x normalization
-    p.m[1][1] = cotan;                               // y normalization
+    p.m[1][1] = -cotan;                              // y normalization
     p.m[2][2] = z_far / (z_near - z_far);            // z normalization
     p.m[3][2] = (z_far * z_near) / (z_near - z_far); // z offset
     p.m[2][3] = -1.0f;                               // z stored in w, for perspective divide

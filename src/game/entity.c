@@ -31,7 +31,7 @@ Entity *entity_create(Entity_Pool *entity_pool, Entity_Flags flags, vec3 positio
     return entity;
 }
 
-mat4 entity_world_transform(Entity *entity) {
+mat4 entity_model_transform(Entity *entity) {
     // mat4 transform = mat4_mul(mat4_translation(entity->position),
     //                           mat4_mul(mat4_rotation_y(entity->rotation.y),
     //                                    mat4_mul(mat4_rotation_x(entity->rotation.x),

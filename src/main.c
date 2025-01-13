@@ -13,6 +13,8 @@
 #include <time.h>
 
 #define FRAME_TARGET_TIME (SECOND / FPS)
+#define WINDOW_WIDTH 800
+#define WINDOW_HEIGHT 600
 
 void process_input(Window window) {
     glfwPollEvents();
@@ -32,7 +34,7 @@ int main(int argc, char **argv) {
     Game game = {0};
     Arena arena = arena_create(1024 * 100, ARENA_FLAG_DEFAULTS);
 
-    window_create(&game.window, "Ekwos: Atavistic Chariot", 800, 600);
+    window_create(&game.window, "Ekwos: Atavistic Chariot", WINDOW_WIDTH, WINDOW_HEIGHT);
     rnd_context_init(&arena, &game.rctx, &game.window);
 
     RND_Pipeline pipeline = rnd_pipeline_create(&arena, &game.rctx, "shaders/vert.vert.spv",
@@ -47,6 +49,8 @@ int main(int argc, char **argv) {
         .scale = vec3(1.f, 1.f, 1.f),
         // .position.x = -.5f,
         .position.z = -2.f,
+        // .rotation.z = RADIANS(45.f),
+        // .rotation.x = RADIANS(30.f),
     };
 
 #define MAX_ENTITIES 10000
@@ -61,6 +65,9 @@ int main(int argc, char **argv) {
     double fps = 0.0;
     char fps_display[256];
     u64 frame_count = 0;
+
+    mat4 help = mat4_rotation_z(RADIANS(90.f));
+    printf("%f", help.cols[0].x);
 
     while (!window_should_close(&game.window)) {
         // Tracking fps
@@ -82,9 +89,12 @@ int main(int argc, char **argv) {
         process_input(game.window);
 
         // Updates would go here
+        //
+        //
 
         // Set camera mode
         f32 aspect = rnd_swap_aspect_ratio(&game.rctx);
+        // camera_set_orthographic(&game.camera, -aspect, aspect, -1.f, 1.f, 1.f, -1.f);
         camera_set_perspective(&game.camera, RADIANS(90.0f), aspect, .1f, 10.f);
 
         rnd_begin_frame(&game.rctx, &game.window);
@@ -92,19 +102,13 @@ int main(int argc, char **argv) {
         rnd_mesh_bind(&game.rctx, &mesh);
         Entity *entities = (Entity *)pool_as_array(&entity_pool);
         for (u32 i = 0; i < entity_pool.block_last_index; i++) {
-            entities[i].rotation.x -= 0.001f * PI;
-            entities[i].rotation.y += 0.001f * PI;
-            entities[i].rotation.z += 0.001f * 2 * PI;
+            // entities[i].rotation.x += 0.001f * PI;
+            // entities[i].rotation.y += 0.001f * PI;
+            entities[i].rotation.z += 0.001f * PI;
 
             RND_Push_Constants push = {0};
-            push.transform = mat4_mul(game.camera.projection, entity_world_transform(&entities[i]));
-            // push.transform = game.camera.projection;
+            push.transform = mat4_mul(game.camera.projection, entity_model_transform(&entities[i]));
             push.color = entities[i].color;
-
-            // vec4 test =
-            //     mat4_mul_vec4(push.transform, (vec4){.xyz = entities[i].position, .w = 1.0f});
-            // printf("%f, %f, %f, %f\n", test.x, test.y, test.z, test.w);
-
             rnd_push_constants(&game.rctx, &pipeline, push);
 
             rnd_mesh_draw(&game.rctx, &mesh);
