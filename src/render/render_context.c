@@ -425,7 +425,8 @@ static void choose_physical_device(Arena *arena, RND_Context *rc) {
                    "Faield to enumerate physical devices");
 
     // Check all devices
-    VkPhysicalDevice physical_device = VK_NULL_HANDLE;
+    VkPhysicalDevice device_ranking[5] = {0};
+    u32 ranking = 0;
     for (u32 i = 0; i < device_count; i++) {
         VkPhysicalDeviceProperties dev_props;
         vkGetPhysicalDeviceProperties(phys_devs[i], &dev_props);
@@ -434,21 +435,30 @@ static void choose_physical_device(Arena *arena, RND_Context *rc) {
 
         // TODO(spencer): rank devices and pick best? for now just pick the Discrete Card that
         // supports a swapchain
-        if (dev_props.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU &&
-            check_device_extension_support(arena, phys_devs[i], device_extensions,
+        if (check_device_extension_support(arena, phys_devs[i], device_extensions,
                                            STATIC_ARRAY_COUNT(device_extensions))) {
-            physical_device = phys_devs[i];
-            break;
+            if (dev_props.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) {
+                device_ranking[0] = phys_devs[i];
+                break;
+            } else {
+                device_ranking[ranking++] = phys_devs[i];
+            }
         }
     }
 
-    if (physical_device == VK_NULL_HANDLE) {
+    if (device_ranking[0] != VK_NULL_HANDLE) {
+        rc->physical = device_ranking[0];
+        LOG_DEBUG("Chose physical device, discrete GPU with all neede extensions");
+        return;
+    } else if (ranking > 0) {
+        rc->physical = device_ranking[1];
+        LOG_DEBUG(
+            "Unable to find discrete GPU that supports exension, chose next best physical device");
+        return;
+    } else {
         LOG_FATAL("Failed to find suitable graphics device");
         exit(EXT_VK_NO_DEVICE);
     }
-    LOG_DEBUG("Chose physical device");
-
-    rc->physical = physical_device;
 }
 
 static Queue_Family_Indices get_queue_family_indices(Arena *arena, VkPhysicalDevice device,
@@ -720,7 +730,7 @@ static void create_swap_chain(RND_Context *rc, Window *window) {
     }
 
     // TODO(ss): check if we need to recreate the render pass, we may not need to
-    rc->swap.arena = rnd_arena_init(rc, 1024);
+    rc->swap.arena = rnd_allocator_init(rc, 1024);
     create_render_pass(rc);
     create_target_resources(rc);
     create_frame_resources(rc);
@@ -864,9 +874,8 @@ static void create_target_resources(RND_Context *rc) {
         depth_image_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
         depth_image_info.flags = 0;
 
-        rnd_arena_alloc_image(&rc->swap.arena, rc, depth_image_info,
-                              VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, &rc->swap.targets[i].depth_image,
-                              &rc->swap.targets[i].depth_memory);
+        rnd_alloc_image(&rc->swap.arena, rc, depth_image_info, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+                        &rc->swap.targets[i].depth_image, &rc->swap.targets[i].depth_memory);
         LOG_DEBUG("Allocated memory for swap chain depth image %u", i);
 
         VkImageViewCreateInfo depth_view_info = {0};

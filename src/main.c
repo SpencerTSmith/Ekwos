@@ -8,8 +8,10 @@
 
 #include "render/render_mesh.h"
 #include "render/render_pipeline.h"
+#include <stdio.h>
+#include <time.h>
 
-bool g_running = true;
+#define FRAME_TARGET_TIME (SECOND / FPS)
 
 void process_input(Window window) {
     glfwPollEvents();
@@ -34,76 +36,69 @@ int main(int argc, char **argv) {
                                                 "shaders/frag.frag.spv", NULL);
     arena_free(&arena);
 
-    RND_Vertex verts[] = {
-        {.position = {.x = 0.0f, .y = -0.5f}, .color = {.r = 1.0f, .g = 0.0f, .b = 0.0f}},
-        {.position = {.x = 0.5f, .y = 0.5f}, .color = {.r = 0.0f, .g = 1.0f, .b = 0.0f}},
-        {.position = {.x = -0.5f, .y = 0.5f}, .color = {.r = 0.0f, .g = 0.0f, .b = 1.0f}},
-    };
-    u32 verts_count = 3;
     RND_Mesh mesh = {0};
-    rnd_mesh_init(&game.rctx, &mesh, verts, verts_count);
+    rnd_mesh_cube(&game.rctx, &mesh);
 
     Entity base_entity = {
         .mesh = &mesh,
-        .color = vec3(0.1f, 0.5f, 0.1f),
-        .position.x = 0.3f,
-        .position.y = -0.3f,
-        .scale = vec3(1.0f, 1.0f, 1.0f),
+        .position.z = 0.5f,
+        .scale = vec3(0.5f, 0.5f, 0.5f),
     };
 
-    Pool entity_pool = pool_create(5, sizeof(Entity));
-    Entity *entity0 = pool_alloc(&entity_pool, 1);
-    *entity0 = base_entity;
-    entity0->position.z = 1.0f;
-    Entity *entity1 = pool_alloc(&entity_pool, 1);
-    *entity1 = base_entity;
-    entity1->scale.x = 1.0f;
-    Entity *entity2 = pool_alloc(&entity_pool, 1);
-    *entity2 = base_entity;
-    entity2->color.r = 1.0f;
+#define MAX_ENTITIES 1
 
-    pool_pop(&entity_pool, entity1);
-
-    Entity *entity3 = pool_alloc(&entity_pool, 1);
-    *entity3 = base_entity;
-    entity3->mesh = NULL;
-
-    pool_free(&entity_pool);
-
-    Entity entities[5] = {0};
-    for (u32 i = 0; i < STATIC_ARRAY_COUNT(entities); i++) {
-        // Just a taste of future asset management...
-        // Will want referenc counters... using handles and not raw pointers probably
-        // Maybe lazy loading on a seperate thread, we load a mesh the first time an entity that
-        // needs it is created, and is deallocated when all entities needing it are destroyed
-        // Something similar to a shared pointer from C++, but using handles
-        entities[i].mesh = &mesh;
-
-        entities[i].color = vec3(0.1f, 0.5f, 0.1f);
-        entities[i].position.x = 0.3f;
-        entities[i].position.y = -0.3f;
-        entities[i].scale = vec3(1.0f, 1.0f, 1.0f);
+    Pool entity_pool = pool_create_type(MAX_ENTITIES, Entity);
+    for (u32 i = 0; i < MAX_ENTITIES; i++) {
+        Entity *entity = pool_alloc(&entity_pool);
+        *entity = base_entity;
     }
+
+    clock_t last_time = clock();
+    double fps = 0.0;
+    char fps_display[256];
+    u64 frame_count = 0;
 
     while (!window_should_close(&game.window)) {
         process_input(game.window);
 
+        clock_t current_time = clock();
+        double dt = (double)(current_time - last_time) / CLOCKS_PER_SEC;
+
+        if (dt >= 1.0) {
+            fps = frame_count / dt;
+
+            snprintf(fps_display, sizeof(fps_display), "FPS: %.2f", fps);
+            glfwSetWindowTitle(game.window.handle, fps_display);
+
+            frame_count = 0;
+            last_time = current_time;
+        }
+
+        frame_count += 1;
+
         rnd_begin_frame(&game.rctx, &game.window);
         rnd_pipeline_bind(&game.rctx, &pipeline);
         rnd_mesh_bind(&game.rctx, &mesh);
-        for (u32 i = 0; i < STATIC_ARRAY_COUNT(entities); i++) {
+        Entity *entities = (Entity *)pool_as_array(&entity_pool);
+        for (u32 i = 0; i < entity_pool.block_last_index; i++) {
+            entities[i].rotation.x += 0.00001f * 2 * PI;
+            entities[i].rotation.y += 0.00001f * 2 * PI;
+            entities[i].rotation.z += 0.00001f * 2 * PI;
+            // float rand_x = 2.0f * ((float)rand() / (float)RAND_MAX - 0.5f);
+            // float rand_y = 2.0f * ((float)rand() / (float)RAND_MAX - 0.5f);
+
             RND_Push_Constants push = {0};
-            push.offset = entities[i].position;
-            push.offset.y += i * .15f;
-            push.offset.x -= i * .15f;
+            push.transform = entity_transform(&entities[i]);
+            // push.transform = mat4_identity();
             push.color = entities[i].color;
-            push.color.r += i * .25f;
             rnd_push_constants(&game.rctx, &pipeline, push);
 
             rnd_mesh_draw(&game.rctx, &mesh);
         }
         rnd_end_frame(&game.rctx);
     }
+
+    pool_free(&entity_pool);
 
     vkDeviceWaitIdle(game.rctx.logical);
     rnd_mesh_free(&game.rctx, &mesh);

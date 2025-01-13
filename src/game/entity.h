@@ -3,13 +3,14 @@
 
 #include "core/common.h"
 #include "core/linear_algebra.h"
+#include "core/pool.h"
+
 #include "render/render_mesh.h"
 
-// TODO(ss): Implement a generic pool allocator, for now just using an arena as backing
 typedef struct Entity_Pool Entity_Pool;
 struct Entity_Pool {
+    Pool pool;
     u64 next_entity_id;
-    Arena arena;
 };
 
 typedef u32 Entity_Flags;

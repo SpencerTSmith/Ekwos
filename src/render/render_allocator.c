@@ -2,8 +2,8 @@
 
 #include "render/render_context.h"
 
-RND_Arena rnd_arena_init(RND_Context *rc, u64 initial_size) {
-    RND_Arena allocator = {0};
+RND_Allocator rnd_allocator_init(RND_Context *rc, u64 initial_size) {
+    RND_Allocator allocator = {0};
     vkGetPhysicalDeviceMemoryProperties(rc->physical, &allocator.device_memory_props);
     allocator.capacity = initial_size;
 
@@ -12,13 +12,13 @@ RND_Arena rnd_arena_init(RND_Context *rc, u64 initial_size) {
     return allocator;
 }
 
-void rnd_arena_free(RND_Context *rc, RND_Arena *allocator) {
+void rnd_allocator_free(RND_Context *rc, RND_Allocator *allocator) {
     // Destroy all linked device memories
 }
 
-void rnd_arena_alloc_image(RND_Arena *allocator, RND_Context *rc, VkImageCreateInfo info,
-                           VkMemoryPropertyFlags memory_prop_flags, VkImage *image,
-                           VkDeviceMemory *memory) {
+void rnd_alloc_image(RND_Allocator *allocator, RND_Context *rc, VkImageCreateInfo info,
+                     VkMemoryPropertyFlags memory_prop_flags, VkImage *image,
+                     VkDeviceMemory *memory) {
     assert(allocator->capacity != 0 && "Tried to use rendering memory arena before initialization");
 
     VK_CHECK_FATAL(vkCreateImage(rc->logical, &info, NULL, image), EXT_VK_IMAGE_CREATE,

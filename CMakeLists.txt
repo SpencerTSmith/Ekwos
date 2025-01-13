@@ -35,6 +35,7 @@ target_include_directories(ekwos PRIVATE ./src)
 target_link_libraries(ekwos PRIVATE 
 	glfw
 	vulkan
+	m
 )
 
 target_compile_options(ekwos PRIVATE

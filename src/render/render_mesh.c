@@ -3,16 +3,19 @@
 #include "core/log.h"
 #include "render/render_context.h"
 
-const VkVertexInputBindingDescription g_vertex_binding_desc[RND_VERTEX_BINDING_NUM] = {{
-    .binding = 0,
-    .stride = sizeof(RND_Vertex),
-    .inputRate = VK_VERTEX_INPUT_RATE_VERTEX,
-}};
+const VkVertexInputBindingDescription g_vertex_binding_desc[RND_VERTEX_BINDING_NUM] = {
+    {
+        .binding = 0,
+        .stride = sizeof(RND_Vertex),
+        .inputRate = VK_VERTEX_INPUT_RATE_VERTEX,
+    },
+};
+
 const VkVertexInputAttributeDescription g_vertex_attrib_desc[RND_VERTEX_ATTRIBUTES_NUM] = {
     {
         .binding = 0,
         .location = 0,
-        .format = VK_FORMAT_R32G32_SFLOAT,
+        .format = VK_FORMAT_R32G32B32_SFLOAT,
         .offset = offsetof(RND_Vertex, position),
     },
     {
@@ -44,6 +47,61 @@ void rnd_mesh_free(RND_Context *rc, RND_Mesh *mesh) {
     vkDestroyBuffer(rc->logical, mesh->vertex_buffer, NULL);
     vkFreeMemory(rc->logical, mesh->memory, NULL);
     ZERO_STRUCT(mesh);
+}
+
+void rnd_mesh_cube(RND_Context *rc, RND_Mesh *mesh) {
+    RND_Vertex verts[] = {
+
+        // left face (white)
+        {.position = {{-.5f, -.5f, -.5f}}, {{.9f, .9f, .9f}}},
+        {.position = {{-.5f, .5f, .5f}}, {{.9f, .9f, .9f}}},
+        {.position = {{-.5f, -.5f, .5f}}, {{.9f, .9f, .9f}}},
+        {.position = {{-.5f, -.5f, -.5f}}, {{.9f, .9f, .9f}}},
+        {.position = {{-.5f, .5f, -.5f}}, {{.9f, .9f, .9f}}},
+        {.position = {{-.5f, .5f, .5f}}, {{.9f, .9f, .9f}}},
+
+        // right face (yellow)
+        {.position = {{.5f, -.5f, -.5f}}, {{.8f, .8f, .1f}}},
+        {.position = {{.5f, .5f, .5f}}, {{.8f, .8f, .1f}}},
+        {.position = {{.5f, -.5f, .5f}}, {{.8f, .8f, .1f}}},
+        {.position = {{.5f, -.5f, -.5f}}, {{.8f, .8f, .1f}}},
+        {.position = {{.5f, .5f, -.5f}}, {{.8f, .8f, .1f}}},
+        {.position = {{.5f, .5f, .5f}}, {{.8f, .8f, .1f}}},
+
+        // top face (orange, remember y axis points down)
+        {.position = {{-.5f, -.5f, -.5f}}, {{.9f, .6f, .1f}}},
+        {.position = {{.5f, -.5f, .5f}}, {{.9f, .6f, .1f}}},
+        {.position = {{-.5f, -.5f, .5f}}, {{.9f, .6f, .1f}}},
+        {.position = {{-.5f, -.5f, -.5f}}, {{.9f, .6f, .1f}}},
+        {.position = {{.5f, -.5f, -.5f}}, {{.9f, .6f, .1f}}},
+        {.position = {{.5f, -.5f, .5f}}, {{.9f, .6f, .1f}}},
+
+        // bottom face (red)
+        {.position = {{-.5f, .5f, -.5f}}, {{.8f, .1f, .1f}}},
+        {.position = {{.5f, .5f, .5f}}, {{.8f, .1f, .1f}}},
+        {.position = {{-.5f, .5f, .5f}}, {{.8f, .1f, .1f}}},
+        {.position = {{-.5f, .5f, -.5f}}, {{.8f, .1f, .1f}}},
+        {.position = {{.5f, .5f, -.5f}}, {{.8f, .1f, .1f}}},
+        {.position = {{.5f, .5f, .5f}}, {{.8f, .1f, .1f}}},
+
+        // nose face (blue)
+        {.position = {{-.5f, -.5f, 0.5f}}, {{.1f, .1f, .8f}}},
+        {.position = {{.5f, .5f, 0.5f}}, {{.1f, .1f, .8f}}},
+        {.position = {{-.5f, .5f, 0.5f}}, {{.1f, .1f, .8f}}},
+        {.position = {{-.5f, -.5f, 0.5f}}, {{.1f, .1f, .8f}}},
+        {.position = {{.5f, -.5f, 0.5f}}, {{.1f, .1f, .8f}}},
+        {.position = {{.5f, .5f, 0.5f}}, {{.1f, .1f, .8f}}},
+
+        // tail face (green)
+        {.position = {{-.5f, -.5f, -0.5f}}, {{.1f, .8f, .1f}}},
+        {.position = {{.5f, .5f, -0.5f}}, {{.1f, .8f, .1f}}},
+        {.position = {{-.5f, .5f, -0.5f}}, {{.1f, .8f, .1f}}},
+        {.position = {{-.5f, -.5f, -0.5f}}, {{.1f, .8f, .1f}}},
+        {.position = {{.5f, -.5f, -0.5f}}, {{.1f, .8f, .1f}}},
+        {.position = {{.5f, .5f, -0.5f}}, {{.1f, .8f, .1f}}},
+    };
+
+    create_vertex_buffers(rc, mesh, verts, STATIC_ARRAY_COUNT(verts));
 }
 
 static void create_buffer(RND_Context *rc, VkDeviceSize size, VkBufferUsageFlags usage,

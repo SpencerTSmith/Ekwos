@@ -5,10 +5,10 @@ layout(location = 0) in vec3 frag_color;
 layout(location = 0) out vec4 out_color;
 
 layout(push_constant) uniform Push {
-    vec3 offset;
+    mat4 transform;
     vec3 color;
 } push;
 
 void main() {
-    out_color = vec4(frag_color + push.color, 1.0);
+    out_color = vec4(frag_color, 1.0);
 }

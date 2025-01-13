@@ -9,14 +9,14 @@
 
 typedef struct RND_Vertex RND_Vertex;
 struct RND_Vertex {
-    vec2 position;
+    vec3 position;
     vec3 color;
 };
 
 // Remember alignment shit
 typedef struct RND_Push_Constants RND_Push_Constants;
 struct RND_Push_Constants {
-    vec3 offset;
+    mat4 transform;
     alignas(16) vec3 color;
 };
 
@@ -41,5 +41,7 @@ void rnd_mesh_init(RND_Context *rc, RND_Mesh *mesh, RND_Vertex *verts, u32 vert_
 void rnd_mesh_bind(RND_Context *rc, RND_Mesh *mesh);
 void rnd_mesh_draw(RND_Context *rc, RND_Mesh *mesh);
 void rnd_mesh_free(RND_Context *rc, RND_Mesh *mesh);
+
+void rnd_mesh_cube(RND_Context *rc, RND_Mesh *mesh);
 
 #endif // RENDER_MODEL_H

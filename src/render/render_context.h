@@ -53,7 +53,7 @@ struct RND_Context {
         VkRenderPass render_pass;
         u32 subpass;
 
-        RND_Arena arena;
+        RND_Allocator arena;
         struct RND_Swap_Target {
             VkFramebuffer framebuffer;
             VkImage color_image;

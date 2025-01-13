@@ -4,6 +4,7 @@
 
 #include "core/common.h"
 
+#define PI 3.14159265358979323846
 /*
     Obviously huge inspiration from HandmadeMath
     Vectors are column vectors, Matrices are column major
@@ -301,14 +302,15 @@ static inline f32 vec4_dot(vec4 a, vec4 b) { return a.x * b.x + a.y * b.y + a.z 
 
 static inline vec4 vec4_normalize(vec4 v) { return vec4_mul(v, 1.0f / vec4_length(v)); }
 
-static inline mat4 mat4_identity(void) {
-    mat4 i = {0};
-    i.cols[0].x = 1.0f;
-    i.cols[1].y = 1.0f;
-    i.cols[2].z = 1.0f;
-    i.cols[3].w = 1.0f;
+#define mat4_identity() mat4_diagonal(1.0f)
+static inline mat4 mat4_diagonal(f32 d) {
+    mat4 m = {0};
+    m.cols[0].x = d;
+    m.cols[1].y = d;
+    m.cols[2].z = d;
+    m.cols[3].w = d;
 
-    return i;
+    return m;
 }
 
 static inline mat4 mat4_make_scale(vec3 v) {
@@ -318,6 +320,33 @@ static inline mat4 mat4_make_scale(vec3 v) {
     s.cols[2].z = v.z;
 
     return s;
+}
+
+#define mat4_make_rotation_x(radians) mat4_make_rotation(radians, vec3(1.0f, 0.0f, 0.0f))
+#define mat4_make_rotation_y(radians) mat4_make_rotation(radians, vec3(0.0f, 1.0f, 0.0f))
+#define mat4_make_rotation_z(radians) mat4_make_rotation(radians, vec3(0.0f, 0.0f, 1.0f))
+
+// General form taken from wikipedia
+static inline mat4 mat4_make_rotation(f32 radians, vec3 axis) {
+    axis = vec3_normalize(axis);
+    float sin = sinf(radians);
+    float cos = cosf(radians);
+    float one_minus_cos = 1.0f - cos;
+
+    mat4 r = mat4_identity();
+    r.cols[0].x = (axis.x * axis.x * one_minus_cos) + cos;
+    r.cols[0].y = (axis.x * axis.y * one_minus_cos) + (axis.z * sin);
+    r.cols[0].z = (axis.x * axis.z * one_minus_cos) - (axis.y * sin);
+
+    r.cols[1].x = (axis.y * axis.x * one_minus_cos) - (axis.z * sin);
+    r.cols[1].y = (axis.y * axis.y * one_minus_cos) + cos;
+    r.cols[1].z = (axis.y * axis.z * one_minus_cos) + (axis.x * sin);
+
+    r.cols[2].x = (axis.z * axis.x * one_minus_cos) + (axis.y * sin);
+    r.cols[2].y = (axis.z * axis.y * one_minus_cos) - (axis.x * sin);
+    r.cols[2].z = (axis.z * axis.z * one_minus_cos) + cos;
+
+    return r;
 }
 
 static inline mat4 mat4_make_translation(vec3 v) {
@@ -392,8 +421,8 @@ static inline mat4 mat4_mul(mat4 left, mat4 right) {
     mat4 result;
     result.cols[0] = mat4_mul_vec4(left, right.cols[0]);
     result.cols[1] = mat4_mul_vec4(left, right.cols[1]);
-    result.cols[2] = mat4_mul_vec4(left, right.cols[3]);
-    result.cols[4] = mat4_mul_vec4(left, right.cols[4]);
+    result.cols[2] = mat4_mul_vec4(left, right.cols[2]);
+    result.cols[3] = mat4_mul_vec4(left, right.cols[3]);
 
     return result;
 }
