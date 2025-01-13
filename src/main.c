@@ -28,6 +28,9 @@ struct Game {
     Window window;
     RND_Context rctx;
     Camera camera;
+    double fps;
+    u64 frame_count;
+    f64 dt;
 };
 
 int main(int argc, char **argv) {
@@ -62,31 +65,26 @@ int main(int argc, char **argv) {
     }
 
     clock_t last_time = clock();
-    double fps = 0.0;
     char fps_display[256];
-    u64 frame_count = 0;
-
-    mat4 help = mat4_rotation_z(RADIANS(90.f));
-    printf("%f", help.cols[0].x);
 
     while (!window_should_close(&game.window)) {
+        process_input(game.window);
+
         // Tracking fps
         clock_t current_time = clock();
-        double dt = (double)(current_time - last_time) / CLOCKS_PER_SEC;
+        game.dt = (double)(current_time - last_time) / CLOCKS_PER_SEC;
 
-        if (dt >= 1.0) {
-            fps = frame_count / dt;
+        if (game.dt >= 1.0) {
+            game.fps = game.frame_count / game.dt;
 
-            snprintf(fps_display, sizeof(fps_display), "FPS: %.2f", fps);
+            snprintf(fps_display, sizeof(fps_display), "FPS: %.2f", game.fps);
             glfwSetWindowTitle(game.window.handle, fps_display);
 
-            frame_count = 0;
+            game.frame_count = 0;
             last_time = current_time;
         }
 
-        frame_count += 1;
-
-        process_input(game.window);
+        game.frame_count += 1;
 
         // Updates would go here
         //
@@ -96,6 +94,10 @@ int main(int argc, char **argv) {
         f32 aspect = rnd_swap_aspect_ratio(&game.rctx);
         // camera_set_orthographic(&game.camera, -aspect, aspect, -1.f, 1.f, 1.f, -1.f);
         camera_set_perspective(&game.camera, RADIANS(90.0f), aspect, .1f, 10.f);
+        camera_set_target(&game.camera, vec3(0.f, 1.f, 0.f), vec3(0.0f, 0.f, -2.f),
+                          vec3(0.f, 1.f, 0.f));
+
+        mat4 proj_view = mat4_mul(game.camera.projection, game.camera.view);
 
         rnd_begin_frame(&game.rctx, &game.window);
         rnd_pipeline_bind(&game.rctx, &pipeline);
@@ -103,11 +105,11 @@ int main(int argc, char **argv) {
         Entity *entities = (Entity *)pool_as_array(&entity_pool);
         for (u32 i = 0; i < entity_pool.block_last_index; i++) {
             // entities[i].rotation.x += 0.001f * PI;
-            // entities[i].rotation.y += 0.001f * PI;
-            entities[i].rotation.z += 0.001f * PI;
+            entities[i].rotation.y += 0.001f * PI;
+            // entities[i].rotation.z += 0.001f * PI;
 
             RND_Push_Constants push = {0};
-            push.transform = mat4_mul(game.camera.projection, entity_model_transform(&entities[i]));
+            push.transform = mat4_mul(proj_view, entity_model_transform(&entities[i]));
             push.color = entities[i].color;
             rnd_push_constants(&game.rctx, &pipeline, push);
 

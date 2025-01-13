@@ -354,26 +354,32 @@ static inline mat4 mat4_translation(vec3 v) {
     return t;
 }
 
-static inline mat4 mat4_look_at(vec3 eye, vec3 target, vec3 up) {
-    vec3 z = vec3_sub(target, eye);
-    z = vec3_norm(z);
-    vec3 x = vec3_cross(z, up);
-    x = vec3_norm(x);
+// Basically, with the new x, y, z that gotten by crossing, we use them as the new basis vectors in
+// camera space Then, we also offset everything so that the camera is the origin, why we have the
+// negative dot products, as always right hand rule, also again since vulkan is weird and NDC says y
+// is down we do the inverse and such
+static inline mat4 mat4_look_direction(vec3 position, vec3 direction, vec3 up) {
+    vec3 z = vec3_norm(direction);
+    vec3 x = vec3_norm(vec3_cross(z, up));
+    vec3 y = vec3_cross(z, x); // already normal
 
-    // already normal
-    vec3 y = vec3_cross(z, x);
-
-    f32 x_dot = -vec3_dot(x, eye);
-    f32 y_dot = -vec3_dot(y, eye);
-    f32 z_dot = -vec3_dot(z, eye);
+    f32 x_dot = vec3_dot(x, position);
+    f32 y_dot = vec3_dot(y, position);
+    f32 z_dot = vec3_dot(z, position);
 
     mat4 m = {0};
-    m.cols[0] = vec4(x.x, y.x, z.x, 0.0f);
-    m.cols[1] = vec4(x.y, y.y, z.y, 0.0f);
-    m.cols[2] = vec4(x.z, y.z, z.z, 0.0f);
-    m.cols[3] = vec4(x_dot, y_dot, z_dot, 1.0f);
+    m.cols[0] = vec4(x.x, -y.x, -z.x, 0.0f);
+    m.cols[1] = vec4(x.y, -y.y, -z.y, 0.0f);
+    m.cols[2] = vec4(x.z, -y.z, -z.z, 0.0f);
+    m.cols[3] = vec4(-x_dot, y_dot, z_dot, 1.0f);
 
     return m;
+}
+
+// Always have the camera looking from the position to the target, as opposed to the above where it
+// is the camera and a direction relative to it... Also right hand rule
+static inline mat4 mat4_look_at(vec3 position, vec3 target, vec3 up) {
+    return mat4_look_direction(position, vec3_sub(target, position), up);
 }
 
 // For Vulkan's canonical with x left to right -1 -> 1, y top to bottom -1 to 1, and z near to far
@@ -398,10 +404,10 @@ static inline mat4 mat4_perspective(f32 fov, f32 aspect_ratio, f32 z_near, f32 z
     mat4 p = {0};
     f32 cotan = 1.0f / tanf(fov / 2.0f);
     p.m[0][0] = cotan / aspect_ratio;                // x normalization
-    p.m[1][1] = -cotan;                              // y normalization
+    p.m[1][1] = -cotan;                              // y normalization, and flip to Vulkan
     p.m[2][2] = z_far / (z_near - z_far);            // z normalization
     p.m[3][2] = (z_far * z_near) / (z_near - z_far); // z offset
-    p.m[2][3] = -1.0f;                               // z stored in w, for perspective divide
+    p.m[2][3] = -1.0f;                               // z  in w for persp div, negative for vulkan
 
     return p;
 }
