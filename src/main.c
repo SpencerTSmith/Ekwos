@@ -45,10 +45,10 @@ int main(int argc, char **argv) {
         .scale = vec3(0.5f, 0.5f, 0.5f),
     };
 
-#define MAX_ENTITIES 1
+#define MAX_ENTITIES 10000
 
     Pool entity_pool = pool_create_type(MAX_ENTITIES, Entity);
-    for (u32 i = 0; i < MAX_ENTITIES; i++) {
+    for (i32 i = 0; i < MAX_ENTITIES; i++) {
         Entity *entity = pool_alloc(&entity_pool);
         *entity = base_entity;
     }
@@ -81,15 +81,13 @@ int main(int argc, char **argv) {
         rnd_mesh_bind(&game.rctx, &mesh);
         Entity *entities = (Entity *)pool_as_array(&entity_pool);
         for (u32 i = 0; i < entity_pool.block_last_index; i++) {
-            entities[i].rotation.x += 0.00001f * 2 * PI;
-            entities[i].rotation.y += 0.00001f * 2 * PI;
-            entities[i].rotation.z += 0.00001f * 2 * PI;
-            // float rand_x = 2.0f * ((float)rand() / (float)RAND_MAX - 0.5f);
-            // float rand_y = 2.0f * ((float)rand() / (float)RAND_MAX - 0.5f);
+            entities[i].rotation.x += 0.001f * 2 * PI;
+            entities[i].rotation.y += 0.001f * 2 * PI;
+            // entities[i].rotation.z += 0.00001f * 2 * PI;
 
             RND_Push_Constants push = {0};
-            push.transform = entity_transform(&entities[i]);
-            // push.transform = mat4_identity();
+            push.transform = entity_world_transform(&entities[i]);
+            // push.transform = mat4_dentity();
             push.color = entities[i].color;
             rnd_push_constants(&game.rctx, &pipeline, push);
 

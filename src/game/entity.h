@@ -42,7 +42,7 @@ enum EK_Entity_Constants {
 Entity_Pool entity_pool_init(u64 capacity);
 Entity *entity_create(Entity_Pool *entity_pool, Entity_Flags flags, vec3 position, vec3 rotation,
                       vec3 scale, vec3 color, RND_Mesh *mesh);
-mat4 entity_transform(Entity *entity);
+mat4 entity_world_transform(Entity *entity);
 void entity_free(Entity_Pool *entity_pool, Entity *entity);
 
 #endif // ENTITY_H

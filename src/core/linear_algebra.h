@@ -143,7 +143,7 @@ static inline vec2 vec2_div(vec2 v, f32 s) {
 static inline f32 vec2_dot(vec2 a, vec2 b) { return a.x * b.x + a.y * b.y; }
 
 // Only 1 division like this
-static inline vec2 vec2_normalize(vec2 v) { return vec2_mul(v, 1 / vec2_length(v)); }
+static inline vec2 vec2_norm(vec2 v) { return vec2_mul(v, 1 / vec2_length(v)); }
 
 static inline f32 vec2_cross(vec2 a, vec2 b) { return a.x * b.y - a.y * b.x; }
 
@@ -157,7 +157,7 @@ static inline vec3 vec3_make(f32 x, f32 y, f32 z) {
     return result;
 }
 
-static inline f32 vec3_length(vec3 v) { return sqrtf(v.x * v.x + v.y * v.y + v.z * v.z); }
+static inline f32 vec3_len(vec3 v) { return sqrtf(v.x * v.x + v.y * v.y + v.z * v.z); }
 
 static inline vec3 vec3_add(vec3 v1, vec3 v2) {
     vec3 result;
@@ -206,7 +206,7 @@ static inline vec3 vec3_cross(vec3 left, vec3 right) {
 
 static inline f32 vec3_dot(vec3 a, vec3 b) { return a.x * b.x + a.y * b.y + a.z * b.z; }
 
-static inline vec3 vec3_normalize(vec3 v) { return vec3_mul(v, 1.0f / vec3_length(v)); }
+static inline vec3 vec3_norm(vec3 v) { return vec3_mul(v, 1.0f / vec3_len(v)); }
 
 static inline vec3 vec3_rotate_x(vec3 v, f32 angle) {
     vec3 result;
@@ -254,9 +254,7 @@ static inline vec4 vec4_make(f32 x, f32 y, f32 z, f32 w) {
     return result;
 }
 
-static inline f32 vec4_length(vec4 v) {
-    return sqrtf(v.x * v.x + v.y * v.y + v.z * v.z + v.w * v.w);
-}
+static inline f32 vec4_len(vec4 v) { return sqrtf(v.x * v.x + v.y * v.y + v.z * v.z + v.w * v.w); }
 
 static inline vec4 vec4_add(vec4 v1, vec4 v2) {
     vec4 result;
@@ -300,7 +298,7 @@ static inline vec4 vec4_div(vec4 v, f32 s) {
 
 static inline f32 vec4_dot(vec4 a, vec4 b) { return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w; }
 
-static inline vec4 vec4_normalize(vec4 v) { return vec4_mul(v, 1.0f / vec4_length(v)); }
+static inline vec4 vec4_norm(vec4 v) { return vec4_mul(v, 1.0f / vec4_len(v)); }
 
 #define mat4_identity() mat4_diagonal(1.0f)
 static inline mat4 mat4_diagonal(f32 d) {
@@ -313,7 +311,7 @@ static inline mat4 mat4_diagonal(f32 d) {
     return m;
 }
 
-static inline mat4 mat4_make_scale(vec3 v) {
+static inline mat4 mat4_scale(vec3 v) {
     mat4 s = mat4_identity();
     s.cols[0].x = v.x;
     s.cols[1].y = v.y;
@@ -322,16 +320,16 @@ static inline mat4 mat4_make_scale(vec3 v) {
     return s;
 }
 
-#define mat4_make_rotation_x(radians) mat4_make_rotation(radians, vec3(1.0f, 0.0f, 0.0f))
-#define mat4_make_rotation_y(radians) mat4_make_rotation(radians, vec3(0.0f, 1.0f, 0.0f))
-#define mat4_make_rotation_z(radians) mat4_make_rotation(radians, vec3(0.0f, 0.0f, 1.0f))
+#define mat4_make_rotation_x(radians) mat4_rotation(radians, vec3(1.0f, 0.0f, 0.0f))
+#define mat4_make_rotation_y(radians) mat4_rotation(radians, vec3(0.0f, 1.0f, 0.0f))
+#define mat4_make_rotation_z(radians) mat4_rotation(radians, vec3(0.0f, 0.0f, 1.0f))
 
 // General form taken from wikipedia
-static inline mat4 mat4_make_rotation(f32 radians, vec3 axis) {
-    axis = vec3_normalize(axis);
-    float sin = sinf(radians);
-    float cos = cosf(radians);
-    float one_minus_cos = 1.0f - cos;
+static inline mat4 mat4_rotation(f32 radians, vec3 axis) {
+    axis = vec3_norm(axis);
+    f32 sin = sinf(radians);
+    f32 cos = cosf(radians);
+    f32 one_minus_cos = 1.0f - cos;
 
     mat4 r = mat4_identity();
     r.cols[0].x = (axis.x * axis.x * one_minus_cos) + cos;
@@ -349,7 +347,11 @@ static inline mat4 mat4_make_rotation(f32 radians, vec3 axis) {
     return r;
 }
 
-static inline mat4 mat4_make_translation(vec3 v) {
+// static inline mat4 mat4_rotation_tait_zxy(vec3 rotations) {
+//
+// }
+
+static inline mat4 mat4_translation(vec3 v) {
     mat4 t = mat4_identity();
     t.cols[3].x = v.x;
     t.cols[3].y = v.y;
@@ -358,11 +360,11 @@ static inline mat4 mat4_make_translation(vec3 v) {
     return t;
 }
 
-static inline mat4 mat4_make_look_at(vec3 eye, vec3 target, vec3 up) {
+static inline mat4 mat4_look_at(vec3 eye, vec3 target, vec3 up) {
     vec3 z = vec3_sub(target, eye);
-    z = vec3_normalize(z);
+    z = vec3_norm(z);
     vec3 x = vec3_cross(z, up);
-    x = vec3_normalize(x);
+    x = vec3_norm(x);
 
     // already normal
     vec3 y = vec3_cross(z, x);
@@ -380,7 +382,7 @@ static inline mat4 mat4_make_look_at(vec3 eye, vec3 target, vec3 up) {
     return m;
 }
 
-static inline mat4 mat4_make_perspective(f32 fov, f32 aspect_ratio, f32 z_near, f32 z_far) {
+static inline mat4 mat4_perspective(f32 fov, f32 aspect_ratio, f32 z_near, f32 z_far) {
     mat4 p = {0};
     f32 cotangent = 1.0f / tan(fov / 2.0f);
     p.m[0][0] = cotangent / aspect_ratio;            // x normalization

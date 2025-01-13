@@ -510,7 +510,7 @@ static void create_logical_device(Arena *arena, RND_Context *rc) {
     rc->graphic_index = family_indices.graphic;
     rc->present_index = family_indices.present;
 
-    float queue_priority = 1.0f;
+    f32 queue_priority = 1.0f;
 
     // Logical device needs an array of queue create infos
     u64 num_queue_creates = 0;
