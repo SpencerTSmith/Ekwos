@@ -17,17 +17,34 @@
 #define WINDOW_WIDTH 800
 #define WINDOW_HEIGHT 600
 
-void process_input(Window *window, Camera *camera) {
-    glfwPollEvents();
-
+void process_input(Window *window, Camera *camera, f32 dt) {
     f64 new_cursor_x, new_cursor_y;
     glfwGetCursorPos(window->handle, &new_cursor_x, &new_cursor_y);
 
-    f32 x_offset = new_cursor_x - window->cursor_x;
-    f32 y_offset = new_cursor_y - window->cursor_y;
+    f32 x_offset = camera->sensitivity * (new_cursor_x - window->cursor_x);
+    f32 y_offset = camera->sensitivity * (new_cursor_y - window->cursor_y);
+
+    window->cursor_x = new_cursor_x;
+    window->cursor_y = new_cursor_y;
+
+    camera->yaw += x_offset;
+    camera->pitch += y_offset;
 
     if (glfwGetKey(window->handle, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window->handle, true);
+
+    if (glfwGetKey(window->handle, GLFW_KEY_SPACE) == GLFW_PRESS)
+        camera->position.y += .5f * dt;
+    if (glfwGetKey(window->handle, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+        camera->position.y -= .5f * dt;
+    if (glfwGetKey(window->handle, GLFW_KEY_D) == GLFW_PRESS)
+        camera->position.x += .5f * dt;
+    if (glfwGetKey(window->handle, GLFW_KEY_A) == GLFW_PRESS)
+        camera->position.x -= .5f * dt;
+    if (glfwGetKey(window->handle, GLFW_KEY_W) == GLFW_PRESS)
+        camera->position.z -= .5f * dt;
+    if (glfwGetKey(window->handle, GLFW_KEY_S) == GLFW_PRESS)
+        camera->position.z += .5f * dt;
 }
 
 typedef struct Game Game;
@@ -83,13 +100,11 @@ int main(int argc, char **argv) {
     char fps_display[256];
 
     while (!window_should_close(&game.window)) {
-        process_input(&game.window, &game.camera);
-
-        // Tracking fps
+        // Tracking fps and dt
         clock_t current_time = clock();
         game.dt = (double)(current_time - last_time) / CLOCKS_PER_SEC;
 
-        if (game.dt >= 1.0) {
+        if (game.dt >= 0.2) {
             game.fps = game.frame_count / game.dt;
 
             snprintf(fps_display, sizeof(fps_display), "FPS: %.2f", game.fps);
@@ -101,14 +116,18 @@ int main(int argc, char **argv) {
 
         game.frame_count += 1;
 
+        process_input(&game.window, &game.camera, game.dt);
+
         // Updates would go here
         //
-        //
+        // // // //
 
-        // Set camera mode
+        // And the render
         f32 aspect = rnd_swap_aspect_ratio(&game.rctx);
         // camera_set_orthographic(&game.camera, -aspect, aspect, -1.f, 1.f, 1.f, -1.f);
         camera_set_perspective(&game.camera, RADIANS(90.0f), aspect, .1f, 10.f);
+        camera_set_target(&game.camera, game.camera.position, vec3(0.0f, 0.0f, -1.0f),
+                          vec3(0.0f, 1.0f, 0.0f));
 
         mat4 proj_view = mat4_mul(game.camera.projection, game.camera.view);
 
@@ -117,8 +136,8 @@ int main(int argc, char **argv) {
         rnd_mesh_bind(&game.rctx, &mesh);
         Entity *entities = (Entity *)pool_as_array(&entity_pool);
         for (u32 i = 0; i < entity_pool.block_last_index; i++) {
-            // entities[i].rotation.x += 0.001f * PI;
-            entities[i].rotation.y += 0.001f * PI;
+            entities[i].rotation.x += 0.001f * PI;
+            // entities[i].rotation.y += 0.001f * PI;
             // entities[i].rotation.z += 0.001f * PI;
 
             RND_Push_Constants push = {0};
@@ -129,6 +148,8 @@ int main(int argc, char **argv) {
             rnd_mesh_draw(&game.rctx, &mesh);
         }
         rnd_end_frame(&game.rctx);
+
+        poll_events();
     }
 
     pool_free(&entity_pool);

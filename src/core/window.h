@@ -25,6 +25,7 @@ struct Window {
 void window_init(Window *window, const char *name, int width, int height);
 void window_free(Window *window);
 
+void poll_events(void);
 bool window_should_close(Window *window);
 void window_set_to_close(Window *window);
 

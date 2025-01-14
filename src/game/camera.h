@@ -17,6 +17,6 @@ void camera_set_orthographic(Camera *camera, f32 left, f32 right, f32 bottom, f3
 void camera_set_perspective(Camera *camera, f32 fov, f32 aspect_ratio, f32 z_near, f32 z_far);
 
 void camera_set_direction(Camera *camera, vec3 position, vec3 direction, vec3 up);
-void camera_set_target(Camera *camera, vec3 target, vec3 direction, vec3 up);
+void camera_set_target(Camera *camera, vec3 position, vec3 target, vec3 up);
 // void camera_set_xyz(Camera *camera, vec3 position, vec3 rotation);
 #endif // CAMERA_H
