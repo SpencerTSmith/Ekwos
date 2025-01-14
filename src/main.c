@@ -17,9 +17,18 @@
 #define WINDOW_WIDTH 800
 #define WINDOW_HEIGHT 600
 
+static bool first_mouse = true;
+
 void process_input(Window *window, Camera *camera, f32 dt) {
     f64 new_cursor_x, new_cursor_y;
     glfwGetCursorPos(window->handle, &new_cursor_x, &new_cursor_y);
+
+    if (first_mouse) {
+        window->cursor_x = new_cursor_x;
+        window->cursor_x = new_cursor_x;
+        first_mouse = false;
+        return;
+    }
 
     f32 x_offset = .1f * (new_cursor_x - window->cursor_x);
     f32 y_offset = .1f * (new_cursor_y - window->cursor_y);
@@ -29,7 +38,7 @@ void process_input(Window *window, Camera *camera, f32 dt) {
 
     camera->yaw += x_offset;
     camera->pitch += y_offset;
-    camera->pitch = CLAMP(camera->pitch, -90.f, 90.f);
+    camera->pitch = CLAMP(camera->pitch, -70.f, 70.f);
 
     vec3 forward;
     forward.x = -cosf(RADIANS(camera->yaw)) * cosf(RADIANS(camera->pitch));
@@ -38,11 +47,12 @@ void process_input(Window *window, Camera *camera, f32 dt) {
     forward = vec3_norm(forward);
     // vec3_print(forward);
 
-    camera_set_direction(camera, camera->position, forward, vec3(0.0f, 1.0f, 1.0f));
+    camera_set_direction(camera, camera->position, forward, vec3(0.0f, 1.0f, 0.0f));
 
     if (glfwGetKey(window->handle, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window->handle, true);
 
+    // TODO(ss): Need to move in the basis of camera space, not world space!!
     if (glfwGetKey(window->handle, GLFW_KEY_SPACE) == GLFW_PRESS)
         camera->position.y += .25f * dt;
     if (glfwGetKey(window->handle, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
@@ -80,8 +90,8 @@ int main(int argc, char **argv) {
 
     camera_set_perspective(&game.camera, RADIANS(90.f), (f32)WINDOW_WIDTH / WINDOW_HEIGHT, .1f,
                            10.f);
-    camera_set_target(&game.camera, vec3(0.f, 1.f, 0.f), vec3(0.0f, 0.f, -2.f),
-                      vec3(0.f, 1.f, 0.f));
+    camera_set_direction(&game.camera, vec3(0.f, 0.f, 0.f), vec3(0.0f, 0.f, -1.f),
+                         vec3(0.f, 1.f, 0.f));
 
     mat4_print(game.camera.projection);
     mat4_print(game.camera.view);
@@ -146,7 +156,7 @@ int main(int argc, char **argv) {
         rnd_mesh_bind(&game.rctx, &mesh);
         Entity *entities = (Entity *)pool_as_array(&entity_pool);
         for (u32 i = 0; i < entity_pool.block_last_index; i++) {
-            entities[i].rotation.x += 0.001f * PI;
+            // entities[i].rotation.x += 0.001f * PI;
             // entities[i].rotation.y += 0.001f * PI;
             // entities[i].rotation.z += 0.001f * PI;
 
