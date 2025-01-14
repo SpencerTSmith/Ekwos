@@ -34,17 +34,17 @@ void process_input(Window *window, Camera *camera, f32 dt) {
         glfwSetWindowShouldClose(window->handle, true);
 
     if (glfwGetKey(window->handle, GLFW_KEY_SPACE) == GLFW_PRESS)
-        camera->position.y += .5f * dt;
+        camera->position.y += .25f * dt;
     if (glfwGetKey(window->handle, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
-        camera->position.y -= .5f * dt;
+        camera->position.y -= .25f * dt;
     if (glfwGetKey(window->handle, GLFW_KEY_D) == GLFW_PRESS)
-        camera->position.x += .5f * dt;
+        camera->position.x += .25f * dt;
     if (glfwGetKey(window->handle, GLFW_KEY_A) == GLFW_PRESS)
-        camera->position.x -= .5f * dt;
+        camera->position.x -= .25f * dt;
     if (glfwGetKey(window->handle, GLFW_KEY_W) == GLFW_PRESS)
-        camera->position.z -= .5f * dt;
+        camera->position.z -= .25f * dt;
     if (glfwGetKey(window->handle, GLFW_KEY_S) == GLFW_PRESS)
-        camera->position.z += .5f * dt;
+        camera->position.z += .25f * dt;
 }
 
 typedef struct Game Game;
@@ -126,8 +126,8 @@ int main(int argc, char **argv) {
         f32 aspect = rnd_swap_aspect_ratio(&game.rctx);
         // camera_set_orthographic(&game.camera, -aspect, aspect, -1.f, 1.f, 1.f, -1.f);
         camera_set_perspective(&game.camera, RADIANS(90.0f), aspect, .1f, 10.f);
-        camera_set_target(&game.camera, game.camera.position, vec3(0.0f, 0.0f, -1.0f),
-                          vec3(0.0f, 1.0f, 0.0f));
+        camera_set_direction(&game.camera, game.camera.position, vec3(0.0f, 0.0f, -1.0f),
+                             vec3(0.0f, 1.0f, 0.0f));
 
         mat4 proj_view = mat4_mul(game.camera.projection, game.camera.view);
 
