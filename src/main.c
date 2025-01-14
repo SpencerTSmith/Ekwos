@@ -1,6 +1,7 @@
 
 #include "core/arena.h"
 #include "core/common.h"
+#include "core/linear_algebra.h"
 #include "core/pool.h"
 #include "core/window.h"
 
@@ -16,11 +17,17 @@
 #define WINDOW_WIDTH 800
 #define WINDOW_HEIGHT 600
 
-void process_input(Window window) {
+void process_input(Window *window, Camera *camera) {
     glfwPollEvents();
 
-    if (glfwGetKey(window.handle, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-        glfwSetWindowShouldClose(window.handle, true);
+    f64 new_cursor_x, new_cursor_y;
+    glfwGetCursorPos(window->handle, &new_cursor_x, &new_cursor_y);
+
+    f32 x_offset = new_cursor_x - window->cursor_x;
+    f32 y_offset = new_cursor_y - window->cursor_y;
+
+    if (glfwGetKey(window->handle, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+        glfwSetWindowShouldClose(window->handle, true);
 }
 
 typedef struct Game Game;
@@ -37,12 +44,20 @@ int main(int argc, char **argv) {
     Game game = {0};
     Arena arena = arena_create(1024 * 100, ARENA_FLAG_DEFAULTS);
 
-    window_create(&game.window, "Ekwos: Atavistic Chariot", WINDOW_WIDTH, WINDOW_HEIGHT);
+    window_init(&game.window, "Ekwos: Atavistic Chariot", WINDOW_WIDTH, WINDOW_HEIGHT);
     rnd_context_init(&arena, &game.rctx, &game.window);
 
     RND_Pipeline pipeline = rnd_pipeline_create(&arena, &game.rctx, "shaders/vert.vert.spv",
                                                 "shaders/frag.frag.spv", NULL);
     arena_free(&arena);
+
+    camera_set_perspective(&game.camera, RADIANS(90.f), (f32)WINDOW_WIDTH / WINDOW_HEIGHT, .1f,
+                           10.f);
+    camera_set_target(&game.camera, vec3(0.f, 1.f, 0.f), vec3(0.0f, 0.f, -2.f),
+                      vec3(0.f, 1.f, 0.f));
+
+    mat4_print(game.camera.projection);
+    mat4_print(game.camera.view);
 
     RND_Mesh mesh = {0};
     rnd_mesh_cube(&game.rctx, &mesh);
@@ -68,7 +83,7 @@ int main(int argc, char **argv) {
     char fps_display[256];
 
     while (!window_should_close(&game.window)) {
-        process_input(game.window);
+        process_input(&game.window, &game.camera);
 
         // Tracking fps
         clock_t current_time = clock();
@@ -94,8 +109,6 @@ int main(int argc, char **argv) {
         f32 aspect = rnd_swap_aspect_ratio(&game.rctx);
         // camera_set_orthographic(&game.camera, -aspect, aspect, -1.f, 1.f, 1.f, -1.f);
         camera_set_perspective(&game.camera, RADIANS(90.0f), aspect, .1f, 10.f);
-        camera_set_target(&game.camera, vec3(0.f, 1.f, 0.f), vec3(0.0f, 0.f, -2.f),
-                          vec3(0.f, 1.f, 0.f));
 
         mat4 proj_view = mat4_mul(game.camera.projection, game.camera.view);
 

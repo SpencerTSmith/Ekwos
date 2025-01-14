@@ -8,7 +8,7 @@
 typedef struct Thread_Context Thread_Context;
 struct Thread_Context {
     u32 id;
-    Arena scratch;
+    Arena scratch_arena;
 };
 
 void thread_context_init(void);

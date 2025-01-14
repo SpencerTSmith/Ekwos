@@ -19,9 +19,10 @@ struct Window {
     GLFWwindow *handle;
     char *name;
     bool resized;
+    f64 cursor_x, cursor_y;
 };
 
-void window_create(Window *window, const char *name, int width, int height);
+void window_init(Window *window, const char *name, int width, int height);
 void window_free(Window *window);
 
 bool window_should_close(Window *window);

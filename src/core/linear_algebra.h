@@ -97,6 +97,14 @@ union mat4 {
     vec4 cols[4];
 };
 
+void vec2_print(vec2 v);
+
+void vec3_print(vec3 v);
+
+void vec4_print(vec4 v);
+
+void mat4_print(mat4 m);
+
 #define vec2(x, y) vec2_make(x, y)
 static inline vec2 vec2_make(f32 x, f32 y) {
     vec2 result;
