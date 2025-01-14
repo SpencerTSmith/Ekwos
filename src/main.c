@@ -21,14 +21,24 @@ void process_input(Window *window, Camera *camera, f32 dt) {
     f64 new_cursor_x, new_cursor_y;
     glfwGetCursorPos(window->handle, &new_cursor_x, &new_cursor_y);
 
-    f32 x_offset = camera->sensitivity * (new_cursor_x - window->cursor_x);
-    f32 y_offset = camera->sensitivity * (new_cursor_y - window->cursor_y);
+    f32 x_offset = .1f * (new_cursor_x - window->cursor_x);
+    f32 y_offset = .1f * (new_cursor_y - window->cursor_y);
 
     window->cursor_x = new_cursor_x;
     window->cursor_y = new_cursor_y;
 
     camera->yaw += x_offset;
     camera->pitch += y_offset;
+    camera->pitch = CLAMP(camera->pitch, -90.f, 90.f);
+
+    vec3 forward;
+    forward.x = -cosf(RADIANS(camera->yaw)) * cosf(RADIANS(camera->pitch));
+    forward.y = -sinf(RADIANS(camera->pitch));
+    forward.z = -sinf(RADIANS(camera->yaw)) * cosf(RADIANS(camera->pitch));
+    forward = vec3_norm(forward);
+    // vec3_print(forward);
+
+    camera_set_direction(camera, camera->position, forward, vec3(0.0f, 1.0f, 1.0f));
 
     if (glfwGetKey(window->handle, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window->handle, true);
@@ -126,8 +136,8 @@ int main(int argc, char **argv) {
         f32 aspect = rnd_swap_aspect_ratio(&game.rctx);
         // camera_set_orthographic(&game.camera, -aspect, aspect, -1.f, 1.f, 1.f, -1.f);
         camera_set_perspective(&game.camera, RADIANS(90.0f), aspect, .1f, 10.f);
-        camera_set_direction(&game.camera, game.camera.position, vec3(0.0f, 0.0f, -1.0f),
-                             vec3(0.0f, 1.0f, 0.0f));
+        // camera_set_direction(&game.camera, game.camera.position, vec3(0.0f, 0.0f, -1.0f),
+        //                      vec3(0.0f, 1.0f, 0.0f));
 
         mat4 proj_view = mat4_mul(game.camera.projection, game.camera.view);
 

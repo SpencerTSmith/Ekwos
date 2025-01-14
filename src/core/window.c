@@ -33,6 +33,12 @@ void window_init(Window *window, const char *name, int width, int height) {
     glfwSetWindowUserPointer(window->handle, window);
     glfwSetFramebufferSizeCallback(window->handle, framebuffer_resize_callback);
 
+    if (glfwRawMouseMotionSupported()) {
+        LOG_DEBUG("Raw mouse input supported");
+        glfwSetInputMode(window->handle, GLFW_CURSOR, GLFW_CURSOR_DISABLED);
+        glfwSetInputMode(window->handle, GLFW_RAW_MOUSE_MOTION, GLFW_TRUE);
+    }
+
     window->w = width;
     window->h = height;
     window->resized = false;
