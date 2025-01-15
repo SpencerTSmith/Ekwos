@@ -45,26 +45,36 @@ void process_input(Window *window, Camera *camera, f32 dt) {
     forward.y = -sinf(RADIANS(camera->pitch));
     forward.z = -sinf(RADIANS(camera->yaw)) * cosf(RADIANS(camera->pitch));
     forward = vec3_norm(forward);
-    // vec3_print(forward);
 
     camera_set_direction(camera, camera->position, forward, vec3(0.0f, 1.0f, 0.0f));
 
+    vec3 velocity = {0};
     if (glfwGetKey(window->handle, GLFW_KEY_ESCAPE) == GLFW_PRESS)
         glfwSetWindowShouldClose(window->handle, true);
 
-    // TODO(ss): Need to move in the basis of camera space, not world space!!
-    if (glfwGetKey(window->handle, GLFW_KEY_SPACE) == GLFW_PRESS)
+    if (glfwGetKey(window->handle, GLFW_KEY_W) == GLFW_PRESS) {
+        velocity = vec3_mul(camera->forward, .5 * dt);
+        camera->position = vec3_add(camera->position, velocity);
+    }
+    if (glfwGetKey(window->handle, GLFW_KEY_S) == GLFW_PRESS) {
+        velocity = vec3_mul(camera->forward, .5 * dt);
+        camera->position = vec3_sub(camera->position, velocity);
+    }
+    if (glfwGetKey(window->handle, GLFW_KEY_D) == GLFW_PRESS) {
+        velocity = vec3_mul(camera->right, .5f * dt);
+        camera->position = vec3_add(camera->position, velocity);
+    }
+    if (glfwGetKey(window->handle, GLFW_KEY_A) == GLFW_PRESS) {
+        velocity = vec3_mul(camera->right, .5f * dt);
+        camera->position = vec3_sub(camera->position, velocity);
+    }
+
+    if (glfwGetKey(window->handle, GLFW_KEY_SPACE) == GLFW_PRESS) {
         camera->position.y += .25f * dt;
-    if (glfwGetKey(window->handle, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+    }
+    if (glfwGetKey(window->handle, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) {
         camera->position.y -= .25f * dt;
-    if (glfwGetKey(window->handle, GLFW_KEY_D) == GLFW_PRESS)
-        camera->position.x += .25f * dt;
-    if (glfwGetKey(window->handle, GLFW_KEY_A) == GLFW_PRESS)
-        camera->position.x -= .25f * dt;
-    if (glfwGetKey(window->handle, GLFW_KEY_W) == GLFW_PRESS)
-        camera->position.z -= .25f * dt;
-    if (glfwGetKey(window->handle, GLFW_KEY_S) == GLFW_PRESS)
-        camera->position.z += .25f * dt;
+    }
 }
 
 typedef struct Game Game;

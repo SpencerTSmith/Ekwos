@@ -12,11 +12,19 @@ void camera_set_perspective(Camera *camera, f32 fov, f32 aspect_ratio, f32 z_nea
 void camera_set_direction(Camera *camera, vec3 position, vec3 direction, vec3 up) {
     assert(vec3_len(direction) != 0.0f && "Camera direction is zero vector!");
     camera->view = mat4_look_direction(position, direction, up);
+    camera->forward = direction;
+    camera->position = position;
+    camera->up = up;
+    camera->right = vec3_cross(camera->forward, camera->up);
 }
 
 void camera_set_target(Camera *camera, vec3 position, vec3 target, vec3 up) {
     assert(vec3_len(vec3_sub(position, target)) != 0.0f && "Camera direction is zero vector!");
     camera->view = mat4_look_at(position, target, up);
+    camera->forward = vec3_sub(position, target);
+    camera->position = position;
+    camera->up = up;
+    camera->right = vec3_cross(camera->forward, camera->up);
 }
 
 // void camera_set_xyz(Camera *camera, vec3 position, vec3 rotation) {}

@@ -5,9 +5,9 @@
 typedef struct Camera Camera;
 struct Camera {
     mat4 projection, view;
-    f32 sensitivity;
+    vec3 forward, right, up;
+    vec3 position;
     f32 yaw, pitch;
-    vec3 position, direction, up;
 };
 
 void camera_init(Camera *camera, vec3 position, vec3 direction, vec3 up);
