@@ -19,6 +19,9 @@
 
 static bool first_mouse = true;
 
+// TODO(ss); move the calculation of movment vectors out of here and into the update...
+// it may be cleaner to instead just save any nessecary information into camera object and calculate
+// all at once that will make it simpler to get consisten velocities even when moving diagonally
 void process_input(Window *window, Camera *camera, f32 dt) {
     f64 new_cursor_x, new_cursor_y;
     glfwGetCursorPos(window->handle, &new_cursor_x, &new_cursor_y);
@@ -82,7 +85,7 @@ struct Game {
     Window window;
     RND_Context rctx;
     Camera camera;
-    double fps;
+    f64 fps;
     u64 frame_count;
     f64 dt;
 };
@@ -112,10 +115,7 @@ int main(int argc, char **argv) {
     Entity base_entity = {
         .mesh = &mesh,
         .scale = vec3(1.f, 1.f, 1.f),
-        // .position.x = -.5f,
         .position.z = -2.f,
-        // .rotation.z = RADIANS(45.f),
-        // .rotation.x = RADIANS(30.f),
     };
 
 #define MAX_ENTITIES 10000
@@ -156,8 +156,6 @@ int main(int argc, char **argv) {
         f32 aspect = rnd_swap_aspect_ratio(&game.rctx);
         // camera_set_orthographic(&game.camera, -aspect, aspect, -1.f, 1.f, 1.f, -1.f);
         camera_set_perspective(&game.camera, RADIANS(90.0f), aspect, .1f, 10.f);
-        // camera_set_direction(&game.camera, game.camera.position, vec3(0.0f, 0.0f, -1.0f),
-        //                      vec3(0.0f, 1.0f, 0.0f));
 
         mat4 proj_view = mat4_mul(game.camera.projection, game.camera.view);
 
