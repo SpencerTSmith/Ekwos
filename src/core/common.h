@@ -17,6 +17,10 @@ typedef uint8_t u8;
 typedef float f32;
 typedef double f64;
 
+#define thread_local _Thread_local
+#define function_local static
+#define translation_local static
+
 // Nice little macros //
 #define CLAMP(value, min, max) (((value) < (min)) ? (min) : ((value) > (max)) ? (max) : (value))
 #define MAX(first, second) ((first) > (second) ? (first) : (second))

@@ -42,6 +42,7 @@ void window_init(Window *window, const char *name, int width, int height) {
     window->w = width;
     window->h = height;
     window->resized = false;
+    window->name = name;
 }
 
 void window_free(Window *window) {

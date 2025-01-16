@@ -81,7 +81,7 @@ struct RND_Context {
 // may want to incorporate this with our Arena allocator, or other custom allocator suited
 // to it...
 
-void rnd_context_init(Arena *arena, RND_Context *render_context, Window *window);
+void rnd_context_init(RND_Context *render_context, Window *window);
 void rnd_context_free(RND_Context *render_context);
 
 void rnd_begin_frame(RND_Context *render_context, Window *window);

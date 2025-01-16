@@ -26,5 +26,3 @@ void camera_set_target(Camera *camera, vec3 position, vec3 target, vec3 up) {
     camera->up = up;
     camera->right = vec3_cross(camera->forward, camera->up);
 }
-
-// void camera_set_xyz(Camera *camera, vec3 position, vec3 rotation) {}

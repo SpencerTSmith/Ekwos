@@ -28,7 +28,7 @@ struct Pipeline_Config {
 };
 
 // Will use a default configuration if NULL passed in for config parameter
-RND_Pipeline rnd_pipeline_create(Arena *arena, RND_Context *rc, const char *vert_shader_path,
+RND_Pipeline rnd_pipeline_create(RND_Context *rc, const char *vert_shader_path,
                                  const char *frag_shader_path, const Pipeline_Config *config);
 void rnd_pipeline_free(RND_Context *render_context, RND_Pipeline *pipeline);
 

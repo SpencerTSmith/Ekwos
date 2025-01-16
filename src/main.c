@@ -1,12 +1,12 @@
-
-#include "core/arena.h"
 #include "core/common.h"
 #include "core/linear_algebra.h"
 #include "core/pool.h"
+#include "core/thread_context.h"
 #include "core/window.h"
 
 #include "game/camera.h"
 #include "game/entity.h"
+#include "game/game.h"
 
 #include "render/render_mesh.h"
 #include "render/render_pipeline.h"
@@ -22,7 +22,9 @@ static bool first_mouse = true;
 // TODO(ss); move the calculation of movment vectors out of here and into the update...
 // it may be cleaner to instead just save any nessecary information into camera object and calculate
 // all at once that will make it simpler to get consisten velocities even when moving diagonally
-void process_input(Window *window, Camera *camera, f32 dt) {
+// also nice separation of concerns, this function will	JUST process input, not do any calculation
+// with it
+void process_input(Window *window, Camera *camera, f64 dt) {
     f64 new_cursor_x, new_cursor_y;
     glfwGetCursorPos(window->handle, &new_cursor_x, &new_cursor_y);
 
@@ -41,7 +43,7 @@ void process_input(Window *window, Camera *camera, f32 dt) {
 
     camera->yaw += x_offset;
     camera->pitch += y_offset;
-    camera->pitch = CLAMP(camera->pitch, -70.f, 70.f);
+    camera->pitch = CLAMP(camera->pitch, -89.f, 89.f);
 
     vec3 forward;
     forward.x = -cosf(RADIANS(camera->yaw)) * cosf(RADIANS(camera->pitch));
@@ -56,19 +58,21 @@ void process_input(Window *window, Camera *camera, f32 dt) {
         glfwSetWindowShouldClose(window->handle, true);
 
     if (glfwGetKey(window->handle, GLFW_KEY_W) == GLFW_PRESS) {
-        velocity = vec3_mul(camera->forward, .5 * dt);
+        velocity = vec3_mul(camera->forward, .25f * dt);
         camera->position = vec3_add(camera->position, velocity);
     }
+
     if (glfwGetKey(window->handle, GLFW_KEY_S) == GLFW_PRESS) {
-        velocity = vec3_mul(camera->forward, .5 * dt);
+        velocity = vec3_mul(camera->forward, .25f * dt);
         camera->position = vec3_sub(camera->position, velocity);
     }
     if (glfwGetKey(window->handle, GLFW_KEY_D) == GLFW_PRESS) {
-        velocity = vec3_mul(camera->right, .5f * dt);
+        velocity = vec3_mul(camera->right, .25f * dt);
         camera->position = vec3_add(camera->position, velocity);
     }
+
     if (glfwGetKey(window->handle, GLFW_KEY_A) == GLFW_PRESS) {
-        velocity = vec3_mul(camera->right, .5f * dt);
+        velocity = vec3_mul(camera->right, .25f * dt);
         camera->position = vec3_sub(camera->position, velocity);
     }
 
@@ -80,30 +84,21 @@ void process_input(Window *window, Camera *camera, f32 dt) {
     }
 }
 
-typedef struct Game Game;
-struct Game {
-    Window window;
-    RND_Context rctx;
-    Camera camera;
-    f64 fps;
-    u64 frame_count;
-    f64 dt;
-};
-
 int main(int argc, char **argv) {
+    Thread_Context main_tctx;
+    thread_context_init(&main_tctx);
     Game game = {0};
-    Arena arena = arena_create(1024 * 100, ARENA_FLAG_DEFAULTS);
 
     window_init(&game.window, "Ekwos: Atavistic Chariot", WINDOW_WIDTH, WINDOW_HEIGHT);
-    rnd_context_init(&arena, &game.rctx, &game.window);
+    rnd_context_init(&game.rctx, &game.window);
 
-    RND_Pipeline pipeline = rnd_pipeline_create(&arena, &game.rctx, "shaders/vert.vert.spv",
-                                                "shaders/frag.frag.spv", NULL);
-    arena_free(&arena);
+    RND_Pipeline pipeline =
+        rnd_pipeline_create(&game.rctx, "shaders/vert.vert.spv", "shaders/frag.frag.spv", NULL);
 
+    // Initial camera options
     camera_set_perspective(&game.camera, RADIANS(90.f), (f32)WINDOW_WIDTH / WINDOW_HEIGHT, .1f,
                            10.f);
-    camera_set_direction(&game.camera, vec3(0.f, 0.f, 0.f), vec3(0.0f, 0.f, -1.f),
+    camera_set_direction(&game.camera, vec3(0.f, 0.f, 0.f), vec3(0.0f, 0.f, 1.f),
                          vec3(0.f, 1.f, 0.f));
 
     mat4_print(game.camera.projection);
@@ -118,7 +113,7 @@ int main(int argc, char **argv) {
         .position.z = -2.f,
     };
 
-#define MAX_ENTITIES 10000
+#define MAX_ENTITIES 100
 
     Pool entity_pool = pool_create_type(MAX_ENTITIES, Entity);
     for (i32 i = 0; i < MAX_ENTITIES; i++) {
@@ -130,14 +125,13 @@ int main(int argc, char **argv) {
     char fps_display[256];
 
     while (!window_should_close(&game.window)) {
-        // Tracking fps and dt
         clock_t current_time = clock();
         game.dt = (double)(current_time - last_time) / CLOCKS_PER_SEC;
 
         if (game.dt >= 0.2) {
             game.fps = game.frame_count / game.dt;
 
-            snprintf(fps_display, sizeof(fps_display), "FPS: %.2f", game.fps);
+            snprintf(fps_display, sizeof(fps_display), "%s FPS: %.2f", game.window.name, game.fps);
             glfwSetWindowTitle(game.window.handle, fps_display);
 
             game.frame_count = 0;
@@ -187,6 +181,8 @@ int main(int argc, char **argv) {
     rnd_pipeline_free(&game.rctx, &pipeline);
     rnd_context_free(&game.rctx);
     window_free(&game.window);
+
+    thread_context_free();
 
     return EXT_SUCCESS;
 }

@@ -1,6 +1,7 @@
 #include "render/render_pipeline.h"
 
 #include "core/log.h"
+#include "core/thread_context.h"
 #include "render/render_mesh.h"
 
 #include <errno.h>
@@ -20,17 +21,17 @@ static Pipeline_Config default_pipeline_config(void);
 static Shader_Code read_shader_file(Arena *arena, const char *file_path);
 static VkShaderModule create_shader_module(Shader_Code code, VkDevice device);
 
-RND_Pipeline rnd_pipeline_create(Arena *arena, RND_Context *rc, const char *vert_shader_path,
+RND_Pipeline rnd_pipeline_create(RND_Context *rc, const char *vert_shader_path,
                                  const char *frag_shader_path, const Pipeline_Config *config) {
     // Use a default if none passed in
     Pipeline_Config pl_config = config == NULL ? default_pipeline_config() : *config;
 
     // Don't need to keep the shader code memory around
-    Scratch scratch = scratch_begin(arena);
+    Scratch scratch = thread_get_scratch();
 
     RND_Pipeline pipeline = {0};
-    Shader_Code vert_code = read_shader_file(arena, vert_shader_path);
-    Shader_Code frag_code = read_shader_file(arena, frag_shader_path);
+    Shader_Code vert_code = read_shader_file(scratch.arena, vert_shader_path);
+    Shader_Code frag_code = read_shader_file(scratch.arena, frag_shader_path);
     VkShaderModule vert_mod = create_shader_module(vert_code, rc->logical);
     VkShaderModule frag_mod = create_shader_module(frag_code, rc->logical);
 

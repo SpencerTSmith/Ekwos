@@ -1,6 +1,7 @@
 #include "render_context.h"
 
 #include "core/log.h"
+#include "core/thread_context.h"
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -16,7 +17,7 @@ static const u32 num_enable_validation_layers = 0;
 static const bool enable_val_layers = false;
 #endif // DEBUG defined
 
-static const char *const device_extensions[] = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+static const char *const required_device_extensions[] = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
 static VkFormat possible_depth_formats[] = {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT,
                                             VK_FORMAT_D24_UNORM_S8_UINT};
 
@@ -37,9 +38,9 @@ struct Queue_Family_Indices {
 };
 
 // Forward declarations //
-static void create_instance(Arena *arena, RND_Context *rc);
-static void choose_physical_device(Arena *arena, RND_Context *rc);
-static void create_logical_device(Arena *arena, RND_Context *rc);
+static void create_instance(RND_Context *rc);
+static void choose_physical_device(RND_Context *rc);
+static void create_logical_device(RND_Context *rc);
 
 // Swap Chain Stuff //
 static void create_swap_chain(RND_Context *rc, Window *window);
@@ -48,19 +49,13 @@ static void create_swap_chain(RND_Context *rc, Window *window);
 static void destroy_swap_chain(RND_Context *rc, VkSwapchainKHR swap_handle);
 static void recreate_swap_chain(RND_Context *rc, Window *window);
 
-void rnd_context_init(Arena *arena, RND_Context *rc, Window *window) {
-    // Get some temporary memory to hold our queries and such about device supports
-    // we don't need it later
-    Scratch scratch = scratch_begin(arena);
+void rnd_context_init(RND_Context *rc, Window *window) {
 
-    create_instance(scratch.arena, rc);
+    create_instance(rc);
     rc->surface = window_surface_create(window, rc);
-    choose_physical_device(scratch.arena, rc);
-    create_logical_device(scratch.arena, rc);
+    choose_physical_device(rc);
+    create_logical_device(rc);
     create_swap_chain(rc, window);
-
-    // Memory storing all those queries not nessecary anymore
-    scratch_end(&scratch);
 
     LOG_DEBUG("Render Context resources initialized");
 }
@@ -328,7 +323,10 @@ VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(
     return VK_FALSE;
 }
 
-static void create_instance(Arena *arena, RND_Context *rc) {
+static void create_instance(RND_Context *rc) {
+    // Just some temporary memory for getting extensions etc.
+    Scratch scratch = thread_get_scratch();
+
     // Info needed to create vulkan instance... similar to opengl context
     VkApplicationInfo app_info = {0};
     app_info.sType = VK_STRUCTURE_TYPE_APPLICATION_INFO;
@@ -344,14 +342,14 @@ static void create_instance(Arena *arena, RND_Context *rc) {
     create_info.pApplicationInfo = &app_info;
 
     u32 num_extensions = 0;
-    const char **extensions = get_glfw_required_extensions(arena, &num_extensions);
+    const char **extensions = get_glfw_required_extensions(scratch.arena, &num_extensions);
 
     create_info.enabledExtensionCount = num_extensions;
     create_info.ppEnabledExtensionNames = extensions;
 
     VkDebugUtilsMessengerCreateInfoEXT debug_info = {0};
     if (enable_val_layers) {
-        if (!check_val_layer_support(arena, enabled_validation_layers,
+        if (!check_val_layer_support(scratch.arena, enabled_validation_layers,
                                      STATIC_ARRAY_COUNT(enabled_validation_layers))) {
             LOG_FATAL("Failed to find specified Validation Layers");
             exit(EXT_VK_LAYERS);
@@ -386,6 +384,8 @@ static void create_instance(Arena *arena, RND_Context *rc) {
             EXT_VK_DEBUG_MESSENGER, "Failed to create debug messenger");
         LOG_DEBUG("Created validation messenger");
     }
+
+    thread_end_scratch(&scratch);
 }
 
 static bool check_device_extension_support(Arena *arena, VkPhysicalDevice device,
@@ -419,14 +419,16 @@ static bool check_device_extension_support(Arena *arena, VkPhysicalDevice device
     return true;
 }
 
-static void choose_physical_device(Arena *arena, RND_Context *rc) {
+static void choose_physical_device(RND_Context *rc) {
+    Scratch scratch = thread_get_scratch();
+
     u32 device_count = 0;
     VkInstance instance = rc->instance;
 
     VK_CHECK_ERROR(vkEnumeratePhysicalDevices(instance, &device_count, NULL),
                    "Faield to enumerate physical devices");
 
-    VkPhysicalDevice *phys_devs = arena_calloc(arena, device_count, VkPhysicalDevice);
+    VkPhysicalDevice *phys_devs = arena_calloc(scratch.arena, device_count, VkPhysicalDevice);
     VK_CHECK_ERROR(vkEnumeratePhysicalDevices(instance, &device_count, phys_devs),
                    "Faield to enumerate physical devices");
 
@@ -439,10 +441,8 @@ static void choose_physical_device(Arena *arena, RND_Context *rc) {
         VkPhysicalDeviceFeatures dev_feats;
         vkGetPhysicalDeviceFeatures(phys_devs[i], &dev_feats);
 
-        // TODO(spencer): rank devices and pick best? for now just pick the Discrete Card that
-        // supports a swapchain
-        if (check_device_extension_support(arena, phys_devs[i], device_extensions,
-                                           STATIC_ARRAY_COUNT(device_extensions))) {
+        if (check_device_extension_support(scratch.arena, phys_devs[i], required_device_extensions,
+                                           STATIC_ARRAY_COUNT(required_device_extensions))) {
             if (dev_props.deviceType == VK_PHYSICAL_DEVICE_TYPE_DISCRETE_GPU) {
                 device_ranking[0] = phys_devs[i];
                 break;
@@ -452,30 +452,34 @@ static void choose_physical_device(Arena *arena, RND_Context *rc) {
         }
     }
 
+    // NOTE(ss): an attempt was made to do ranking style thing, this is probably not a good way to
+    // do it
     if (device_ranking[0] != VK_NULL_HANDLE) {
         rc->physical = device_ranking[0];
-        LOG_DEBUG("Chose physical device, discrete GPU with all neede extensions");
-        return;
+        LOG_DEBUG("Chose physical device, discrete GPU with all needed extensions");
     } else if (ranking > 0) {
         rc->physical = device_ranking[1];
         LOG_DEBUG(
             "Unable to find discrete GPU that supports exension, chose next best physical device");
-        return;
     } else {
         LOG_FATAL("Failed to find suitable graphics device");
         exit(EXT_VK_NO_DEVICE);
     }
+
+    thread_end_scratch(&scratch);
 }
 
-static Queue_Family_Indices get_queue_family_indices(Arena *arena, VkPhysicalDevice device,
+static Queue_Family_Indices get_queue_family_indices(VkPhysicalDevice device,
                                                      VkSurfaceKHR surface) {
+    Scratch scratch = thread_get_scratch();
+
     // Find queue families the physical device supports, pick the one that supports graphics and
     // presentation
     u32 queue_family_count = 0;
     vkGetPhysicalDeviceQueueFamilyProperties(device, &queue_family_count, NULL);
 
     VkQueueFamilyProperties *queue_family_props =
-        arena_calloc(arena, queue_family_count, VkQueueFamilyProperties);
+        arena_calloc(scratch.arena, queue_family_count, VkQueueFamilyProperties);
     vkGetPhysicalDeviceQueueFamilyProperties(device, &queue_family_count, queue_family_props);
 
     // Get the queue for graphics and presentation
@@ -505,14 +509,16 @@ static Queue_Family_Indices get_queue_family_indices(Arena *arena, VkPhysicalDev
         exit(EXT_VK_QUEUE_FAMILIES);
     }
 
+    thread_end_scratch(&scratch);
+
     return (Queue_Family_Indices){.graphic = graphic_index, .present = present_index};
 }
 
-static void create_logical_device(Arena *arena, RND_Context *rc) {
+static void create_logical_device(RND_Context *rc) {
     VkPhysicalDevice physical_device = rc->physical;
     VkSurfaceKHR surface = rc->surface;
 
-    Queue_Family_Indices family_indices = get_queue_family_indices(arena, physical_device, surface);
+    Queue_Family_Indices family_indices = get_queue_family_indices(physical_device, surface);
     rc->graphic_index = family_indices.graphic;
     rc->present_index = family_indices.present;
 
@@ -548,8 +554,8 @@ static void create_logical_device(Arena *arena, RND_Context *rc) {
     device_create_info.queueCreateInfoCount = num_queue_creates;
     device_create_info.pQueueCreateInfos = queue_creates;
     device_create_info.pEnabledFeatures = &device_features;
-    device_create_info.enabledExtensionCount = STATIC_ARRAY_COUNT(device_extensions);
-    device_create_info.ppEnabledExtensionNames = device_extensions;
+    device_create_info.enabledExtensionCount = STATIC_ARRAY_COUNT(required_device_extensions);
+    device_create_info.ppEnabledExtensionNames = required_device_extensions;
 
     if (enable_val_layers) {
         device_create_info.enabledLayerCount = STATIC_ARRAY_COUNT(enabled_validation_layers);
