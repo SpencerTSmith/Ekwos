@@ -56,6 +56,7 @@ void rnd_context_init(RND_Context *rc, Window *window) {
     choose_physical_device(rc);
     create_logical_device(rc);
     create_swap_chain(rc, window);
+    rc->allocator = rnd_allocator_create(rc, 1024);
 
     LOG_DEBUG("Render Context resources initialized");
 }
@@ -742,7 +743,6 @@ static void create_swap_chain(RND_Context *rc, Window *window) {
     }
 
     // TODO(ss): check if we need to recreate the render pass, we may not need to
-    rc->swap.arena = rnd_allocator_init(rc, 1024);
     create_render_pass(rc);
     create_target_resources(rc);
     create_frame_resources(rc);
@@ -886,7 +886,7 @@ static void create_target_resources(RND_Context *rc) {
         depth_image_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
         depth_image_info.flags = 0;
 
-        rnd_alloc_image(&rc->swap.arena, rc, depth_image_info, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+        rnd_alloc_image(&rc->allocator, rc, depth_image_info, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
                         &rc->swap.targets[i].depth_image, &rc->swap.targets[i].depth_memory);
         LOG_DEBUG("Allocated memory for swap chain depth image %u", i);
 

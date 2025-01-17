@@ -37,6 +37,8 @@ struct RND_Context {
     VkQueue present_q;
     u32 present_index;
 
+    RND_Allocator allocator;
+
     // NOTE(ss): For now we group the render pass with the swap chain,
     // once I learn more this may not be the best practice
     struct RND_Swap_Chain {
@@ -53,7 +55,6 @@ struct RND_Context {
         VkRenderPass render_pass;
         u32 subpass;
 
-        RND_Allocator arena;
         struct RND_Swap_Target {
             VkFramebuffer framebuffer;
             VkImage color_image;

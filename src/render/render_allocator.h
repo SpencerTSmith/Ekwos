@@ -15,12 +15,15 @@ struct RND_Allocator {
 };
 
 // TODO(ss): actually implement management of memory on the allocator side instead of caller side
-RND_Allocator rnd_allocator_init(RND_Context *rc, u64 initial_size);
+RND_Allocator rnd_allocator_create(RND_Context *rc, u64 initial_size);
 void rnd_allocator_free(RND_Context *rc, RND_Allocator *allocator);
 
 // Finds best memory type, etc, binds
 void rnd_alloc_image(RND_Allocator *allocator, RND_Context *rc, VkImageCreateInfo info,
-                     VkMemoryPropertyFlags memory_prop_flag, VkImage *image,
+                     VkMemoryPropertyFlags memory_properties, VkImage *image,
                      VkDeviceMemory *memory);
+void rnd_alloc_buffer(RND_Allocator *allocator, RND_Context *rc, VkBufferCreateInfo info,
+                      VkMemoryPropertyFlags memory_properties, VkBuffer *buffer,
+                      VkDeviceMemory *memory);
 
 #endif // RENDER_ALLOCATOR_H

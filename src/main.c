@@ -58,29 +58,29 @@ void process_input(Window *window, Camera *camera, f64 dt) {
         glfwSetWindowShouldClose(window->handle, true);
 
     if (glfwGetKey(window->handle, GLFW_KEY_W) == GLFW_PRESS) {
-        velocity = vec3_mul(camera->forward, .25f * dt);
+        velocity = vec3_mul(camera->forward, .10f * dt);
         camera->position = vec3_add(camera->position, velocity);
     }
 
     if (glfwGetKey(window->handle, GLFW_KEY_S) == GLFW_PRESS) {
-        velocity = vec3_mul(camera->forward, .25f * dt);
+        velocity = vec3_mul(camera->forward, .10f * dt);
         camera->position = vec3_sub(camera->position, velocity);
     }
     if (glfwGetKey(window->handle, GLFW_KEY_D) == GLFW_PRESS) {
-        velocity = vec3_mul(camera->right, .25f * dt);
+        velocity = vec3_mul(camera->right, .10f * dt);
         camera->position = vec3_add(camera->position, velocity);
     }
 
     if (glfwGetKey(window->handle, GLFW_KEY_A) == GLFW_PRESS) {
-        velocity = vec3_mul(camera->right, .25f * dt);
+        velocity = vec3_mul(camera->right, .10f * dt);
         camera->position = vec3_sub(camera->position, velocity);
     }
 
     if (glfwGetKey(window->handle, GLFW_KEY_SPACE) == GLFW_PRESS) {
-        camera->position.y += .25f * dt;
+        camera->position.y += .10f * dt;
     }
     if (glfwGetKey(window->handle, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) {
-        camera->position.y -= .25f * dt;
+        camera->position.y -= .10f * dt;
     }
 }
 
@@ -113,7 +113,7 @@ int main(int argc, char **argv) {
         .position.z = -2.f,
     };
 
-#define MAX_ENTITIES 100
+#define MAX_ENTITIES 1000
 
     Pool entity_pool = pool_create_type(MAX_ENTITIES, Entity);
     for (i32 i = 0; i < MAX_ENTITIES; i++) {
