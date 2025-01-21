@@ -23,6 +23,7 @@ enum RND_Context_Constants {
 typedef struct RND_Swap_Chain RND_Swap_Chain;
 typedef struct RND_Swap_Target RND_Swap_Target;
 typedef struct RND_Swap_Frame RND_Swap_Frame;
+typedef struct RND_Upload RND_Upload;
 
 typedef struct RND_Context RND_Context;
 struct RND_Context {
@@ -36,6 +37,15 @@ struct RND_Context {
     u32 graphic_index;
     VkQueue present_q;
     u32 present_index;
+
+    // This will get it's own command pool,
+    // in case we ever move this to it's own thread
+    struct RND_Upload {
+        VkCommandPool command_pool;
+        VkCommandBuffer command_buffer;
+        VkQueue transfer_q;
+        u32 transfer_index;
+    } upload;
 
     RND_Allocator allocator;
 

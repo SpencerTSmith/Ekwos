@@ -94,7 +94,7 @@ int main(int argc, char **argv) {
     window_init(&game.window, "Ekwos: Atavistic Chariot", WINDOW_WIDTH, WINDOW_HEIGHT);
     rnd_context_init(&game.rctx, &game.window);
 
-    RND_Pipeline pipeline =
+    RND_Pipeline mesh_pipeline =
         rnd_pipeline_create(&game.rctx, "shaders/vert.vert.spv", "shaders/frag.frag.spv", NULL);
 
     // Initial camera options
@@ -150,7 +150,7 @@ int main(int argc, char **argv) {
             mat4 proj_view = mat4_mul(game.camera.projection, game.camera.view);
 
             rnd_begin_frame(&game.rctx, &game.window);
-            rnd_pipeline_bind(&game.rctx, &pipeline);
+            rnd_pipeline_bind(&game.rctx, &mesh_pipeline);
             rnd_mesh_bind(&game.rctx, &mesh);
             Entity *entities = (Entity *)pool_as_array(&entity_pool.pool);
             for (u32 i = 0; i < entity_pool.pool.block_last_index; i++) {
@@ -161,7 +161,7 @@ int main(int argc, char **argv) {
                 RND_Push_Constants push = {0};
                 push.transform = mat4_mul(proj_view, entity_model_transform(&entities[i]));
                 push.color = entities[i].color;
-                rnd_push_constants(&game.rctx, &pipeline, push);
+                rnd_push_constants(&game.rctx, &mesh_pipeline, push);
 
                 rnd_mesh_draw(&game.rctx, &mesh);
             }
@@ -175,7 +175,7 @@ int main(int argc, char **argv) {
 
     vkDeviceWaitIdle(game.rctx.logical);
     rnd_mesh_free(&game.rctx, &mesh);
-    rnd_pipeline_free(&game.rctx, &pipeline);
+    rnd_pipeline_free(&game.rctx, &mesh_pipeline);
     rnd_context_free(&game.rctx);
     window_free(&game.window);
 

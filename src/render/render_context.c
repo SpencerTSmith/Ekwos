@@ -35,6 +35,7 @@ typedef struct Queue_Family_Indices Queue_Family_Indices;
 struct Queue_Family_Indices {
     u32 graphic;
     u32 present;
+    u32 transfer;
 };
 
 // Forward declarations //
@@ -486,6 +487,7 @@ static Queue_Family_Indices get_queue_family_indices(VkPhysicalDevice device,
     // Get the queue for graphics and presentation
     u32 graphic_index = VK_QUEUE_FAMILY_IGNORED;
     u32 present_index = VK_QUEUE_FAMILY_IGNORED;
+    u32 transfer_index = VK_QUEUE_FAMILY_IGNORED;
     for (u32 i = 0; i < queue_family_count; i++) {
         bool graphic_support = queue_family_props[i].queueFlags & VK_QUEUE_GRAPHICS_BIT;
         if (graphic_support) {
@@ -499,8 +501,14 @@ static Queue_Family_Indices get_queue_family_indices(VkPhysicalDevice device,
             present_index = i;
         }
 
+        bool transfer_support = queue_family_props[i].queueFlags & VK_QUEUE_TRANSFER_BIT;
+        if (transfer_support) {
+            transfer_index = i;
+        }
+
         // Found suitable queues for both
-        if (graphic_index != VK_QUEUE_FAMILY_IGNORED && present_index != VK_QUEUE_FAMILY_IGNORED) {
+        if (graphic_index != VK_QUEUE_FAMILY_IGNORED && present_index != VK_QUEUE_FAMILY_IGNORED &&
+            transfer_index != VK_QUEUE_FAMILY_IGNORED) {
             break;
         }
     }
@@ -522,6 +530,7 @@ static void create_logical_device(RND_Context *rc) {
     Queue_Family_Indices family_indices = get_queue_family_indices(physical_device, surface);
     rc->graphic_index = family_indices.graphic;
     rc->present_index = family_indices.present;
+    rc->upload.transfer_index = family_indices.transfer;
 
     f32 queue_priority = 1.0f;
 
@@ -547,6 +556,16 @@ static void create_logical_device(RND_Context *rc) {
         queue_creates[num_queue_creates++] = present_create;
     }
 
+    if (rc->graphic_index != rc->upload.transfer_index) {
+        VkDeviceQueueCreateInfo transfer_create = {0};
+        transfer_create.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
+        transfer_create.queueFamilyIndex = rc->present_index;
+        transfer_create.queueCount = 1;
+        transfer_create.pQueuePriorities = &queue_priority;
+
+        queue_creates[num_queue_creates++] = transfer_create;
+    }
+
     // NOTE(spencer): probably need stuff here... later
     VkPhysicalDeviceFeatures device_features = {0};
 
@@ -568,10 +587,13 @@ static void create_logical_device(RND_Context *rc) {
     LOG_DEBUG("Created logical device");
 
     vkGetDeviceQueue(rc->logical, rc->graphic_index, 0, &rc->graphic_q);
-    LOG_DEBUG("Got graphics device queue with index %u", rc->graphic_index);
+    LOG_DEBUG("Got graphics device queue with family index %u", rc->graphic_index);
 
     vkGetDeviceQueue(rc->logical, rc->present_index, 0, &rc->present_q);
-    LOG_DEBUG("Got present device queue with index %u", rc->present_index);
+    LOG_DEBUG("Got present device queue with family index %u", rc->present_index);
+
+    vkGetDeviceQueue(rc->logical, rc->upload.transfer_index, 0, &rc->upload.transfer_q);
+    LOG_DEBUG("Got transfer device queue with family index %u", rc->present_index);
 }
 
 static Swap_Chain_Info get_swap_chain_info(VkPhysicalDevice device, VkSurfaceKHR surface) {
