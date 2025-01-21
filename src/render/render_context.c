@@ -54,9 +54,9 @@ void rnd_context_init(RND_Context *rc, Window *window) {
     create_instance(rc);
     rc->surface = window_surface_create(window, rc);
     choose_physical_device(rc);
+    rc->allocator = rnd_allocator_create(rc, 1024);
     create_logical_device(rc);
     create_swap_chain(rc, window);
-    rc->allocator = rnd_allocator_create(rc, 1024);
 
     LOG_DEBUG("Render Context resources initialized");
 }

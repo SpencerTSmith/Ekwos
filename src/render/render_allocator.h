@@ -12,6 +12,9 @@ struct RND_Allocator {
     VkPhysicalDeviceMemoryProperties device_memory_props;
     VkDeviceMemory memory;
     u64 capacity;
+    // Not sure about this... should it have this? Would make it simpler, only have to pass in the
+    // allocator
+    VkDevice logical;
 };
 
 // TODO(ss): actually implement management of memory on the allocator side instead of caller side

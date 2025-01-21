@@ -26,11 +26,16 @@ const VkVertexInputAttributeDescription g_vertex_attrib_desc[RND_VERTEX_ATTRIBUT
     },
 };
 
-static void create_vertex_buffers(RND_Context *rc, RND_Mesh *mesh, RND_Vertex *verts,
-                                  u32 vert_count);
+static void create_vertex_buffer(RND_Context *rc, RND_Mesh *mesh, RND_Vertex *verts,
+                                 u32 vert_count);
+static void create_index_buffer(RND_Context *rc, RND_Mesh *mesh, u32 *indexs, u32 index_count);
 
-void rnd_mesh_init(RND_Context *rc, RND_Mesh *mesh, RND_Vertex *verts, u32 vert_count) {
-    create_vertex_buffers(rc, mesh, verts, vert_count);
+void rnd_mesh_init(RND_Context *rc, RND_Mesh *mesh, RND_Vertex *verts, u32 vert_count, u32 *indexs,
+                   u32 indx_count) {
+    create_vertex_buffer(rc, mesh, verts, vert_count);
+    if (indexs != NULL && indx_count > 0) {
+        create_index_buffer(rc, mesh, indexs, indx_count);
+    }
 }
 
 void rnd_mesh_bind(RND_Context *rc, RND_Mesh *mesh) {
@@ -45,7 +50,7 @@ void rnd_mesh_draw(RND_Context *rc, RND_Mesh *mesh) {
 
 void rnd_mesh_free(RND_Context *rc, RND_Mesh *mesh) {
     vkDestroyBuffer(rc->logical, mesh->vertex_buffer, NULL);
-    vkFreeMemory(rc->logical, mesh->memory, NULL);
+    vkFreeMemory(rc->logical, mesh->vertex_memory, NULL);
     ZERO_STRUCT(mesh);
 }
 
@@ -101,11 +106,11 @@ void rnd_mesh_cube(RND_Context *rc, RND_Mesh *mesh) {
         {.position = {{.5f, .5f, -0.5f}}, {{.1f, .8f, .1f}}},
     };
 
-    create_vertex_buffers(rc, mesh, verts, STATIC_ARRAY_COUNT(verts));
+    create_vertex_buffer(rc, mesh, verts, STATIC_ARRAY_COUNT(verts));
 }
 
-static void create_vertex_buffers(RND_Context *rc, RND_Mesh *mesh, RND_Vertex *verts,
-                                  u32 vert_count) {
+static void create_vertex_buffer(RND_Context *rc, RND_Mesh *mesh, RND_Vertex *verts,
+                                 u32 vert_count) {
     mesh->vertex_count = vert_count;
     if (vert_count < 3) {
         LOG_ERROR("Vertex count must be greater than or equal to 3");
@@ -121,12 +126,27 @@ static void create_vertex_buffers(RND_Context *rc, RND_Mesh *mesh, RND_Vertex *v
 
     rnd_alloc_buffer(&rc->allocator, rc, buffer_info,
                      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
-                     &mesh->vertex_buffer, &mesh->memory);
+                     &mesh->vertex_buffer, &mesh->vertex_memory);
 
     // Map out memory to copy vertex info into
     void *data = NULL;
-    VK_CHECK_ERROR(vkMapMemory(rc->logical, mesh->memory, 0, buffer_size, 0, &data),
+    VK_CHECK_ERROR(vkMapMemory(rc->logical, mesh->vertex_memory, 0, buffer_size, 0, &data),
                    "Unable to map buffer memory for transfer");
     memcpy(data, verts, buffer_size);
-    vkUnmapMemory(rc->logical, mesh->memory);
+    vkUnmapMemory(rc->logical, mesh->vertex_memory);
+}
+
+static void create_index_buffer(RND_Context *rc, RND_Mesh *mesh, u32 *indexs, u32 index_count) {
+    mesh->index_count = index_count;
+
+    VkDeviceSize buffer_size = sizeof(u32) * index_count;
+    VkBufferCreateInfo buffer_info = {0};
+    buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
+    buffer_info.size = buffer_size;
+    buffer_info.usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT;
+    buffer_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
+
+    rnd_alloc_buffer(&rc->allocator, rc, buffer_info,
+                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                     &mesh->index_buffer, &mesh->index_memory);
 }

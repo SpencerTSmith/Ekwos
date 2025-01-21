@@ -22,7 +22,8 @@ struct RND_Push_Constants {
 
 typedef struct RND_Mesh RND_Mesh;
 struct RND_Mesh {
-    VkDeviceMemory memory;
+    VkDeviceMemory vertex_memory;
+    VkDeviceMemory index_memory;
     VkBuffer vertex_buffer;
     VkBuffer index_buffer;
     u32 vertex_count;
@@ -39,8 +40,8 @@ extern const VkVertexInputAttributeDescription g_vertex_attrib_desc[RND_VERTEX_A
 // TODO(ss): Either need to use VMA (Vulkan Memory Allocator) library or create our own gpu memory
 // allocator ASAP
 
-void rnd_mesh_init(RND_Context *rc, RND_Mesh *mesh, RND_Vertex *verts, u32 vert_count, u32 *indxs,
-                   u32 indx_count);
+void rnd_mesh_init(RND_Context *rc, RND_Mesh *mesh, RND_Vertex *verts, u32 vert_count, u32 *indexs,
+                   u32 index_count);
 void rnd_mesh_bind(RND_Context *rc, RND_Mesh *mesh);
 void rnd_mesh_draw(RND_Context *rc, RND_Mesh *mesh);
 void rnd_mesh_free(RND_Context *rc, RND_Mesh *mesh);

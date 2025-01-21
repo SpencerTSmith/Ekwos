@@ -2,7 +2,9 @@
 #define GAME_H
 
 #include "core/window.h"
+
 #include "game/camera.h"
+
 #include "render/render_context.h"
 
 typedef struct Game Game;
