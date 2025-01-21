@@ -8,6 +8,7 @@ Pool pool_create(u64 count, u64 block_size, u64 block_alignment) {
         .free_block = NULL,
         .block_size = ALIGN_ROUND_UP(block_size, block_alignment),
         .block_last_index = 0,
+        .block_capacity = count,
     };
 
     assert(block_size >= sizeof(Pool_Block) && "Requested pool block size is too small");

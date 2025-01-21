@@ -1,13 +1,18 @@
 #include "game/entity.h"
 #include "core/arena.h"
 
-Entity_Pool entity_pool_init(u64 capacity) {
+Entity_Pool entity_pool_create(u64 capacity) {
     Entity_Pool pool = {
         .pool = pool_create_type(capacity, Entity),
-        .next_entity_id = 1, // again id of 0 is invalid
+        .next_entity_id = 0,
     };
 
     return pool;
+}
+
+void entity_pool_free(Entity_Pool *pool) {
+    pool_free(&pool->pool);
+    ZERO_STRUCT(pool);
 }
 
 Entity *entity_create(Entity_Pool *entity_pool, Entity_Flags flags, vec3 position, vec3 rotation,

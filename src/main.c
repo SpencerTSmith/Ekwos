@@ -14,8 +14,11 @@
 #include <time.h>
 
 #define FRAME_TARGET_TIME (SECOND / FPS)
+
 #define WINDOW_WIDTH 1200
 #define WINDOW_HEIGHT 900
+
+#define MAX_ENTITIES 1000
 
 static bool first_mouse = true;
 
@@ -103,18 +106,11 @@ int main(int argc, char **argv) {
     RND_Mesh mesh = {0};
     rnd_mesh_cube(&game.rctx, &mesh);
 
-    Entity base_entity = {
-        .mesh = &mesh,
-        .scale = vec3(1.f, 1.f, 1.f),
-        .position.z = -2.f,
-    };
-
-#define MAX_ENTITIES 1000
-
-    Pool entity_pool = pool_create_type(MAX_ENTITIES, Entity);
-    for (i32 i = 0; i < MAX_ENTITIES; i++) {
-        Entity *entity = pool_alloc(&entity_pool);
-        *entity = base_entity;
+    Entity_Pool entity_pool = entity_pool_create(MAX_ENTITIES);
+    for (u32 i = 0; i < entity_pool.pool.block_capacity; i++) {
+        Entity *entity =
+            entity_create(&entity_pool, EK_ENTITY_FLAG_DEFAULTS, vec3(0.f, 0.f, -2.f),
+                          vec3(0.f, 0.f, 0.f), vec3(1.f, 1.f, 1.f), vec3(0.f, 0.f, 0.f), &mesh);
     }
 
     clock_t last_time = clock();
@@ -156,8 +152,8 @@ int main(int argc, char **argv) {
             rnd_begin_frame(&game.rctx, &game.window);
             rnd_pipeline_bind(&game.rctx, &pipeline);
             rnd_mesh_bind(&game.rctx, &mesh);
-            Entity *entities = (Entity *)pool_as_array(&entity_pool);
-            for (u32 i = 0; i < entity_pool.block_last_index; i++) {
+            Entity *entities = (Entity *)pool_as_array(&entity_pool.pool);
+            for (u32 i = 0; i < entity_pool.pool.block_last_index; i++) {
                 // entities[i].rotation.x += 0.001f * PI;
                 // entities[i].rotation.y += 0.001f * PI;
                 // entities[i].rotation.z += 0.001f * PI;
@@ -175,7 +171,7 @@ int main(int argc, char **argv) {
         poll_events();
     }
 
-    pool_free(&entity_pool);
+    entity_pool_free(&entity_pool);
 
     vkDeviceWaitIdle(game.rctx.logical);
     rnd_mesh_free(&game.rctx, &mesh);

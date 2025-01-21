@@ -39,7 +39,9 @@ enum EK_Entity_Constants {
     EK_ENTITY_INVALID_ID = 0,
 };
 
-Entity_Pool entity_pool_init(u64 capacity);
+Entity_Pool entity_pool_create(u64 capacity);
+void entity_pool_free(Entity_Pool *pool);
+
 Entity *entity_create(Entity_Pool *entity_pool, Entity_Flags flags, vec3 position, vec3 rotation,
                       vec3 scale, vec3 color, RND_Mesh *mesh);
 mat4 entity_model_transform(Entity *entity);
