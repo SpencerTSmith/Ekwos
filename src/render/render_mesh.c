@@ -44,10 +44,17 @@ void rnd_mesh_bind(RND_Context *rc, RND_Mesh *mesh) {
     VkBuffer buffers[] = {mesh->vertex_buffer};
     VkDeviceSize offsets[] = {0};
     vkCmdBindVertexBuffers(rnd_get_current_cmd(rc), 0, 1, buffers, offsets);
+    if (mesh->index_buffer != VK_NULL_HANDLE && mesh->index_count > 0) {
+        vkCmdBindIndexBuffer(rnd_get_current_cmd(rc), mesh->index_buffer, 0, VK_INDEX_TYPE_UINT32);
+    }
 }
 
 void rnd_mesh_draw(RND_Context *rc, RND_Mesh *mesh) {
-    vkCmdDraw(rnd_get_current_cmd(rc), mesh->vertex_count, 1, 0, 0);
+    if (mesh->index_buffer != VK_NULL_HANDLE && mesh->index_count > 0) {
+        vkCmdDrawIndexed(rnd_get_current_cmd(rc), mesh->index_count, 1, 0, 0, 0);
+    } else {
+        vkCmdDraw(rnd_get_current_cmd(rc), mesh->vertex_count, 1, 0, 0);
+    }
 }
 
 void rnd_mesh_free(RND_Context *rc, RND_Mesh *mesh) {
@@ -128,7 +135,7 @@ static void create_vertex_buffer(RND_Context *rc, RND_Mesh *mesh, RND_Vertex *ve
     VkBufferCreateInfo buffer_info = {0};
     buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     buffer_info.size = buffer_size;
-    buffer_info.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT;
+    buffer_info.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
     buffer_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
     rnd_alloc_buffer(&rc->allocator, rc, buffer_info,

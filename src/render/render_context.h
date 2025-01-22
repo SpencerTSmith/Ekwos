@@ -6,6 +6,7 @@
 #include "core/window.h"
 #include "render/render_allocator.h"
 #include "render/render_common.h"
+#include "render/render_uploader.h"
 
 #include <assert.h>
 #include <stdbool.h>
@@ -24,7 +25,6 @@ enum RND_Context_Constants {
 typedef struct RND_Swap_Chain RND_Swap_Chain;
 typedef struct RND_Swap_Target RND_Swap_Target;
 typedef struct RND_Swap_Frame RND_Swap_Frame;
-typedef struct RND_Uploader RND_Uploader;
 
 typedef struct RND_Context RND_Context;
 struct RND_Context {
@@ -39,17 +39,7 @@ struct RND_Context {
     VkQueue present_q;
     u32 present_index;
 
-    // This will get it's own command pool,
-    // in case we ever move this to it's own thread
-    struct RND_Uploader {
-        VkCommandPool command_pool;
-        VkCommandBuffer command_buffer;
-        VkBuffer staging_buffer;
-        VkDeviceMemory staging_memory;
-        VkQueue transfer_q;
-        u32 transfer_index;
-        VkSemaphore transfer_sem;
-    } upload;
+    RND_Uploader uploader;
 
     RND_Allocator allocator;
 

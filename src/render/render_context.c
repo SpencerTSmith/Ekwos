@@ -2,6 +2,7 @@
 
 #include "core/log.h"
 #include "core/thread_context.h"
+#include "render/render_uploader.h"
 
 #include <stdbool.h>
 #include <stdio.h>
@@ -42,8 +43,6 @@ struct Queue_Family_Indices {
 static void create_instance(RND_Context *rc);
 static void choose_physical_device(RND_Context *rc);
 static void create_logical_device(RND_Context *rc);
-static void create_uploader(RND_Context *rc);
-static void destroy_uploader(RND_Context *rc);
 
 // Swap Chain Stuff //
 static void create_swap_chain(RND_Context *rc, Window *window);
@@ -55,11 +54,14 @@ static void recreate_swap_chain(RND_Context *rc, Window *window);
 void rnd_context_init(RND_Context *rc, Window *window) {
 
     create_instance(rc);
+
     rc->surface = window_surface_create(window, rc);
     choose_physical_device(rc);
-    rc->allocator = rnd_allocator_create(rc, 1024);
+
     create_logical_device(rc);
-    create_uploader(rc);
+    rc->allocator = rnd_allocator_create(rc, 1024);
+    rc->uploader = rnd_uploader_create(rc);
+
     create_swap_chain(rc, window);
 
     LOG_DEBUG("Render Context resources initialized");
@@ -68,7 +70,7 @@ void rnd_context_init(RND_Context *rc, Window *window) {
 void rnd_context_free(RND_Context *rc) {
     if (rc->instance != VK_NULL_HANDLE) {
         destroy_swap_chain(rc, rc->swap.handle);
-        destroy_uploader(rc);
+        rnd_uploader_free(&rc->uploader);
         if (rc->surface != VK_NULL_HANDLE) {
             vkDestroySurfaceKHR(rc->instance, rc->surface, NULL);
         } else {
@@ -534,7 +536,7 @@ static void create_logical_device(RND_Context *rc) {
     Queue_Family_Indices family_indices = get_queue_family_indices(physical_device, surface);
     rc->graphic_index = family_indices.graphic;
     rc->present_index = family_indices.present;
-    rc->upload.transfer_index = family_indices.transfer;
+    rc->uploader.transfer_index = family_indices.transfer;
 
     f32 queue_priority = 1.0f;
 
@@ -560,7 +562,7 @@ static void create_logical_device(RND_Context *rc) {
         queue_creates[num_queue_creates++] = present_create;
     }
 
-    if (rc->graphic_index != rc->upload.transfer_index) {
+    if (rc->graphic_index != rc->uploader.transfer_index) {
         VkDeviceQueueCreateInfo transfer_create = {0};
         transfer_create.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
         transfer_create.queueFamilyIndex = rc->present_index;
@@ -596,7 +598,7 @@ static void create_logical_device(RND_Context *rc) {
     vkGetDeviceQueue(rc->logical, rc->present_index, 0, &rc->present_q);
     LOG_DEBUG("Got present device queue with family index %u", rc->present_index);
 
-    vkGetDeviceQueue(rc->logical, rc->upload.transfer_index, 0, &rc->upload.transfer_q);
+    vkGetDeviceQueue(rc->logical, rc->uploader.transfer_index, 0, &rc->uploader.transfer_q);
     LOG_DEBUG("Got transfer device queue with family index %u", rc->present_index);
 }
 
@@ -606,53 +608,53 @@ static void create_uploader(RND_Context *rc) {
     VkCommandPoolCreateInfo pi = {0};
     pi.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
     pi.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
-    pi.queueFamilyIndex = rc->upload.transfer_index;
+    pi.queueFamilyIndex = rc->uploader.transfer_index;
 
-    VK_CHECK_FATAL(vkCreateCommandPool(rc->logical, &pi, NULL, &rc->upload.command_pool),
+    VK_CHECK_FATAL(vkCreateCommandPool(rc->logical, &pi, NULL, &rc->uploader.command_pool),
                    EXT_VK_COMMAND_POOL, "Failed to create uploader command pool");
     LOG_DEBUG("Created uploader command pool");
 
     VkCommandBufferAllocateInfo ai = {0};
     ai.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
     ai.commandBufferCount = 1;
-    ai.commandPool = rc->upload.command_pool;
+    ai.commandPool = rc->uploader.command_pool;
     ai.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
 
-    VK_CHECK_FATAL(vkAllocateCommandBuffers(rc->logical, &ai, &rc->upload.command_buffer),
+    VK_CHECK_FATAL(vkAllocateCommandBuffers(rc->logical, &ai, &rc->uploader.command_buffer),
                    EXT_VK_COMMAND_BUFFER, "Failed to allocate uploader command buffer");
     LOG_DEBUG("Created uploader command buffer");
 
     VkSemaphoreCreateInfo si = {0};
     si.sType = VK_STRUCTURE_TYPE_SEMAPHORE_CREATE_INFO;
 
-    VK_CHECK_FATAL(vkCreateSemaphore(rc->logical, &si, NULL, &rc->upload.transfer_sem),
+    VK_CHECK_FATAL(vkCreateSemaphore(rc->logical, &si, NULL, &rc->uploader.transfer_sem),
                    EXT_VK_SYNC_OBJECT, "Failed to create uploader transfer semaphore");
     LOG_DEBUG("Created uploader transfer semaphore");
 
     VkBufferCreateInfo bi = {0};
     bi.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
     bi.queueFamilyIndexCount = 1;
-    bi.pQueueFamilyIndices = &rc->upload.transfer_index;
+    bi.pQueueFamilyIndices = &rc->uploader.transfer_index;
     bi.size = RENDER_CONTEXT_STAGING_SIZE;
     bi.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
     bi.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT;
 
     rnd_alloc_buffer(&rc->allocator, rc, bi,
                      VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
-                     &rc->upload.staging_buffer, &rc->upload.staging_memory);
+                     &rc->uploader.staging_buffer, &rc->uploader.staging_memory);
 }
 
 static void destroy_uploader(RND_Context *rc) {
-    if (rc->upload.transfer_sem != VK_NULL_HANDLE) {
-        vkDestroySemaphore(rc->logical, rc->upload.transfer_sem, NULL);
+    if (rc->uploader.transfer_sem != VK_NULL_HANDLE) {
+        vkDestroySemaphore(rc->logical, rc->uploader.transfer_sem, NULL);
     }
-    if (rc->upload.command_pool != VK_NULL_HANDLE) {
-        vkDestroyCommandPool(rc->logical, rc->upload.command_pool, NULL);
+    if (rc->uploader.command_pool != VK_NULL_HANDLE) {
+        vkDestroyCommandPool(rc->logical, rc->uploader.command_pool, NULL);
     }
-    if (rc->upload.staging_memory != VK_NULL_HANDLE &&
-        rc->upload.staging_buffer != VK_NULL_HANDLE) {
-        vkDestroyBuffer(rc->logical, rc->upload.staging_buffer, NULL);
-        vkFreeMemory(rc->logical, rc->upload.staging_memory, NULL);
+    if (rc->uploader.staging_memory != VK_NULL_HANDLE &&
+        rc->uploader.staging_buffer != VK_NULL_HANDLE) {
+        vkDestroyBuffer(rc->logical, rc->uploader.staging_buffer, NULL);
+        vkFreeMemory(rc->logical, rc->uploader.staging_memory, NULL);
     }
 }
 
