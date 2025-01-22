@@ -8,7 +8,7 @@
 
 static void framebuffer_resize_callback(GLFWwindow *window, int width, int height);
 
-void window_init(Window *window, const char *name, int width, int height) {
+void window_init(Window *window, char *name, int width, int height) {
     if (!glfwInit()) {
         LOG_FATAL("GLFW failed to initialize");
         exit(EXT_GLFW_INIT);

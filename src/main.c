@@ -87,6 +87,9 @@ void process_input(Window *window, Camera *camera, f64 dt) {
 }
 
 int main(int argc, char **argv) {
+    (void)argc;
+    (void)argv;
+
     Thread_Context main_tctx;
     thread_context_init(&main_tctx);
     Game game = {0};
@@ -111,6 +114,8 @@ int main(int argc, char **argv) {
         Entity *entity =
             entity_create(&entity_pool, EK_ENTITY_FLAG_DEFAULTS, vec3(0.f, 0.f, -2.f),
                           vec3(0.f, 0.f, 0.f), vec3(1.f, 1.f, 1.f), vec3(0.f, 0.f, 0.f), &mesh);
+        entity->rotation.z += 0.001f * i * PI;
+        entity->rotation.x -= 0.001f * i * PI;
     }
 
     clock_t last_time = clock();
@@ -155,7 +160,7 @@ int main(int argc, char **argv) {
             Entity *entities = (Entity *)pool_as_array(&entity_pool.pool);
             for (u32 i = 0; i < entity_pool.pool.block_last_index; i++) {
                 // entities[i].rotation.x += 0.001f * PI;
-                // entities[i].rotation.y += 0.001f * PI;
+                entities[i].rotation.y += 0.001f * PI;
                 // entities[i].rotation.z += 0.001f * PI;
 
                 RND_Push_Constants push = {0};
