@@ -17,13 +17,14 @@ enum RND_Context_Constants {
     RENDER_CONTEXT_MAX_PRESENT_MODES = 16,   // This could maybe change? I counted 7 in the enum
     RENDER_CONTEXT_MAX_SURFACE_FORMATS = 16, // no idea for this, made of 2 enums, lots of elems
     RENDER_CONTEXT_ATTACHMENT_COUNT = 2,
+    RENDER_CONTEXT_STAGING_SIZE = 1024 * 1024 * 64,
 };
 
 // Just in case we want easy pointers
 typedef struct RND_Swap_Chain RND_Swap_Chain;
 typedef struct RND_Swap_Target RND_Swap_Target;
 typedef struct RND_Swap_Frame RND_Swap_Frame;
-typedef struct RND_Upload RND_Upload;
+typedef struct RND_Uploader RND_Uploader;
 
 typedef struct RND_Context RND_Context;
 struct RND_Context {
@@ -40,11 +41,14 @@ struct RND_Context {
 
     // This will get it's own command pool,
     // in case we ever move this to it's own thread
-    struct RND_Upload {
+    struct RND_Uploader {
         VkCommandPool command_pool;
         VkCommandBuffer command_buffer;
+        VkBuffer staging_buffer;
+        VkDeviceMemory staging_memory;
         VkQueue transfer_q;
         u32 transfer_index;
+        VkSemaphore transfer_sem;
     } upload;
 
     RND_Allocator allocator;

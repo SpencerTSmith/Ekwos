@@ -33,6 +33,8 @@ static void create_index_buffer(RND_Context *rc, RND_Mesh *mesh, u32 *indexs, u3
 void rnd_mesh_init(RND_Context *rc, RND_Mesh *mesh, RND_Vertex *verts, u32 vert_count, u32 *indexs,
                    u32 indx_count) {
     create_vertex_buffer(rc, mesh, verts, vert_count);
+
+    // If we are using an index buffer
     if (indexs != NULL && indx_count > 0) {
         create_index_buffer(rc, mesh, indexs, indx_count);
     }
@@ -51,6 +53,11 @@ void rnd_mesh_draw(RND_Context *rc, RND_Mesh *mesh) {
 void rnd_mesh_free(RND_Context *rc, RND_Mesh *mesh) {
     vkDestroyBuffer(rc->logical, mesh->vertex_buffer, NULL);
     vkFreeMemory(rc->logical, mesh->vertex_memory, NULL);
+    if (mesh->index_count > 0 && mesh->index_buffer != VK_NULL_HANDLE &&
+        mesh->index_memory != VK_NULL_HANDLE) {
+        vkDestroyBuffer(rc->logical, mesh->index_buffer, NULL);
+        vkFreeMemory(rc->logical, mesh->index_memory, NULL);
+    }
     ZERO_STRUCT(mesh);
 }
 
