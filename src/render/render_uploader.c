@@ -6,6 +6,9 @@
 RND_Uploader rnd_uploader_create(RND_Context *rc) {
     RND_Uploader uploader = {0};
 
+    vkGetDeviceQueue(rc->logical, rc->uploader.transfer_index, 0, &uploader.transfer_q);
+    LOG_DEBUG("Got transfer device queue with family index %u", rc->present_index);
+
     uploader.device = rc->logical;
     // This command pool is dependent on transfer operations
     VkCommandPoolCreateInfo pi = {0};
@@ -95,13 +98,14 @@ void rnd_upload_buffer(RND_Uploader *uploader, void *data, u64 data_size, VkBuff
     submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     submit_info.commandBufferCount = 1;
     submit_info.pCommandBuffers = &uploader->command_buffer;
-    submit_info.signalSemaphoreCount = 1;
-    submit_info.pSignalSemaphores = &uploader->transfer_finished_sem;
+    /*submit_info.signalSemaphoreCount = 1;*/
+    /*submit_info.pSignalSemaphores = &uploader->transfer_finished_sem;*/
 
     // I believe we don't need to wait since the graphics queue will wait for the transfer finished
     // semaphore
     VK_CHECK_ERROR(vkQueueSubmit(uploader->transfer_q, 1, &submit_info, VK_NULL_HANDLE),
                    "Failed to submit GPU upload on transfer queue");
+    VK_CHECK_ERROR(vkQueueWaitIdle(uploader->transfer_q), "Failed to wait for transfer queue idle");
 }
 void rnd_upload_index_buffer(RND_Uploader *uploader, u32 *indexs, u32 index_count,
                              VkBuffer index_buffer);

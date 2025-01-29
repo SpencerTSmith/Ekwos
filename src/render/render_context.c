@@ -184,8 +184,9 @@ void rnd_end_frame(RND_Context *rc) {
                    "Failed to end command buffer %u recording", current_frame);
     LOG_INFO("Ended command buffer %u recording", current_frame);
 
-    VkSemaphore wait_semaphores[] = {rnd_get_current_frame(rc)->image_available_sem,
-                                     rc->uploader.transfer_finished_sem};
+    // VkSemaphore wait_semaphores[] = {rnd_get_current_frame(rc)->image_available_sem,
+    //                                  rc->uploader.transfer_finished_sem};
+    VkSemaphore wait_semaphores[] = {rnd_get_current_frame(rc)->image_available_sem};
     VkSemaphore signal_semaphores[] = {rnd_get_current_frame(rc)->render_finished_sem};
 
     // NOTE(ss): Maybe this one? VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT

@@ -18,7 +18,7 @@
 #define WINDOW_WIDTH 1200
 #define WINDOW_HEIGHT 900
 
-#define MAX_ENTITIES 1000
+#define MAX_ENTITIES 10000
 
 static bool first_mouse = true;
 
@@ -159,9 +159,9 @@ int main(int argc, char **argv) {
             rnd_mesh_bind(&game.rctx, &mesh);
             Entity *entities = (Entity *)pool_as_array(&entity_pool.pool);
             for (u32 i = 0; i < entity_pool.pool.block_last_index; i++) {
-                // entities[i].rotation.x += 0.001f * PI;
+                entities[i].rotation.x += 0.001f * PI;
                 entities[i].rotation.y += 0.001f * PI;
-                // entities[i].rotation.z += 0.001f * PI;
+                entities[i].rotation.z += 0.001f * PI;
 
                 RND_Push_Constants push = {0};
                 push.transform = mat4_mul(proj_view, entity_model_transform(&entities[i]));

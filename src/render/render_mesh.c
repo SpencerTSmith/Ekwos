@@ -138,16 +138,16 @@ static void create_vertex_buffer(RND_Context *rc, RND_Mesh *mesh, RND_Vertex *ve
     buffer_info.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
     buffer_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-    rnd_alloc_buffer(&rc->allocator, rc, buffer_info,
-                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+    rnd_alloc_buffer(&rc->allocator, rc, buffer_info, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
                      &mesh->vertex_buffer, &mesh->vertex_memory);
 
     // Map out memory to copy vertex info into
-    void *data = NULL;
-    VK_CHECK_ERROR(vkMapMemory(rc->logical, mesh->vertex_memory, 0, buffer_size, 0, &data),
-                   "Unable to map buffer memory for transfer");
-    memcpy(data, verts, buffer_size);
-    vkUnmapMemory(rc->logical, mesh->vertex_memory);
+    // void *data = NULL;
+    // VK_CHECK_ERROR(vkMapMemory(rc->logical, mesh->vertex_memory, 0, buffer_size, 0, &data),
+    //                "Unable to map buffer memory for transfer");
+    // memcpy(data, verts, buffer_size);
+    // vkUnmapMemory(rc->logical, mesh->vertex_memory);
+    rnd_upload_buffer(&rc->uploader, verts, buffer_size, mesh->vertex_buffer);
 }
 
 static void create_index_buffer(RND_Context *rc, RND_Mesh *mesh, u32 *indexs, u32 index_count) {
