@@ -14,8 +14,8 @@ typedef uint32_t u32;
 typedef uint16_t u16;
 typedef uint8_t u8;
 
-typedef float f32;
 typedef double f64;
+typedef float f32;
 
 #define thread_local _Thread_local
 #define function_local static

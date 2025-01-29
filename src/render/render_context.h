@@ -39,9 +39,8 @@ struct RND_Context {
     VkQueue present_q;
     u32 present_index;
 
-    RND_Uploader uploader;
-
     RND_Allocator allocator;
+    RND_Uploader uploader;
 
     // NOTE(ss): For now we group the render pass with the swap chain,
     // once I learn more this may not be the best practice
