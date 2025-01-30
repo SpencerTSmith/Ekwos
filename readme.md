@@ -1,3 +1,3 @@
 # Short Term TODOs
-- [ ] GPU Memory Allocator
+- [ ] More Sophisticated GPU Memory Allocator
 - [ ] Asset System
