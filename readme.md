@@ -1,4 +1,5 @@
 # Short Term TODOs
+<<<<<<< HEAD
 - [x] CPU->GPU Uploader
     - [ ] More sophisticated synchronization
         - [ ] Semaphore?

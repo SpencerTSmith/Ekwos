@@ -45,7 +45,7 @@ RND_Uploader rnd_uploader_create(RND_Context *rc) {
     bi.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
     bi.usage = VK_BUFFER_USAGE_TRANSFER_SRC_BIT; // Uploading here, so it is a source
 
-    rnd_alloc_buffer(&rc->allocator, rc, bi,
+    rnd_alloc_buffer(&rc->allocator, bi,
                      VK_MEMORY_PROPERTY_HOST_COHERENT_BIT | VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT,
                      &uploader.staging_buffer, &uploader.staging_memory);
 
@@ -98,14 +98,11 @@ void rnd_upload_buffer(RND_Uploader *uploader, void *data, u64 data_size, VkBuff
     submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
     submit_info.commandBufferCount = 1;
     submit_info.pCommandBuffers = &uploader->command_buffer;
-    /*submit_info.signalSemaphoreCount = 1;*/
-    /*submit_info.pSignalSemaphores = &uploader->transfer_finished_sem;*/
 
-    // I believe we don't need to wait since the graphics queue will wait for the transfer finished
-    // semaphore
     VK_CHECK_ERROR(vkQueueSubmit(uploader->transfer_q, 1, &submit_info, VK_NULL_HANDLE),
                    "Failed to submit GPU upload on transfer queue");
+
+    // TODO(ss): Figure out more competent syncronization, a fence maybe, but I'm thinking this
+    // should be possible with a sempahore
     VK_CHECK_ERROR(vkQueueWaitIdle(uploader->transfer_q), "Failed to wait for transfer queue idle");
 }
-void rnd_upload_index_buffer(RND_Uploader *uploader, u32 *indexs, u32 index_count,
-                             VkBuffer index_buffer);

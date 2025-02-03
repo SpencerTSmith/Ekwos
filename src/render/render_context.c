@@ -19,8 +19,11 @@ static const bool enable_val_layers = false;
 #endif // DEBUG defined
 
 static const char *const required_device_extensions[] = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
-static VkFormat possible_depth_formats[] = {VK_FORMAT_D32_SFLOAT, VK_FORMAT_D32_SFLOAT_S8_UINT,
-                                            VK_FORMAT_D24_UNORM_S8_UINT};
+static VkFormat possible_depth_formats[] = {
+    VK_FORMAT_D32_SFLOAT,
+    VK_FORMAT_D32_SFLOAT_S8_UINT,
+    VK_FORMAT_D24_UNORM_S8_UINT,
+};
 
 // Internals //
 typedef struct Swap_Chain_Info Swap_Chain_Info;
@@ -603,9 +606,6 @@ static void create_logical_device(RND_Context *rc) {
 
     vkGetDeviceQueue(rc->logical, rc->present_index, 0, &rc->present_q);
     LOG_DEBUG("Got present device queue with family index %u", rc->present_index);
-
-    vkGetDeviceQueue(rc->logical, rc->uploader.transfer_index, 0, &rc->uploader.transfer_q);
-    LOG_DEBUG("Got transfer device queue with family index %u", rc->present_index);
 }
 
 static Swap_Chain_Info get_swap_chain_info(VkPhysicalDevice device, VkSurfaceKHR surface) {
@@ -920,7 +920,7 @@ static void create_target_resources(RND_Context *rc) {
         depth_image_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
         depth_image_info.flags = 0;
 
-        rnd_alloc_image(&rc->allocator, rc, depth_image_info, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+        rnd_alloc_image(&rc->allocator, depth_image_info, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
                         &rc->swap.targets[i].depth_image, &rc->swap.targets[i].depth_memory);
         LOG_DEBUG("Allocated memory for swap chain depth image %u", i);
 

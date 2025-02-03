@@ -138,8 +138,9 @@ static void create_vertex_buffer(RND_Context *rc, RND_Mesh *mesh, RND_Vertex *ve
     buffer_info.usage = VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
     buffer_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
-    rnd_alloc_buffer(&rc->allocator, rc, buffer_info, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+    rnd_alloc_buffer(&rc->allocator, buffer_info, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
                      &mesh->vertex_buffer, &mesh->vertex_memory);
+
     rnd_upload_buffer(&rc->uploader, verts, buffer_size, mesh->vertex_buffer);
 }
 
@@ -152,8 +153,9 @@ static void create_index_buffer(RND_Context *rc, RND_Mesh *mesh, u32 *indexs, u3
     buffer_info.size = buffer_size;
     buffer_info.usage = VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT;
     buffer_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
-
-    rnd_alloc_buffer(&rc->allocator, rc, buffer_info, VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT,
+    rnd_alloc_buffer(&rc->allocator, buffer_info,
+                     VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
                      &mesh->index_buffer, &mesh->index_memory);
-    rnd_upload_buffer(&rc->uploader, indexs, buffer_size, mesh->index_buffer);
+
+    rnd_upload_buffer(&rc->uploader, indexs, buffer_size, mesh->vertex_buffer);
 }
