@@ -50,7 +50,7 @@ enum Exit_Code {
     EXT_COUNT
 };
 
-// TODO(spencer): rewrite using platform layer file i/o
+// TODO(ss): rewrite using platform layer file i/o
 // also look into custom asserts
 void log_message(Log_Level level, const char *file, u64 line, const char *message, ...);
 

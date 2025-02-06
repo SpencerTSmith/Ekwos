@@ -581,7 +581,7 @@ static void create_logical_device(RND_Context *rc) {
         queue_creates[num_queue_creates++] = transfer_create;
     }
 
-    // NOTE(spencer): probably need stuff here... later
+    // NOTE(ss): probably need stuff here... later
     VkPhysicalDeviceFeatures device_features = {0};
 
     VkDeviceCreateInfo device_create_info = {0};

@@ -9,7 +9,7 @@
 Arena arena_create(u64 reserve_size, Arena_Flags flags) {
     Arena arena = {0};
 
-    // NOTE(spencer): this will return page-aligned memory (obviously) so I don't think it is
+    // NOTE(ss): this will return page-aligned memory (obviously) so I don't think it is
     // nessecary to make sure that the alignment suffices
     arena.base_ptr = calloc(reserve_size, 1);
 
@@ -39,7 +39,7 @@ void *arena_alloc(Arena *arena, u64 size, u64 alignment) {
 
     // Do we need a bigger buffer?
     if (aligned_offset + size > arena->capacity) {
-        // TODO(spencer): Hmm, should we have arena chaining, fixed size arenas, offsets instead of
+        // TODO(ss): Hmm, should we have arena chaining, fixed size arenas, offsets instead of
         // raw pointers?
         u64 needed_capacity = aligned_offset + size;
 

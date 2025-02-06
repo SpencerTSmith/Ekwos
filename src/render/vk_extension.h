@@ -3,7 +3,7 @@
 
 #include <vulkan/vulkan_core.h>
 
-// NOTE(spencer): This will hold all vulkan function pointers that aren't auto loaded
+// NOTE(ss): This will hold all vulkan function pointers that aren't auto loaded
 
 VkResult vkCreateDebugUtilsMessengerEXT(VkInstance instance,
                                         const VkDebugUtilsMessengerCreateInfoEXT *pCreateInfo,
