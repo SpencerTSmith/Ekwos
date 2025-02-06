@@ -107,7 +107,7 @@ int main(int argc, char **argv) {
                          vec3(0.f, 1.f, 0.f));
 
     RND_Mesh mesh = {0};
-    rnd_mesh_cube(&game.rctx, &mesh);
+    rnd_mesh_default_cube(&game.rctx, &mesh);
 
     Entity_Pool entity_pool = entity_pool_create(MAX_ENTITIES);
     for (u32 i = 0; i < entity_pool.pool.block_capacity; i++) {

@@ -91,6 +91,83 @@ union vec4 {
     f32 elements[4];
 };
 
+typedef union uvec2 uvec2;
+union uvec2 {
+    struct {
+        u32 x, y;
+    };
+    struct {
+        u32 u, v;
+    };
+    struct {
+        u32 w, h;
+    };
+    u32 elements[2];
+};
+
+typedef union uvec3 uvec3;
+union uvec3 {
+    struct {
+        u32 x, y, z;
+    };
+    struct {
+        u32 r, g, b;
+    };
+    struct {
+        u32 _ignored_x;
+        uvec2 yz;
+    };
+    struct {
+        uvec2 xy;
+        u32 _ignored_z;
+    };
+    struct {
+        u32 _ignored_u;
+        uvec2 vw;
+    };
+    struct {
+        uvec2 uv;
+        u32 _ignored_w;
+    };
+    u32 elements[3];
+};
+
+typedef union uvec4 uvec4;
+union uvec4 {
+    struct {
+        union {
+            struct {
+                u32 x, y, z;
+            };
+            uvec3 xyz;
+        };
+        u32 w;
+    };
+    struct {
+        union {
+            struct {
+                u32 r, g, b;
+            };
+            uvec3 rgb;
+        };
+        u32 a;
+    };
+    struct {
+        uvec2 xy;
+        uvec2 _ignored_zw;
+    };
+    struct {
+        u32 _ignored_x;
+        uvec2 yz;
+        u32 _ignored_w;
+    };
+    struct {
+        uvec2 _ignored_xy;
+        uvec2 zw;
+    };
+    u32 elements[4];
+};
+
 typedef union mat4 mat4;
 union mat4 {
     f32 m[4][4];

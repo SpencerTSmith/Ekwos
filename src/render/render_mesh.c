@@ -68,7 +68,7 @@ void rnd_mesh_free(RND_Context *rc, RND_Mesh *mesh) {
     ZERO_STRUCT(mesh);
 }
 
-void rnd_mesh_cube(RND_Context *rc, RND_Mesh *mesh) {
+void rnd_mesh_default_cube(RND_Context *rc, RND_Mesh *mesh) {
     RND_Vertex verts[] = {
 
         // left face (white)

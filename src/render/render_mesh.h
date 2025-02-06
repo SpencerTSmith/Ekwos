@@ -11,6 +11,8 @@ typedef struct RND_Vertex RND_Vertex;
 struct RND_Vertex {
     vec3 position;
     vec3 color;
+    vec3 normal;
+    vec2 uv;
 };
 
 // Remember alignment shit
@@ -40,12 +42,12 @@ extern const VkVertexInputAttributeDescription g_vertex_attrib_desc[RND_VERTEX_A
 // TODO(ss): Either need to use VMA (Vulkan Memory Allocator) library or create our own gpu memory
 // allocator ASAP
 
-void rnd_mesh_init(RND_Context *rc, RND_Mesh *mesh, RND_Vertex *verts, u32 vert_count, u32 *indexs,
-                   u32 index_count);
+void rnd_mesh_init(RND_Context *rc, RND_Mesh *mesh, RND_Vertex *vertices, u32 vert_count,
+                   u32 *indices, u32 index_count);
 void rnd_mesh_bind(RND_Context *rc, RND_Mesh *mesh);
 void rnd_mesh_draw(RND_Context *rc, RND_Mesh *mesh);
 void rnd_mesh_free(RND_Context *rc, RND_Mesh *mesh);
 
-void rnd_mesh_cube(RND_Context *rc, RND_Mesh *mesh);
+void rnd_mesh_default_cube(RND_Context *rc, RND_Mesh *mesh);
 
 #endif // RENDER_MODEL_H

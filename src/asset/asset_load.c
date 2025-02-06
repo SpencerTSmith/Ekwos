@@ -1,12 +1,25 @@
 #include "asset/asset_load.h"
 
+#include "core/arena.h"
 #include "core/linear_algebra.h"
 #include "core/log.h"
+#include "core/thread_context.h"
+#include "render/render_mesh.h"
 
 #include <errno.h>
 #include <stdio.h>
 
-i64 ass_load_mesh_obj(ASS_Manager *ass, char *file_name) {
+void ass_manager_init(Arena *arena, ASS_Manager *ass) {
+    ass->mesh_pool = pool_create_type(ASS_MAX_MESHES, RND_Mesh);
+    ass->mesh_reference_counts = arena_calloc(arena, ASS_MAX_MESHES, u32);
+    ass->mesh_count = 0;
+
+    ass->texture_pool = (Pool){0};
+    ass->texture_reference_counts = NULL;
+    ass->texture_count = 0;
+}
+
+i64 ass_load_mesh_obj(ASS_Manager *ass, RND_Context *rc, char *file_name) {
     FILE *obj_file = fopen(file_name, "rb");
 
     if (obj_file == NULL) {
@@ -14,14 +27,38 @@ i64 ass_load_mesh_obj(ASS_Manager *ass, char *file_name) {
         return ASS_INVALID_ITEM_ID;
     }
 
-    char line[512];
-
     // HACK(ss): 2 Pass approach, so I can just use the scratch pad bump allocator and allocate
     // upfront
 
-    vec2 *texcoords = NULL; // dynamic array
+    char line[512];
+    u32 vertex_count = 0;
+    u32 index_count = 0;
+    while (fgets(line, 512, obj_file) != NULL) {
+        if (line[0] == '\0') // Empty
+            continue;
+        if (line[0] == '#') // Comment
+            continue;
 
-    while (fgets(line, 512, obj_file)) {
+        // Real stuff
+        if (line[0] == 'v' && line[1] == ' ') { // Vertices
+            vertex_count++;
+        } else if (line[0] == 'v' && line[1] == 't') { // Vertex UV's
+            continue;
+        } else if (line[0] == 'f' && line[1] == ' ') { // Face Indices
+            index_count++;
+        } // Potentially other things
+    }
+    rewind(obj_file);
+
+    Scratch scratch = thread_get_scratch();
+
+    RND_Vertex *vertices = arena_calloc(scratch.arena, vertex_count, RND_Vertex);
+    u32 vertex_current_index = 0;
+
+    u32 *indices = arena_calloc(scratch.arena, index_count * 3, u32);
+    u32 index_current_index = 0;
+
+    while (fgets(line, 512, obj_file) != NULL) {
         if (line[0] == '\0') // Empty
             continue;
         if (line[0] == '#') // Comment
@@ -34,26 +71,23 @@ i64 ass_load_mesh_obj(ASS_Manager *ass, char *file_name) {
                 fprintf(stderr, "Error reading vertex data .obj file");
             }
 
-            // array_push(mesh->vertices, obj_vertex);
-        } else if (line[0] == 'v' && line[1] == 't') { // Vertex UV's
-            vec2 coord;
-            if (!sscanf(line, "vt %f %f", &coord.u, &coord.v)) {
-                fprintf(stderr, "Error reading vertex texture coordinate data .obj file");
-            }
-            // adjust because .obj files have an inverted v compared to the renderer
-            coord.v = 1 - coord.v;
-            // array_push(texcoords, coord);
-        } else if (line[0] == 'f' && line[1] == ' ') { // Face Indices
-            int vertex_indices[3];
-            int texture_indices[3];
-            int normal_indices[3];
+            // HACK(ss): This will probably break in the future when we collect more than jus the
+            // vertex position
+            vertices[vertex_current_index++].position = obj_vertex;
 
-            // Temporary fix for models without normals
-            /*sscanf(line, "f %d/%d %d/%d %d/%d ",
-                &vertex_indices[0], &texture_indices[0],
-                &vertex_indices[1], &texture_indices[1],
-                &vertex_indices[2], &texture_indices[2]
-                );*/
+        } else if (line[0] == 'v' && line[1] == 't') { // Vertex UV's
+            // vec2 coord;
+            // if (!sscanf(line, "vt %f %f", &coord.u, &coord.v)) {
+            //     fprintf(stderr, "Error reading vertex texture coordinate data .obj file");
+            // }
+            // // adjust because .obj files have an inverted v compared to the renderer
+            // coord.v = 1 - coord.v;
+            // // array_push(texcoords, coord);
+
+        } else if (line[0] == 'f' && line[1] == ' ') { // Face Indices
+            u32 vertex_indices[3];
+            u32 texture_indices[3];
+            u32 normal_indices[3];
 
             if (!sscanf(line, "f %d/%d/%d %d/%d/%d %d/%d/%d ", &vertex_indices[0],
                         &texture_indices[0], &normal_indices[0], &vertex_indices[1],
@@ -62,21 +96,16 @@ i64 ass_load_mesh_obj(ASS_Manager *ass, char *file_name) {
                 fprintf(stderr, "Error reading vertex indice data from .obj file");
             }
 
-            // face_t obj_face = {
-            //     .a = vertex_indices[0] - 1, // adjust by 1, indices start at 1 in .obj format
-            //     .b = vertex_indices[1] - 1,
-            //     .c = vertex_indices[2] - 1,
-            //     .a_uv = texcoords[texture_indices[0] - 1],
-            //     .b_uv = texcoords[texture_indices[1] - 1],
-            //     .c_uv = texcoords[texture_indices[2] - 1],
-            //     .color = WHITE,
-            // };
-            // array_push(mesh->faces, obj_face);
+            indices[index_current_index++] = vertex_indices[0];
+            indices[index_current_index++] = vertex_indices[1];
+            indices[index_current_index++] = vertex_indices[2];
         }
     }
-    // array_free(texcoords);
+
+    RND_Mesh *mesh = pool_alloc(&ass->mesh_pool);
+    rnd_mesh_init(rc, mesh, );
+    thread_end_scratch(&scratch);
 
     fclose(obj_file);
-
-    return ASS_INVALID_ITEM_ID;
+    return 0;
 }
