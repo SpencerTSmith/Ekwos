@@ -15,9 +15,6 @@
 
 #define FRAME_TARGET_TIME (SECOND / FPS)
 
-#define WINDOW_WIDTH 1200
-#define WINDOW_HEIGHT 900
-
 #define MAX_ENTITIES 10000
 
 static bool first_mouse = true;
@@ -93,21 +90,13 @@ int main(int argc, char **argv) {
     Thread_Context main_tctx;
     thread_context_init(&main_tctx);
     Game game = {0};
+    game_init(&game);
 
-    window_init(&game.window, "Ekwos: Atavistic Chariot", WINDOW_WIDTH, WINDOW_HEIGHT);
-    rnd_context_init(&game.rctx, &game.window);
-
-    RND_Pipeline mesh_pipeline =
-        rnd_pipeline_create(&game.rctx, "shaders/vert.vert.spv", "shaders/frag.frag.spv", NULL);
-
-    // Initial camera options
-    camera_set_perspective(&game.camera, RADIANS(90.f), (f32)WINDOW_WIDTH / WINDOW_HEIGHT, .1f,
-                           10.f);
-    camera_set_direction(&game.camera, vec3(0.f, 0.f, 0.f), vec3(0.0f, 0.f, -1.f),
-                         vec3(0.f, 1.f, 0.f));
+    RND_Pipeline mesh_pipeline = rnd_pipeline_create(&game.render_context, "shaders/vert.vert.spv",
+                                                     "shaders/frag.frag.spv", NULL);
 
     RND_Mesh mesh = {0};
-    rnd_mesh_default_cube(&game.rctx, &mesh);
+    rnd_mesh_default_cube(&game.render_context, &mesh);
 
     Entity_Pool entity_pool = entity_pool_create(MAX_ENTITIES);
     for (u32 i = 0; i < entity_pool.pool.block_capacity; i++) {
@@ -148,15 +137,15 @@ int main(int argc, char **argv) {
 
         // Render
         {
-            f32 aspect = rnd_swap_aspect_ratio(&game.rctx);
+            f32 aspect = rnd_swap_aspect_ratio(&game.render_context);
             // camera_set_orthographic(&game.camera, -aspect, aspect, -1.f, 1.f, 1.f, -1.f);
             camera_set_perspective(&game.camera, RADIANS(90.0f), aspect, .1f, 10.f);
 
             mat4 proj_view = mat4_mul(game.camera.projection, game.camera.view);
 
-            rnd_begin_frame(&game.rctx, &game.window);
-            rnd_pipeline_bind(&game.rctx, &mesh_pipeline);
-            rnd_mesh_bind(&game.rctx, &mesh);
+            rnd_begin_frame(&game.render_context, &game.window);
+            rnd_pipeline_bind(&game.render_context, &mesh_pipeline);
+            rnd_mesh_bind(&game.render_context, &mesh);
             Entity *entities = (Entity *)pool_as_array(&entity_pool.pool);
             for (u32 i = 0; i < entity_pool.pool.block_last_index; i++) {
                 entities[i].rotation.x += 0.001f * PI;
@@ -166,23 +155,23 @@ int main(int argc, char **argv) {
                 RND_Push_Constants push = {0};
                 push.transform = mat4_mul(proj_view, entity_model_transform(&entities[i]));
                 push.color = entities[i].color;
-                rnd_push_constants(&game.rctx, &mesh_pipeline, push);
+                rnd_push_constants(&game.render_context, &mesh_pipeline, push);
 
-                rnd_mesh_draw(&game.rctx, &mesh);
+                rnd_mesh_draw(&game.render_context, &mesh);
             }
-            rnd_end_frame(&game.rctx);
+            rnd_end_frame(&game.render_context);
         }
 
         poll_events();
     }
 
-    entity_pool_free(&entity_pool);
+    vkDeviceWaitIdle(game.render_context.logical);
 
-    vkDeviceWaitIdle(game.rctx.logical);
-    rnd_mesh_free(&game.rctx, &mesh);
-    rnd_pipeline_free(&game.rctx, &mesh_pipeline);
-    rnd_context_free(&game.rctx);
-    window_free(&game.window);
+    entity_pool_free(&entity_pool);
+    rnd_mesh_free(&game.render_context, &mesh);
+    rnd_pipeline_free(&game.render_context, &mesh_pipeline);
+
+    game_free(&game);
 
     thread_context_free();
 

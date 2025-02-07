@@ -1,6 +1,8 @@
 #ifndef GAME_H
 #define GAME_H
 
+#include "asset/asset_load.h"
+
 #include "core/window.h"
 
 #include "game/camera.h"
@@ -10,8 +12,13 @@
 typedef struct Game Game;
 struct Game {
     Window window;
-    RND_Context rctx;
+    RND_Context render_context;
+    ASS_Manager asset_manager;
+
+    Arena persistent_arena;
+
     Camera camera;
+
     f64 fps;
     u64 frame_count;
     f64 dt;

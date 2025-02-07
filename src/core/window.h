@@ -8,6 +8,11 @@
 
 #include <stdbool.h>
 
+enum Window_Constants {
+    WINDOW_DEFAULT_WIDTH = 1200,
+    WINDOW_DEFAULT_HEIGHT = 900,
+};
+
 typedef struct Window Window;
 struct Window {
     union {

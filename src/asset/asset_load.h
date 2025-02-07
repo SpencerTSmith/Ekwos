@@ -25,6 +25,6 @@ void ass_manager_init(Arena *arena, ASS_Manager *asset_manager);
 
 // Returns a handle to a mesh, managed by asset manager, taken straight from a previous project...
 // needs work probably
-i64 ass_load_mesh_obj(ASS_Manager *asset_manager, RND_Context *render_context, char *file_name);
+i32 ass_load_mesh_obj(ASS_Manager *asset_manager, RND_Context *render_context, char *file_name);
 
 #endif // ASSET_LOAD_H

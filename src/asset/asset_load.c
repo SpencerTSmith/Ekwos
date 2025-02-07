@@ -19,7 +19,7 @@ void ass_manager_init(Arena *arena, ASS_Manager *ass) {
     ass->texture_count = 0;
 }
 
-i64 ass_load_mesh_obj(ASS_Manager *ass, RND_Context *rc, char *file_name) {
+i32 ass_load_mesh_obj(ASS_Manager *ass, RND_Context *rc, char *file_name) {
     FILE *obj_file = fopen(file_name, "rb");
 
     if (obj_file == NULL) {
@@ -103,7 +103,9 @@ i64 ass_load_mesh_obj(ASS_Manager *ass, RND_Context *rc, char *file_name) {
     }
 
     RND_Mesh *mesh = pool_alloc(&ass->mesh_pool);
-    rnd_mesh_init(rc, mesh, );
+    rnd_mesh_init(rc, mesh, vertices, vertex_count, indices, index_count);
+
+    // And done with those vertices on the CPU side
     thread_end_scratch(&scratch);
 
     fclose(obj_file);
