@@ -4,6 +4,7 @@
 #include "core/pool.h"
 #include "render/render_context.h"
 
+// TODO(ss): Really need to think about this... what's a nice way to do this?
 enum ASS_Manager_Constants {
     ASS_INVALID_ITEM_ID = -1,
     ASS_MAX_MESHES = 20,
@@ -15,10 +16,14 @@ struct ASS_Manager {
     Pool mesh_pool;
     u32 *mesh_reference_counts;
     u32 mesh_count;
+};
 
-    Pool texture_pool;
-    u32 *texture_reference_counts;
-    u32 texture_count;
+typedef struct ASS_Entry ASS_Entry;
+struct ASS_Entry {
+    char file_name[256];
+    u32 id;
+    u32 reference_count;
+    void *data;
 };
 
 void ass_manager_init(Arena *arena, ASS_Manager *asset_manager);

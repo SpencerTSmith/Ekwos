@@ -89,6 +89,7 @@ int main(int argc, char **argv) {
 
     Thread_Context main_tctx;
     thread_context_init(&main_tctx);
+
     Game game = {0};
     game_init(&game);
 
@@ -97,6 +98,7 @@ int main(int argc, char **argv) {
 
     RND_Mesh mesh = {0};
     rnd_mesh_default_cube(&game.render_context, &mesh);
+    ass_load_mesh_obj(&game.asset_manager, &game.render_context, "./assets/cube.obj");
 
     Entity_Pool entity_pool = entity_pool_create(MAX_ENTITIES);
     for (u32 i = 0; i < entity_pool.pool.block_capacity; i++) {

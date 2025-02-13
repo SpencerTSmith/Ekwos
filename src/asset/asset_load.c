@@ -13,10 +13,6 @@ void ass_manager_init(Arena *arena, ASS_Manager *ass) {
     ass->mesh_pool = pool_create_type(ASS_MAX_MESHES, RND_Mesh);
     ass->mesh_reference_counts = arena_calloc(arena, ASS_MAX_MESHES, u32);
     ass->mesh_count = 0;
-
-    ass->texture_pool = (Pool){0};
-    ass->texture_reference_counts = NULL;
-    ass->texture_count = 0;
 }
 
 i32 ass_load_mesh_obj(ASS_Manager *ass, RND_Context *rc, char *file_name) {

@@ -1,7 +1,13 @@
 # Short Term TODOs
 - [x] CPU->GPU Uploader
+    - [x] Basics
     - [ ] More sophisticated synchronization
         - [ ] Semaphore?
         - [ ] Fence?
-- [ ] More Sophisticated GPU Memory Allocator
-- [ ] Asset System
+- [ ] GPU Memory Allocator
+    - [x] Basics
+    - [ ] Frame Bump Allocator
+    - [ ] Nicer interface?
+- [x] Asset System
+    - [x] Basics
+    - [ ] Reference Counting
