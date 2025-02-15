@@ -9,25 +9,25 @@
 #include <stdbool.h>
 
 enum Window_Constants {
-    WINDOW_DEFAULT_WIDTH = 1200,
-    WINDOW_DEFAULT_HEIGHT = 900,
+  WINDOW_DEFAULT_WIDTH = 1200,
+  WINDOW_DEFAULT_HEIGHT = 900,
 };
 
 typedef struct Window Window;
 struct Window {
-    union {
-        u32 width, w;
-    };
-    union {
-        u32 height, h;
-    };
-    GLFWwindow *handle;
-    char *name;
-    bool resized;
-    f64 cursor_x, cursor_y;
+  union {
+    u32 width, w;
+  };
+  union {
+    u32 height, h;
+  };
+  GLFWwindow *handle;
+  char *name;
+  bool resized;
+  f64 cursor_x, cursor_y;
 };
 
-void window_init(Window *window, char *name, int width, int height);
+void window_init(Window *window, char *name, u32 width, u32 height);
 void window_free(Window *window);
 
 void poll_events(void);

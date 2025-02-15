@@ -25,157 +25,153 @@ static bool first_mouse = true;
 // also nice separation of concerns, this function will	JUST process input, not do any calculation
 // with it
 void process_input(Window *window, Camera *camera, f64 dt) {
-    f64 new_cursor_x, new_cursor_y;
-    glfwGetCursorPos(window->handle, &new_cursor_x, &new_cursor_y);
+  f64 new_cursor_x, new_cursor_y;
+  glfwGetCursorPos(window->handle, &new_cursor_x, &new_cursor_y);
 
-    if (first_mouse) {
-        window->cursor_x = new_cursor_x;
-        window->cursor_x = new_cursor_x;
-        first_mouse = false;
-        return;
-    }
-
-    f32 x_offset = .1f * (new_cursor_x - window->cursor_x);
-    f32 y_offset = .1f * (new_cursor_y - window->cursor_y);
-
+  if (first_mouse) {
     window->cursor_x = new_cursor_x;
-    window->cursor_y = new_cursor_y;
+    window->cursor_x = new_cursor_x;
+    first_mouse = false;
+    return;
+  }
 
-    camera->yaw += x_offset;
-    camera->pitch += y_offset;
-    camera->pitch = CLAMP(camera->pitch, -89.f, 89.f);
+  f32 x_offset = .1f * (new_cursor_x - window->cursor_x);
+  f32 y_offset = .1f * (new_cursor_y - window->cursor_y);
 
-    vec3 forward;
-    forward.x = -cosf(RADIANS(camera->yaw)) * cosf(RADIANS(camera->pitch));
-    forward.y = -sinf(RADIANS(camera->pitch));
-    forward.z = -sinf(RADIANS(camera->yaw)) * cosf(RADIANS(camera->pitch));
-    forward = vec3_norm(forward);
+  window->cursor_x = new_cursor_x;
+  window->cursor_y = new_cursor_y;
 
-    camera_set_direction(camera, camera->position, forward, vec3(0.0f, 1.0f, 0.0f));
+  camera->yaw += x_offset;
+  camera->pitch += y_offset;
+  camera->pitch = CLAMP(camera->pitch, -89.f, 89.f);
 
-    vec3 velocity = {0};
-    if (glfwGetKey(window->handle, GLFW_KEY_ESCAPE) == GLFW_PRESS)
-        glfwSetWindowShouldClose(window->handle, true);
+  vec3 forward;
+  forward.x = -cosf(RADIANS(camera->yaw)) * cosf(RADIANS(camera->pitch));
+  forward.y = -sinf(RADIANS(camera->pitch));
+  forward.z = -sinf(RADIANS(camera->yaw)) * cosf(RADIANS(camera->pitch));
+  forward = vec3_norm(forward);
 
-    if (glfwGetKey(window->handle, GLFW_KEY_W) == GLFW_PRESS) {
-        velocity = vec3_mul(camera->forward, .10f * dt);
-        camera->position = vec3_add(camera->position, velocity);
-    }
-    if (glfwGetKey(window->handle, GLFW_KEY_S) == GLFW_PRESS) {
-        velocity = vec3_mul(camera->forward, .10f * dt);
-        camera->position = vec3_sub(camera->position, velocity);
-    }
+  camera_set_direction(camera, camera->position, forward, vec3(0.0f, 1.0f, 0.0f));
 
-    if (glfwGetKey(window->handle, GLFW_KEY_D) == GLFW_PRESS) {
-        velocity = vec3_mul(camera->right, .10f * dt);
-        camera->position = vec3_add(camera->position, velocity);
-    }
-    if (glfwGetKey(window->handle, GLFW_KEY_A) == GLFW_PRESS) {
-        velocity = vec3_mul(camera->right, .10f * dt);
-        camera->position = vec3_sub(camera->position, velocity);
-    }
+  vec3 velocity = {0};
+  if (glfwGetKey(window->handle, GLFW_KEY_ESCAPE) == GLFW_PRESS)
+    glfwSetWindowShouldClose(window->handle, true);
 
-    if (glfwGetKey(window->handle, GLFW_KEY_SPACE) == GLFW_PRESS) {
-        camera->position.y += .10f * dt;
-    }
-    if (glfwGetKey(window->handle, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) {
-        camera->position.y -= .10f * dt;
-    }
+  if (glfwGetKey(window->handle, GLFW_KEY_W) == GLFW_PRESS) {
+    velocity = vec3_mul(camera->forward, .10f * dt);
+    camera->position = vec3_add(camera->position, velocity);
+  }
+  if (glfwGetKey(window->handle, GLFW_KEY_S) == GLFW_PRESS) {
+    velocity = vec3_mul(camera->forward, .10f * dt);
+    camera->position = vec3_sub(camera->position, velocity);
+  }
+
+  if (glfwGetKey(window->handle, GLFW_KEY_D) == GLFW_PRESS) {
+    velocity = vec3_mul(camera->right, .10f * dt);
+    camera->position = vec3_add(camera->position, velocity);
+  }
+  if (glfwGetKey(window->handle, GLFW_KEY_A) == GLFW_PRESS) {
+    velocity = vec3_mul(camera->right, .10f * dt);
+    camera->position = vec3_sub(camera->position, velocity);
+  }
+
+  if (glfwGetKey(window->handle, GLFW_KEY_SPACE) == GLFW_PRESS) {
+    camera->position.y += .10f * dt;
+  }
+  if (glfwGetKey(window->handle, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) {
+    camera->position.y -= .10f * dt;
+  }
 }
 
 int main(int argc, char **argv) {
-    (void)argc;
-    (void)argv;
+  Thread_Context main_tctx;
+  thread_context_init(&main_tctx);
 
-    Thread_Context main_tctx;
-    thread_context_init(&main_tctx);
+  Game game = {0};
+  game_init(&game, argc, argv);
 
-    Game game = {0};
-    game_init(&game);
+  RND_Pipeline mesh_pipeline = rnd_pipeline_create(&game.render_context, "shaders/vert.vert.spv",
+                                                   "shaders/frag.frag.spv", NULL);
 
-    RND_Pipeline mesh_pipeline = rnd_pipeline_create(&game.render_context, "shaders/vert.vert.spv",
-                                                     "shaders/frag.frag.spv", NULL);
+  RND_Mesh mesh = {0};
+  rnd_mesh_default_cube(&game.render_context, &mesh);
+  ass_load_mesh_obj(&game.asset_manager, &game.render_context, "./assets/cube.obj");
 
-    RND_Mesh mesh = {0};
-    rnd_mesh_default_cube(&game.render_context, &mesh);
-    ass_load_mesh_obj(&game.asset_manager, &game.render_context, "./assets/cube.obj");
+  Entity_Pool entity_pool = entity_pool_create(MAX_ENTITIES);
+  for (u32 i = 0; i < entity_pool.pool.block_capacity; i++) {
+    Entity *entity =
+        entity_create(&entity_pool, EK_ENTITY_FLAG_DEFAULTS, vec3(0.f, 0.f, -2.f),
+                      vec3(0.f, 0.f, 0.f), vec3(1.f, 1.f, 1.f), vec3(0.f, 0.f, 0.f), &mesh);
+    entity->rotation.z += 0.001f * i * PI;
+    entity->rotation.x -= 0.001f * i * PI;
+  }
 
-    Entity_Pool entity_pool = entity_pool_create(MAX_ENTITIES);
-    for (u32 i = 0; i < entity_pool.pool.block_capacity; i++) {
-        Entity *entity =
-            entity_create(&entity_pool, EK_ENTITY_FLAG_DEFAULTS, vec3(0.f, 0.f, -2.f),
-                          vec3(0.f, 0.f, 0.f), vec3(1.f, 1.f, 1.f), vec3(0.f, 0.f, 0.f), &mesh);
-        entity->rotation.z += 0.001f * i * PI;
-        entity->rotation.x -= 0.001f * i * PI;
+  clock_t last_time = clock();
+  char fps_display[256];
+
+  while (!window_should_close(&game.window)) {
+    {
+      clock_t current_time = clock();
+      game.dt = (double)(current_time - last_time) / CLOCKS_PER_SEC;
+
+      if (game.dt >= 0.2) {
+        game.fps = game.frame_count / game.dt;
+
+        snprintf(fps_display, sizeof(fps_display), "%s FPS: %.2f", game.window.name, game.fps);
+        glfwSetWindowTitle(game.window.handle, fps_display);
+
+        game.frame_count = 0;
+        last_time = current_time;
+      }
+
+      game.frame_count += 1;
     }
 
-    clock_t last_time = clock();
-    char fps_display[256];
+    process_input(&game.window, &game.camera, game.dt);
 
-    while (!window_should_close(&game.window)) {
-        {
-            clock_t current_time = clock();
-            game.dt = (double)(current_time - last_time) / CLOCKS_PER_SEC;
+    // Updates would go here
+    //
+    // // // //
 
-            if (game.dt >= 0.2) {
-                game.fps = game.frame_count / game.dt;
+    // Render
+    {
+      f32 aspect = rnd_swap_aspect_ratio(&game.render_context);
+      // camera_set_orthographic(&game.camera, -aspect, aspect, -1.f, 1.f, 1.f, -1.f);
+      camera_set_perspective(&game.camera, RADIANS(90.0f), aspect, .1f, 10.f);
 
-                snprintf(fps_display, sizeof(fps_display), "%s FPS: %.2f", game.window.name,
-                         game.fps);
-                glfwSetWindowTitle(game.window.handle, fps_display);
+      mat4 proj_view = mat4_mul(game.camera.projection, game.camera.view);
 
-                game.frame_count = 0;
-                last_time = current_time;
-            }
+      rnd_begin_frame(&game.render_context, &game.window);
+      rnd_pipeline_bind(&game.render_context, &mesh_pipeline);
+      rnd_mesh_bind(&game.render_context, &mesh);
+      Entity *entities = (Entity *)pool_as_array(&entity_pool.pool);
+      for (u32 i = 0; i < entity_pool.pool.block_last_index; i++) {
+        entities[i].rotation.x += 0.001f * PI;
+        entities[i].rotation.y += 0.001f * PI;
+        entities[i].rotation.z += 0.001f * PI;
 
-            game.frame_count += 1;
-        }
+        RND_Push_Constants push = {0};
+        push.transform = mat4_mul(proj_view, entity_model_transform(&entities[i]));
+        push.color = entities[i].color;
+        rnd_push_constants(&game.render_context, &mesh_pipeline, push);
 
-        process_input(&game.window, &game.camera, game.dt);
-
-        // Updates would go here
-        //
-        // // // //
-
-        // Render
-        {
-            f32 aspect = rnd_swap_aspect_ratio(&game.render_context);
-            // camera_set_orthographic(&game.camera, -aspect, aspect, -1.f, 1.f, 1.f, -1.f);
-            camera_set_perspective(&game.camera, RADIANS(90.0f), aspect, .1f, 10.f);
-
-            mat4 proj_view = mat4_mul(game.camera.projection, game.camera.view);
-
-            rnd_begin_frame(&game.render_context, &game.window);
-            rnd_pipeline_bind(&game.render_context, &mesh_pipeline);
-            rnd_mesh_bind(&game.render_context, &mesh);
-            Entity *entities = (Entity *)pool_as_array(&entity_pool.pool);
-            for (u32 i = 0; i < entity_pool.pool.block_last_index; i++) {
-                entities[i].rotation.x += 0.001f * PI;
-                entities[i].rotation.y += 0.001f * PI;
-                entities[i].rotation.z += 0.001f * PI;
-
-                RND_Push_Constants push = {0};
-                push.transform = mat4_mul(proj_view, entity_model_transform(&entities[i]));
-                push.color = entities[i].color;
-                rnd_push_constants(&game.render_context, &mesh_pipeline, push);
-
-                rnd_mesh_draw(&game.render_context, &mesh);
-            }
-            rnd_end_frame(&game.render_context);
-        }
-
-        poll_events();
+        rnd_mesh_draw(&game.render_context, &mesh);
+      }
+      rnd_end_frame(&game.render_context);
     }
 
-    vkDeviceWaitIdle(game.render_context.logical);
+    poll_events();
+  }
 
-    entity_pool_free(&entity_pool);
-    rnd_mesh_free(&game.render_context, &mesh);
-    rnd_pipeline_free(&game.render_context, &mesh_pipeline);
+  vkDeviceWaitIdle(game.render_context.logical);
 
-    game_free(&game);
+  entity_pool_free(&entity_pool);
+  rnd_mesh_free(&game.render_context, &mesh);
+  rnd_pipeline_free(&game.render_context, &mesh_pipeline);
 
-    thread_context_free();
+  game_free(&game);
 
-    return EXT_SUCCESS;
+  thread_context_free();
+
+  return EXT_SUCCESS;
 }
