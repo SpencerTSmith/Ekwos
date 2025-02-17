@@ -12,6 +12,8 @@ void game_init(Game *game, u32 argc, char **argv) {
   // Initialize the game's render context
   rnd_context_init(&game->render_context, &game->window);
 
+  game->entity_pool = entity_pool_create(ENTITY_MAX_NUM);
+
   // Create our persistent arena (Long term state, probably for the whole lifetime of the game)
   game->persistent_arena = arena_create(1024 * 64, ARENA_FLAG_DEFAULTS);
 
@@ -26,6 +28,7 @@ void game_init(Game *game, u32 argc, char **argv) {
 }
 
 void game_free(Game *game) {
+  entity_pool_free(&game->entity_pool);
   rnd_context_free(&game->render_context);
   window_free(&game->window);
   arena_free(&game->persistent_arena);
