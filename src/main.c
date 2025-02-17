@@ -10,10 +10,13 @@
 
 #include "render/render_mesh.h"
 #include "render/render_pipeline.h"
+
 #include <stdio.h>
 #include <time.h>
+#include <unistd.h>
 
-#define FRAME_TARGET_TIME (SECOND / FPS)
+#define TARGET_FPS 60.0
+#define TARGET_FRAME_TIME_MS (1000.0 / TARGET_FPS)
 
 static bool first_mouse = true;
 
@@ -56,28 +59,28 @@ void process_input(Window *window, Camera *camera, f64 dt) {
     glfwSetWindowShouldClose(window->handle, true);
 
   if (glfwGetKey(window->handle, GLFW_KEY_W) == GLFW_PRESS) {
-    velocity = vec3_mul(camera->forward, .10f * dt);
+    velocity = vec3_mul(camera->forward, 1.f * dt);
     camera->position = vec3_add(camera->position, velocity);
   }
   if (glfwGetKey(window->handle, GLFW_KEY_S) == GLFW_PRESS) {
-    velocity = vec3_mul(camera->forward, .10f * dt);
+    velocity = vec3_mul(camera->forward, 1.f * dt);
     camera->position = vec3_sub(camera->position, velocity);
   }
 
   if (glfwGetKey(window->handle, GLFW_KEY_D) == GLFW_PRESS) {
-    velocity = vec3_mul(camera->right, .10f * dt);
+    velocity = vec3_mul(camera->right, 1.f * dt);
     camera->position = vec3_add(camera->position, velocity);
   }
   if (glfwGetKey(window->handle, GLFW_KEY_A) == GLFW_PRESS) {
-    velocity = vec3_mul(camera->right, .10f * dt);
+    velocity = vec3_mul(camera->right, 1.f * dt);
     camera->position = vec3_sub(camera->position, velocity);
   }
 
   if (glfwGetKey(window->handle, GLFW_KEY_SPACE) == GLFW_PRESS) {
-    camera->position.y += .10f * dt;
+    camera->position.y += 1.f * dt;
   }
   if (glfwGetKey(window->handle, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) {
-    camera->position.y -= .10f * dt;
+    camera->position.y -= 1.f * dt;
   }
 }
 
@@ -91,43 +94,47 @@ int main(int argc, char **argv) {
   RND_Pipeline mesh_pipeline = rnd_pipeline_create(&game.render_context, "shaders/vert.vert.spv",
                                                    "shaders/frag.frag.spv", NULL);
 
-  RND_Mesh *mesh =
-      ass_load_mesh_obj(&game.asset_manager, &game.render_context, "./assets/smooth_vase.obj");
+  // RND_Mesh *mesh =
+  //     ass_load_mesh_obj(&game.asset_manager, &game.render_context, "./assets/cube.obj");
 
-  // RND_Mesh helper = {0};
-  // RND_Mesh *mesh = &helper;
-  // rnd_mesh_default_cube(&game.render_context, mesh);
+  RND_Mesh helper = {0};
+  RND_Mesh *mesh = &helper;
+  rnd_mesh_default_cube(&game.render_context, mesh);
 
   for (u32 i = 0; i < game.entity_pool.pool.block_capacity; i++) {
     Entity *entity = entity_create(&game.entity_pool, &game.asset_manager, EK_ENTITY_FLAG_DEFAULTS,
-                                   vec3(0.f, 1.f, -2.f), vec3(0.f, 0.f, 0.f), vec3(1.f, 1.f, 1.f),
+                                   vec3(0.f, 0.f, -2.f), vec3(0.f, 0.f, 0.f), vec3(1.f, 1.f, 1.f),
                                    vec3(0.f, 0.f, 0.f), mesh);
 
-    entity->rotation.x = RADIANS(180.f);
+    entity->scale = vec3(1.f, 1.f, 1.f);
   }
 
-  clock_t last_time = clock();
+  u64 last_time = get_time_ms();
   char fps_display[256];
 
   while (!window_should_close(&game.window)) {
     {
-      clock_t current_time = clock();
-      game.dt = (double)(current_time - last_time) / CLOCKS_PER_SEC;
+      u64 current_time = get_time_ms();
 
-      if (game.dt >= 0.2) {
-        game.fps = game.frame_count / game.dt;
+      u64 sleep_time = TARGET_FRAME_TIME_MS - (current_time - last_time);
+      if (sleep_time > 0 && sleep_time <= TARGET_FRAME_TIME_MS) {
+        usleep(sleep_time * 1000);
+      }
+      current_time = get_time_ms();
 
-        if (game.fps > 60.0f) {
-        }
+      // New dt after sleeping
+      game.dt = (current_time - last_time) / 1000.0;
 
+      game.fps = 1 / game.dt;
+
+      if (game.frame_count >= 60) {
         snprintf(fps_display, sizeof(fps_display), "%s FPS: %.2f", game.window.name, game.fps);
         glfwSetWindowTitle(game.window.handle, fps_display);
-
         game.frame_count = 0;
-        last_time = current_time;
       }
 
       game.frame_count += 1;
+      last_time = current_time;
     }
 
     process_input(&game.window, &game.camera, game.dt);

@@ -4,10 +4,12 @@
     - [ ] More sophisticated synchronization
         - [ ] Semaphore?
         - [ ] Fence?
-- [ ] GPU Memory Allocator
+- [x] GPU Memory Allocator
     - [x] Basics
     - [ ] Frame Bump Allocator
     - [ ] Nicer interface?
 - [x] Asset System
     - [x] Basics
     - [ ] Reference Counting
+    - [ ] Only load unique vertices
+- [ ] Transition off Cmake?

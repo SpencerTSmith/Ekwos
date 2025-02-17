@@ -40,4 +40,11 @@ typedef float f32;
 
 #define VOID_PROC ((void)0)
 
+#define KB(n) (1024 * n)
+#define MB(n) (1024 * KB(n))
+#define GB(n) (1024 * MB(n))
+
+f64 get_time_s(void);
+u64 get_time_ms(void);
+
 #endif // COMMON_H

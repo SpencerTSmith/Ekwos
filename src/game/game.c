@@ -7,7 +7,7 @@ void game_init(Game *game, u32 argc, char **argv) {
   Config config = arg_parse(argc, argv);
 
   // Initialize the game's window
-  window_init(&game->window, "Ekwos: Atavistic Chariot", config.window_width, config.window_height);
+  window_init(&game->window, "Ekwos", config.window_width, config.window_height);
 
   // Initialize the game's render context
   rnd_context_init(&game->render_context, &game->window);
