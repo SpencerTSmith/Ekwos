@@ -91,20 +91,19 @@ int main(int argc, char **argv) {
   RND_Pipeline mesh_pipeline = rnd_pipeline_create(&game.render_context, "shaders/vert.vert.spv",
                                                    "shaders/frag.frag.spv", NULL);
 
-  // RND_Mesh *mesh =
-  //     ass_load_mesh_obj(&game.asset_manager, &game.render_context, "./assets/cube.obj");
+  RND_Mesh *mesh =
+      ass_load_mesh_obj(&game.asset_manager, &game.render_context, "./assets/smooth_vase.obj");
 
-  RND_Mesh helper = {0};
-  RND_Mesh *mesh = &helper;
-  rnd_mesh_default_cube(&game.render_context, mesh);
+  // RND_Mesh helper = {0};
+  // RND_Mesh *mesh = &helper;
+  // rnd_mesh_default_cube(&game.render_context, mesh);
 
   for (u32 i = 0; i < game.entity_pool.pool.block_capacity; i++) {
     Entity *entity = entity_create(&game.entity_pool, &game.asset_manager, EK_ENTITY_FLAG_DEFAULTS,
                                    vec3(0.f, 1.f, -2.f), vec3(0.f, 0.f, 0.f), vec3(1.f, 1.f, 1.f),
                                    vec3(0.f, 0.f, 0.f), mesh);
 
-    // entity->rotation.z += 0.001f * i * PI;
-    // entity->rotation.x -= 0.001f * i * PI;
+    entity->rotation.x = RADIANS(180.f);
   }
 
   clock_t last_time = clock();

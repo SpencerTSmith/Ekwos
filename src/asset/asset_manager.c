@@ -68,7 +68,7 @@ void *ass_load_mesh_obj(ASS_Manager *ass, RND_Context *rc, char *file_name) {
       }
 
       vertices[vertex_current_index].position = obj_vertex;
-      vec3_print(vertices[vertex_current_index].position);
+      vertices[vertex_current_index].color = vec3(1.0f, 0.5f, 0.2f);
       vertex_current_index++;
 
     } else if (line[0] == 'v' && line[1] == 't') { // Vertex UV's
@@ -88,8 +88,6 @@ void *ass_load_mesh_obj(ASS_Manager *ass, RND_Context *rc, char *file_name) {
       indices[index_current_index + 0] = vertex_indices[0] - 1;
       indices[index_current_index + 1] = vertex_indices[1] - 1;
       indices[index_current_index + 2] = vertex_indices[2] - 1;
-      LOG_DEBUG("Loaded index %u, %u, %u", indices[index_current_index + 0],
-                indices[index_current_index + 1], indices[index_current_index + 2]);
       index_current_index += 3;
     }
   }
