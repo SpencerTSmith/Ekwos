@@ -18,8 +18,6 @@
 #define TARGET_FPS 60.0
 #define TARGET_FRAME_TIME_MS (1000.0 / TARGET_FPS)
 
-static bool first_mouse = true;
-
 // TODO(ss); move the calculation of movment vectors out of here and into the update...
 // it may be cleaner to instead just save any nessecary information into camera object and calculate
 // all at once that will make it simpler to get consisten velocities even when moving diagonally
@@ -28,13 +26,6 @@ static bool first_mouse = true;
 void process_input(Window *window, Camera *camera, f64 dt) {
   f64 new_cursor_x, new_cursor_y;
   glfwGetCursorPos(window->handle, &new_cursor_x, &new_cursor_y);
-
-  if (first_mouse) {
-    window->cursor_x = new_cursor_x;
-    window->cursor_x = new_cursor_x;
-    first_mouse = false;
-    return;
-  }
 
   f32 x_offset = .1f * (new_cursor_x - window->cursor_x);
   f32 y_offset = .1f * (new_cursor_y - window->cursor_y);
@@ -53,28 +44,27 @@ void process_input(Window *window, Camera *camera, f64 dt) {
   forward = vec3_norm(forward);
 
   camera_set_direction(camera, camera->position, forward, vec3(0.0f, 1.0f, 0.0f));
-
-  vec3 velocity = {0};
   if (glfwGetKey(window->handle, GLFW_KEY_ESCAPE) == GLFW_PRESS)
     glfwSetWindowShouldClose(window->handle, true);
 
-  if (glfwGetKey(window->handle, GLFW_KEY_W) == GLFW_PRESS) {
-    velocity = vec3_mul(camera->forward, 1.f * dt);
-    camera->position = vec3_add(camera->position, velocity);
-  }
-  if (glfwGetKey(window->handle, GLFW_KEY_S) == GLFW_PRESS) {
-    velocity = vec3_mul(camera->forward, 1.f * dt);
-    camera->position = vec3_sub(camera->position, velocity);
-  }
+  vec3 input_direction = {0};
+  if (glfwGetKey(window->handle, GLFW_KEY_W) == GLFW_PRESS)
+    input_direction = vec3_add(input_direction, camera->forward);
+  if (glfwGetKey(window->handle, GLFW_KEY_S) == GLFW_PRESS)
+    input_direction = vec3_sub(input_direction, camera->forward);
 
-  if (glfwGetKey(window->handle, GLFW_KEY_D) == GLFW_PRESS) {
-    velocity = vec3_mul(camera->right, 1.f * dt);
-    camera->position = vec3_add(camera->position, velocity);
-  }
-  if (glfwGetKey(window->handle, GLFW_KEY_A) == GLFW_PRESS) {
-    velocity = vec3_mul(camera->right, 1.f * dt);
-    camera->position = vec3_sub(camera->position, velocity);
-  }
+  if (glfwGetKey(window->handle, GLFW_KEY_D) == GLFW_PRESS)
+    input_direction = vec3_add(input_direction, camera->right);
+  if (glfwGetKey(window->handle, GLFW_KEY_A) == GLFW_PRESS)
+    input_direction = vec3_sub(input_direction, camera->right);
+
+  // HACK(ss): The only way to make sure no div by 0?
+  if (vec3_len(input_direction) > 0.0f)
+    input_direction = vec3_norm(input_direction);
+
+  vec3 camera_velocity = vec3_mul(input_direction, 2.f * dt);
+  camera->position = vec3_add(camera->position, camera_velocity);
+  vec3_print(camera->position);
 
   if (glfwGetKey(window->handle, GLFW_KEY_SPACE) == GLFW_PRESS) {
     camera->position.y += 1.f * dt;
