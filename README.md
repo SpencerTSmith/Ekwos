@@ -1,4 +1,6 @@
-# Short Term TODOs
+# Description
+Exploration of game engine design, focusing primarily on simple and no/minimal dependency C17. Graphics API is Vulkan. This is not going to be a general-purpose engine... I have a game in mind I wish to create, and am only implementing features in pursuit of that game.
+## Short Term TODOs
 - [x] CPU->GPU Uploader
     - [x] Basics
     - [ ] More sophisticated synchronization
@@ -28,12 +30,12 @@
 - [ ] Pull camera position updating out of input processing
     - [ ] In future, this will make it so we can use the same logic for updating the player as every other entity
 
-# Long Term TODOs
+## Long Term TODOs
 - [ ] Audio
 - [ ] Transition off Cmake
     - [ ] Not planning on having a ton of dependencies, can make this simpler?
 
-# Fully Complete
+## Fully Complete
 - [x] Vulkan Context Setup
     - [x] Basic 3D rendering
     - [x] Simple pipeline initialization
