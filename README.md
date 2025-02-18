@@ -21,6 +21,8 @@
     - [x] Reference Counting
         - [x] Basics
         - [ ] Hashing to check if already loaded
+- [ ] Pull camera position updating out of input processing
+    - [ ] In future, this will make it so we can use the same logic for updating the player as every other entity
 
 # Long Term TODOs
 - [ ] Audio

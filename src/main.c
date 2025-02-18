@@ -48,30 +48,30 @@ void process_input(Window *window, Camera *camera, f64 dt) {
     glfwSetWindowShouldClose(window->handle, true);
 
   vec3 input_direction = {0};
+  // Z
   if (glfwGetKey(window->handle, GLFW_KEY_W) == GLFW_PRESS)
     input_direction = vec3_add(input_direction, camera->forward);
   if (glfwGetKey(window->handle, GLFW_KEY_S) == GLFW_PRESS)
     input_direction = vec3_sub(input_direction, camera->forward);
 
+  // X
   if (glfwGetKey(window->handle, GLFW_KEY_D) == GLFW_PRESS)
     input_direction = vec3_add(input_direction, camera->right);
   if (glfwGetKey(window->handle, GLFW_KEY_A) == GLFW_PRESS)
     input_direction = vec3_sub(input_direction, camera->right);
 
+  // Y
+  if (glfwGetKey(window->handle, GLFW_KEY_SPACE) == GLFW_PRESS)
+    input_direction = vec3_add(input_direction, camera->up);
+  if (glfwGetKey(window->handle, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
+    input_direction = vec3_sub(input_direction, camera->up);
+
   // HACK(ss): The only way to make sure no div by 0?
   if (vec3_len(input_direction) > 0.0f)
     input_direction = vec3_norm(input_direction);
 
-  vec3 camera_velocity = vec3_mul(input_direction, 2.f * dt);
+  vec3 camera_velocity = vec3_mul(input_direction, 5.f * dt);
   camera->position = vec3_add(camera->position, camera_velocity);
-  vec3_print(camera->position);
-
-  if (glfwGetKey(window->handle, GLFW_KEY_SPACE) == GLFW_PRESS) {
-    camera->position.y += 1.f * dt;
-  }
-  if (glfwGetKey(window->handle, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS) {
-    camera->position.y -= 1.f * dt;
-  }
 }
 
 int main(int argc, char **argv) {
