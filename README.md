@@ -26,3 +26,23 @@
 - [ ] Audio
 - [ ] Transition off Cmake
     - [ ] Not planning on having a ton of dependencies, can make this simpler?
+
+# Fully Complete
+- [x] Vulkan Context Setup
+    - [x] Basic 3D rendering
+    - [x] Simple pipeline initialization
+- [x] Custom Allocators
+    - [x] Bump/Arena
+    - [x] Pool
+- [x] Linear Algebra Library
+    - [x] Custom Tailored for Vulkan NDC
+    - [x] Consistent right handed system with z growing negative away from viewer
+    - [x] Efficient autovectorization (Checked with GodBolt)
+- [x] Camera
+    - [x] Mouse Look
+- [x] Custom Logging
+    - [x] Vulkan Validations Layers
+- [x] Thread Context
+    - [x] Thread local scratch bump allocator
+- [x] Arg Parsing
+    - [x] Change render resolution from CLI
