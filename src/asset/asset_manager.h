@@ -5,7 +5,7 @@
 #include "render/render_context.h"
 
 enum ASS_Manager_Constants {
-  ASS_INVALID_ITEM_ID = INT32_MAX,
+  ASS_INVALID_ITEM_ID = -1,
   ASS_MAX_ENTRIES = 40,
   ASS_MAX_MESHES = 20,
   ASS_MAX_TEXTURES = 20,
@@ -27,23 +27,23 @@ struct ASS_Manager {
 
 typedef struct ASS_Entry ASS_Entry;
 struct ASS_Entry {
-  u32 handle;
+  i32 id;
   u32 reference_count;
 
-  char file_name[128];
+  char name[128];
 
   ASS_Type type;
   void *data;
 };
 
-// TODO(ss): Will need to change pool implementation to allow using backing buffer... so we can keep
+// TODO(ss): Could to change pool implementation to allow using backing buffer... so we can keep
 // the asset manager in the same arena? Or should they get their own indiviually allocated pools?
 void ass_manager_init(Arena *arena, ASS_Manager *asset_manager);
-
-void ass_create_entry(ASS_Manager *asset_manager);
+void ass_manager_free(ASS_Manager *ass, RND_Context *rc);
 
 // Returns a handle to a mesh, managed by asset manager, taken straight from a previous
 // project... needs work probably
-void *ass_load_mesh_obj(ASS_Manager *asset_manager, RND_Context *render_context, char *file_name);
+ASS_Entry ass_load_mesh_obj(ASS_Manager *asset_manager, RND_Context *render_context,
+                            char *file_name);
 
 #endif // ASSET_MANAGER_H

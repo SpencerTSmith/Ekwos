@@ -10,6 +10,8 @@
     - [ ] Nicer interface?
 - [x] Asset System
     - [x] Basics
-    - [ ] Reference Counting
+    - [x] Reference Counting
+        - [x] Basics
+        - [ ] Hashing to check if already loaded
     - [ ] Only load unique vertices
 - [ ] Transition off Cmake?

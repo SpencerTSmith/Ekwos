@@ -94,17 +94,11 @@ int main(int argc, char **argv) {
   RND_Pipeline mesh_pipeline = rnd_pipeline_create(&game.render_context, "shaders/vert.vert.spv",
                                                    "shaders/frag.frag.spv", NULL);
 
-  // RND_Mesh *mesh =
-  //     ass_load_mesh_obj(&game.asset_manager, &game.render_context, "./assets/cube.obj");
-
-  RND_Mesh helper = {0};
-  RND_Mesh *mesh = &helper;
-  rnd_mesh_default_cube(&game.render_context, mesh);
-
   for (u32 i = 0; i < game.entity_pool.pool.block_capacity; i++) {
-    Entity *entity = entity_create(&game.entity_pool, &game.asset_manager, EK_ENTITY_FLAG_DEFAULTS,
-                                   vec3(0.f, 0.f, -2.f), vec3(0.f, 0.f, 0.f), vec3(1.f, 1.f, 1.f),
-                                   vec3(0.f, 0.f, 0.f), mesh);
+    Entity *entity =
+        entity_create(&game.entity_pool, &game.render_context, &game.asset_manager,
+                      EK_ENTITY_FLAG_DEFAULTS, vec3(0.f, 0.f, -4.f), vec3(0.f, 0.f, 0.f),
+                      vec3(1.f, 1.f, 1.f), vec3(0.f, 0.f, 0.f), "assets/cube.obj");
 
     entity->scale = vec3(1.f, 1.f, 1.f);
   }
@@ -114,24 +108,21 @@ int main(int argc, char **argv) {
 
   while (!window_should_close(&game.window)) {
     {
-      u64 current_time = get_time_ms();
-
-      u64 sleep_time = TARGET_FRAME_TIME_MS - (current_time - last_time);
-      if (sleep_time > 0 && sleep_time <= TARGET_FRAME_TIME_MS) {
+      u64 sleep_time = TARGET_FRAME_TIME_MS - (get_time_ms() - last_time);
+      if (sleep_time > 0 && sleep_time < TARGET_FRAME_TIME_MS) {
         usleep(sleep_time * 1000);
       }
-      current_time = get_time_ms();
+
+      u64 current_time = get_time_ms();
 
       // New dt after sleeping
       game.dt = (current_time - last_time) / 1000.0;
 
       game.fps = 1 / game.dt;
 
-      if (game.frame_count >= 60) {
-        snprintf(fps_display, sizeof(fps_display), "%s FPS: %.2f", game.window.name, game.fps);
-        glfwSetWindowTitle(game.window.handle, fps_display);
-        game.frame_count = 0;
-      }
+      // TODO(ss): Font rendering so we can just render it in game
+      snprintf(fps_display, sizeof(fps_display), "%s FPS: %.2f", game.window.name, game.fps);
+      glfwSetWindowTitle(game.window.handle, fps_display);
 
       game.frame_count += 1;
       last_time = current_time;
@@ -154,24 +145,26 @@ int main(int argc, char **argv) {
       rnd_begin_frame(&game.render_context, &game.window);
 
       rnd_pipeline_bind(&game.render_context, &mesh_pipeline);
-      rnd_mesh_bind(&game.render_context, mesh);
 
-      Entity *entities = (Entity *)pool_as_array(&game.entity_pool.pool);
+      u32 entities_count = 0;
+      Entity *entities = (Entity *)pool_as_array(&game.entity_pool.pool, &entities_count);
       for (u32 i = 0; i < game.entity_pool.pool.block_last_index; i++) {
         if (entities[i].id == ENTITY_INVALID_ID) {
           continue;
         }
 
-        // entities[i].rotation.x += 0.001f * PI;
-        // entities[i].rotation.y += 0.001f * PI;
-        // entities[i].rotation.z += 0.001f * PI;
+        entities[i].rotation.x += 0.001f * PI;
+        entities[i].rotation.y += 0.001f * PI;
+        entities[i].rotation.z += 0.001f * PI;
+        mat4 e_transform = mat4_mul(proj_view, entity_model_transform(&entities[i]));
 
         RND_Push_Constants push = {0};
-        push.transform = mat4_mul(proj_view, entity_model_transform(&entities[i]));
+        push.transform = e_transform;
         push.color = entities[i].color;
         rnd_push_constants(&game.render_context, &mesh_pipeline, push);
 
-        rnd_mesh_draw(&game.render_context, mesh);
+        rnd_mesh_bind(&game.render_context, entities->mesh_asset.data);
+        rnd_mesh_draw(&game.render_context, entities->mesh_asset.data);
       }
 
       rnd_end_frame(&game.render_context);
@@ -182,7 +175,6 @@ int main(int argc, char **argv) {
 
   vkDeviceWaitIdle(game.render_context.logical);
 
-  rnd_mesh_free(&game.render_context, mesh);
   rnd_pipeline_free(&game.render_context, &mesh_pipeline);
 
   game_free(&game);

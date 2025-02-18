@@ -14,23 +14,23 @@ void entity_pool_free(Entity_Pool *pool) {
   ZERO_STRUCT(pool);
 }
 
-Entity *entity_create(Entity_Pool *entity_pool, ASS_Manager *asset_manager, Entity_Flags flags,
-                      vec3 position, vec3 rotation, vec3 scale, vec3 color, RND_Mesh *mesh) {
+Entity *entity_create(Entity_Pool *ep, RND_Context *rc, ASS_Manager *am, Entity_Flags flags,
+                      vec3 position, vec3 rotation, vec3 scale, vec3 color, char *mesh_file) {
 
-  Entity *entity = pool_alloc(&entity_pool->pool);
+  Entity *entity = pool_alloc(&ep->pool);
 
   *entity = (Entity){
-      .id = entity_pool->next_entity_id,
+      .id = ep->next_entity_id,
       .flags = flags,
       .position = position,
       .rotation = rotation,
       .scale = scale,
       .color = color,
-      .mesh = mesh,
+      .mesh_asset = ass_load_mesh_obj(am, rc, mesh_file),
   };
 
   // and increment the id
-  entity_pool->next_entity_id += 1;
+  ep->next_entity_id += 1;
 
   return entity;
 }
@@ -52,8 +52,7 @@ mat4 entity_model_transform(Entity *entity) {
 
   // We can algebraically simplify the above like so, throwing it into godbolt,
   // it turned ~500 ASM instructions into ~100, simulating just his transform for 10,000
-  // entities
-  // this is faster on my computer by about 20 fps
+  // entities this is faster on my computer by about 20 fps
   mat4 transform = {.cols = {
                         {
                             .x = entity->scale.x * (cosy * cosz + siny * sinx * sinz),
