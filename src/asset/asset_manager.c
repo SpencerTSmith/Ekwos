@@ -59,7 +59,8 @@ ASS_Entry ass_load_mesh_obj(ASS_Manager *ass, RND_Context *rc, char *file_name) 
     ASS_Entry *loaded_cube = ass_find_existing(ass, "default_cube");
     if (loaded_cube != NULL) {
       loaded_cube->reference_count++;
-      LOG_DEBUG("Asset (%s) has been reused: reference count = %u", loaded_cube->reference_count);
+      LOG_DEBUG("Asset (%s) has been reused: reference count = %u", loaded_cube->name,
+                loaded_cube->reference_count);
       return *loaded_cube;
     }
 

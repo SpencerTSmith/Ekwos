@@ -88,7 +88,7 @@ int main(int argc, char **argv) {
     Entity *entity =
         entity_create(&game.entity_pool, &game.render_context, &game.asset_manager,
                       EK_ENTITY_FLAG_DEFAULTS, vec3(0.f, 0.f, -4.f), vec3(0.f, 0.f, 0.f),
-                      vec3(1.f, 1.f, 1.f), vec3(0.f, 0.f, 0.f), "assets/cube.obj");
+                      vec3(1.f, 1.f, 1.f), vec3(0.f, 0.f, 0.f), "assets/nonexisten.obj");
 
     entity->scale = vec3(1.f, 1.f, 1.f);
   }
