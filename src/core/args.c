@@ -1,14 +1,17 @@
 #include "args.h"
 
 #include "core/log.h"
-#include "window.h"
+
+#include "render/render_context.h"
+
+#include "core/window.h"
 
 #include <stdlib.h>
 #include <string.h>
 
 // Is this over engineering?
-static const char *arg_strings[] = {"--window-width", "--window-height"};
-static const char *arg_short_strings[] = {"-w", "-h"};
+static const char *arg_strings[] = {"--window-width", "--window-height", "--fps"};
+static const char *arg_short_strings[] = {"-w", "-h", "-f"};
 
 Argument arg_from_string(char *arg) {
   if (strcmp(arg, arg_strings[ARG_WINDOW_WIDTH]) == 0 ||
@@ -17,6 +20,9 @@ Argument arg_from_string(char *arg) {
   if (strcmp(arg, arg_strings[ARG_WINDOW_HEIGHT]) == 0 ||
       strcmp(arg, arg_short_strings[ARG_WINDOW_HEIGHT]) == 0)
     return ARG_WINDOW_HEIGHT;
+  if (strcmp(arg, arg_strings[ARG_FPS_LIMIT]) == 0 ||
+      strcmp(arg, arg_short_strings[ARG_FPS_LIMIT]) == 0)
+    return ARG_FPS_LIMIT;
 
   return ARG_INVALID;
 }
@@ -26,6 +32,7 @@ Config arg_parse(u32 argc, char **argv) {
   Config config = {
       .window_width = WINDOW_DEFAULT_WIDTH,
       .window_height = WINDOW_DEFAULT_HEIGHT,
+      .fps_limit = RENDER_CONTEXT_DEFAULT_MAX_FPS,
   };
 
   if (argc == 1)
@@ -58,6 +65,18 @@ Config arg_parse(u32 argc, char **argv) {
       config.window_height = atoi(argv[i + 1]);
       LOG_INFO("Window height set to %lu", config.window_height);
       i++; // We can skip the next argument
+
+      break;
+    case ARG_FPS_LIMIT:
+      if (i + 1 >= argc) {
+        LOG_ERROR("Please include a value for %s or %s", arg_strings[ARG_FPS_LIMIT],
+                  arg_short_strings[ARG_FPS_LIMIT]);
+        continue;
+      }
+
+      config.fps_limit = atoi(argv[i + 1]);
+      LOG_INFO("FPS limit set to %lu", config.fps_limit);
+      i++;
 
       break;
     case ARG_INVALID:

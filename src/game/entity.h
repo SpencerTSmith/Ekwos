@@ -38,7 +38,7 @@ struct Entity {
 
 enum Entity_Constants {
   ENTITY_INVALID_ID = -1,
-  ENTITY_MAX_NUM = 10,
+  ENTITY_MAX_NUM = 5,
 };
 
 Entity_Pool entity_pool_create(u64 capacity);

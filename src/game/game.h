@@ -25,15 +25,13 @@ struct Game {
 
   Camera camera;
 
+  f64 target_frame_time_ms;
   f64 fps;
-  u64 frame_count;
   f64 dt;
+  u64 frame_count;
 };
 
-void game_calc_fps_dt(Game *game);
-
 void game_init(Game *game, u32 argc, char **argv);
-
 void game_free(Game *game);
 
 #endif // GAME_H

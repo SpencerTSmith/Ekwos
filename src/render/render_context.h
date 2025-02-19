@@ -12,13 +12,14 @@
 #include <stdbool.h>
 
 enum RND_Context_Constants {
-    RENDER_CONTEXT_MAX_SWAP_IMAGES = 3,
-    RENDER_CONTEXT_MAX_FRAMES_IN_FLIGHT = 2,
-    RENDER_CONTEXT_MAX_QUEUE_NUM = 2,
-    RENDER_CONTEXT_MAX_PRESENT_MODES = 16,   // This could maybe change? I counted 7 in the enum
-    RENDER_CONTEXT_MAX_SURFACE_FORMATS = 16, // no idea for this, made of 2 enums, lots of elems
-    RENDER_CONTEXT_ATTACHMENT_COUNT = 2,
-    RENDER_CONTEXT_STAGING_SIZE = 1024 * 1024 * 64,
+  RENDER_CONTEXT_MAX_SWAP_IMAGES = 3,
+  RENDER_CONTEXT_MAX_FRAMES_IN_FLIGHT = 2,
+  RENDER_CONTEXT_MAX_QUEUE_NUM = 2,
+  RENDER_CONTEXT_MAX_PRESENT_MODES = 16,   // This could maybe change? I counted 7 in the enum
+  RENDER_CONTEXT_MAX_SURFACE_FORMATS = 16, // no idea for this, made of 2 enums, lots of elems
+  RENDER_CONTEXT_ATTACHMENT_COUNT = 2,
+  RENDER_CONTEXT_STAGING_SIZE = MB(64),
+  RENDER_CONTEXT_DEFAULT_MAX_FPS = 60,
 };
 
 // Just in case we want easy pointers
@@ -28,57 +29,57 @@ typedef struct RND_Swap_Frame RND_Swap_Frame;
 
 typedef struct RND_Context RND_Context;
 struct RND_Context {
-    VkInstance instance;
-    VkDebugUtilsMessengerEXT debug_messenger;
-    VkSurfaceKHR surface;
-    VkPhysicalDevice physical;
+  VkInstance instance;
+  VkDebugUtilsMessengerEXT debug_messenger;
+  VkSurfaceKHR surface;
+  VkPhysicalDevice physical;
 
-    VkDevice logical;
-    VkQueue graphic_q;
-    u32 graphic_index;
-    VkQueue present_q;
-    u32 present_index;
+  VkDevice logical;
+  VkQueue graphic_q;
+  u32 graphic_index;
+  VkQueue present_q;
+  u32 present_index;
 
-    RND_Allocator allocator;
-    RND_Uploader uploader;
+  RND_Allocator allocator;
+  RND_Uploader uploader;
 
-    // NOTE(ss): For now we group the render pass with the swap chain,
-    // once I learn more this may not be the best practice
-    struct RND_Swap_Chain {
-        VkSwapchainKHR handle;
+  // NOTE(ss): For now we group the render pass with the swap chain,
+  // once I learn more this may not be the best practice
+  struct RND_Swap_Chain {
+    VkSwapchainKHR handle;
 
-        VkClearDepthStencilValue clear_depth;
-        VkClearColorValue clear_color;
+    VkClearDepthStencilValue clear_depth;
+    VkClearColorValue clear_color;
 
-        VkExtent2D extent;
-        VkSurfaceFormatKHR surface_format;
-        VkFormat depth_format;
-        VkPresentModeKHR present_mode;
+    VkExtent2D extent;
+    VkSurfaceFormatKHR surface_format;
+    VkFormat depth_format;
+    VkPresentModeKHR present_mode;
 
-        VkRenderPass render_pass;
-        u32 subpass;
+    VkRenderPass render_pass;
+    u32 subpass;
 
-        struct RND_Swap_Target {
-            VkFramebuffer framebuffer;
-            VkImage color_image;
-            VkImageView color_image_view;
-            VkImage depth_image;
-            VkImageView depth_image_view;
-            VkDeviceMemory depth_memory;
-        } targets[RENDER_CONTEXT_MAX_SWAP_IMAGES];
-        u32 current_target_idx;
-        u32 target_count;
+    struct RND_Swap_Target {
+      VkFramebuffer framebuffer;
+      VkImage color_image;
+      VkImageView color_image_view;
+      VkImage depth_image;
+      VkImageView depth_image_view;
+      VkDeviceMemory depth_memory;
+    } targets[RENDER_CONTEXT_MAX_SWAP_IMAGES];
+    u32 current_target_idx;
+    u32 target_count;
 
-        VkCommandPool command_pool;
-        struct RND_Swap_Frame {
-            VkCommandBuffer command_buffer;
-            VkSemaphore image_available_sem;
-            VkSemaphore render_finished_sem;
-            VkFence in_flight_fence;
-        } frames[RENDER_CONTEXT_MAX_FRAMES_IN_FLIGHT];
-        u32 current_frame_idx;
-        u32 frames_in_flight;
-    } swap;
+    VkCommandPool command_pool;
+    struct RND_Swap_Frame {
+      VkCommandBuffer command_buffer;
+      VkSemaphore image_available_sem;
+      VkSemaphore render_finished_sem;
+      VkFence in_flight_fence;
+    } frames[RENDER_CONTEXT_MAX_FRAMES_IN_FLIGHT];
+    u32 current_frame_idx;
+    u32 frames_in_flight;
+  } swap;
 };
 
 // TODO(spencer): Vulkan allows you to specify your own memory allocation function...

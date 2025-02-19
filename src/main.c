@@ -15,9 +15,6 @@
 #include <time.h>
 #include <unistd.h>
 
-#define TARGET_FPS 60.0
-#define TARGET_FRAME_TIME_MS (1000.0 / TARGET_FPS)
-
 // TODO(ss); move the calculation of movment vectors out of here and into the update...
 // it may be cleaner to instead just save any nessecary information into camera object and calculate
 // all at once that will make it simpler to get consisten velocities even when moving diagonally
@@ -85,12 +82,22 @@ int main(int argc, char **argv) {
                                                    "shaders/frag.frag.spv", NULL);
 
   for (u32 i = 0; i < game.entity_pool.pool.block_capacity; i++) {
-    Entity *entity =
-        entity_create(&game.entity_pool, &game.render_context, &game.asset_manager,
-                      EK_ENTITY_FLAG_DEFAULTS, vec3(0.f, 0.f, -4.f), vec3(0.f, 0.f, 0.f),
-                      vec3(1.f, 1.f, 1.f), vec3(0.f, 0.f, 0.f), "assets/nonexisten.obj");
 
-    entity->scale = vec3(1.f, 1.f, 1.f);
+    Entity *entity = NULL;
+    if (i % 2 == 0) {
+      entity = entity_create(&game.entity_pool, &game.render_context, &game.asset_manager,
+                             EK_ENTITY_FLAG_DEFAULTS, vec3(0.f, 0.f, -2.f), vec3(0.f, 0.f, 0.f),
+                             vec3(1.f, 1.f, 1.f), vec3(0.f, 0.f, 0.f), "assets/flat_vase.obj");
+      entity->position = vec3_add(entity->position, vec3(-2.f * i, 2.f * i, -1.f * i));
+      entity->scale = vec3(5.f, 5.f, 5.f);
+    } else {
+      entity = entity_create(&game.entity_pool, &game.render_context, &game.asset_manager,
+                             EK_ENTITY_FLAG_DEFAULTS, vec3(0.f, 0.f, -2.f), vec3(0.f, 0.f, 0.f),
+                             vec3(1.f, 1.f, 1.f), vec3(0.f, 0.f, 0.f), "assets/cube.obj");
+      entity->position = vec3_add(entity->position, vec3(2.f * i, -2.f * i, -1.f * i));
+    }
+
+    vec3_print(entity->position);
   }
 
   u64 last_time = get_time_ms();
@@ -98,8 +105,8 @@ int main(int argc, char **argv) {
 
   while (!window_should_close(&game.window)) {
     {
-      u64 sleep_time = TARGET_FRAME_TIME_MS - (get_time_ms() - last_time);
-      if (sleep_time > 0 && sleep_time < TARGET_FRAME_TIME_MS) {
+      u64 sleep_time = game.target_frame_time_ms - (get_time_ms() - last_time);
+      if (sleep_time > 0 && sleep_time < game.target_frame_time_ms) {
         usleep(sleep_time * 1000);
       }
 
@@ -111,7 +118,8 @@ int main(int argc, char **argv) {
       game.fps = 1 / game.dt;
 
       // TODO(ss): Font rendering so we can just render it in game
-      snprintf(fps_display, sizeof(fps_display), "%s FPS: %.2f", game.window.name, game.fps);
+      snprintf(fps_display, sizeof(fps_display), "%s FPS: %.2f, Frame Time: %.6fs",
+               game.window.name, game.fps, game.dt);
       glfwSetWindowTitle(game.window.handle, fps_display);
 
       game.frame_count += 1;
@@ -128,7 +136,7 @@ int main(int argc, char **argv) {
     {
       f32 aspect = rnd_swap_aspect_ratio(&game.render_context);
       // camera_set_orthographic(&game.camera, -aspect, aspect, -1.f, 1.f, 1.f, -1.f);
-      camera_set_perspective(&game.camera, RADIANS(90.0f), aspect, .1f, 10.f);
+      camera_set_perspective(&game.camera, RADIANS(90.0f), aspect, .1f, 100.f);
 
       mat4 proj_view = mat4_mul(game.camera.projection, game.camera.view);
 
@@ -153,8 +161,8 @@ int main(int argc, char **argv) {
         push.color = entities[i].color;
         rnd_push_constants(&game.render_context, &mesh_pipeline, push);
 
-        rnd_mesh_bind(&game.render_context, entities->mesh_asset.data);
-        rnd_mesh_draw(&game.render_context, entities->mesh_asset.data);
+        rnd_mesh_bind(&game.render_context, entities[i].mesh_asset.data);
+        rnd_mesh_draw(&game.render_context, entities[i].mesh_asset.data);
       }
 
       rnd_end_frame(&game.render_context);

@@ -7,7 +7,7 @@ void game_init(Game *game, u32 argc, char **argv) {
   Config config = arg_parse(argc, argv);
 
   // Initialize the game's window
-  window_init(&game->window, "Ekwos: Atavistic Chariot", config.window_width, config.window_height);
+  window_init(&game->window, "Ekwos", config.window_width, config.window_height);
 
   // Initialize the game's render context
   rnd_context_init(&game->render_context, &game->window);
@@ -25,6 +25,8 @@ void game_init(Game *game, u32 argc, char **argv) {
                          10.f);
   camera_set_direction(&game->camera, vec3(0.f, 0.f, 0.f), vec3(0.0f, 0.f, -1.f),
                        vec3(0.f, 1.f, 0.f));
+
+  game->target_frame_time_ms = (1000.0 / config.fps_limit);
 }
 
 void game_free(Game *game) {
