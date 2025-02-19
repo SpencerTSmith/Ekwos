@@ -1,5 +1,17 @@
 # Description
 Exploration of game engine design, focusing primarily on simple and no/minimal dependency C17. Graphics API is Vulkan. This is not going to be a general-purpose engine... I have a game in mind I wish to create, and am only implementing features in pursuit of that game.
+## Build and Run
+Ensure Vulkan support, and has GLFW (only dependency) as a system library.
+```
+cmake -B build && cmake --build build
+```
+Probably only working on Linux, haven't tested on any systems besides my desktop and laptop both running Linux. As well, none of my custom assets are currently packaged with the repo. Running as it is will result in a default cube mesh being loaded for all entities.
+```
+cd build
+./ekwos -w [window-width] -h [window-height]
+```
+Need to run the game from the build folder, as the compiled shaders need to be in the same folder as the executable.
+
 ## Short Term TODOs
 - [x] CPU->GPU Uploader
     - [x] Basics
@@ -39,6 +51,7 @@ Exploration of game engine design, focusing primarily on simple and no/minimal d
 - [x] Vulkan Context Setup
     - [x] Basic 3D rendering
     - [x] Simple pipeline initialization
+    - [x] Automated shader recompliation integrated with build system
 - [x] Custom Allocators
     - [x] Bump/Arena
     - [x] Pool
