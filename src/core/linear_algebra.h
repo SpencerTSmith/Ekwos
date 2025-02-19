@@ -7,7 +7,7 @@
 /*
     Obviously huge inspiration from HandmadeMath
     Vectors are column vectors, Matrices are column major
-    We assume a 0 - > 1 NDC and a right handed system, with z pointing inwards
+    We assume a 0 - > 1 NDC and a right handed system, with z pointing toward us
 */
 
 // TODO(ss): I've been looking through godbolt, and mat4_mul_vec4 seems to easily autovectorise in

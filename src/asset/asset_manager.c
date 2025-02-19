@@ -40,6 +40,7 @@ ASS_Entry *ass_find_existing(ASS_Manager *ass, char *name) {
 }
 
 ASS_Entry ass_load_mesh_obj(ASS_Manager *ass, RND_Context *rc, char *file_name) {
+  // Check if we already loaded this
   ASS_Entry *existing = ass_find_existing(ass, file_name);
   if (existing != NULL) {
     existing->reference_count++;
@@ -87,11 +88,9 @@ ASS_Entry ass_load_mesh_obj(ASS_Manager *ass, RND_Context *rc, char *file_name) 
     if (line[0] == '#') // Comment
       continue;
 
-    // Real stuff
+    // Real stuff, assuming same # of vertices as texture coords, etc
     if (line[0] == 'v' && line[1] == ' ') { // Vertices
       vertex_count++;
-    } else if (line[0] == 'v' && line[1] == 't') { // Vertex UV's
-      continue;
     } else if (line[0] == 'f' && line[1] == ' ') { // Face Indices
       index_count += 3;
     }
@@ -121,10 +120,12 @@ ASS_Entry ass_load_mesh_obj(ASS_Manager *ass, RND_Context *rc, char *file_name) 
       }
 
       vertices[vertex_current_index].position = obj_vertex;
-      vertices[vertex_current_index].color = vec3(1.0f, 0.5f, 0.2f);
+      vertices[vertex_current_index].color = vec3(1.0f, 0.5f, 0.2f); // Default
       vertex_current_index++;
 
     } else if (line[0] == 'v' && line[1] == 't') { // Vertex UV's
+
+    } else if (line[0] == 'v' && line[1] == 'n') {
 
     } else if (line[0] == 'f' && line[1] == ' ') { // Face Indices
       u32 vertex_indices[3];

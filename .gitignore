@@ -1,3 +1,4 @@
 *.x
 /build/
 .cache
+build.sh
