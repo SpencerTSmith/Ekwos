@@ -21,10 +21,10 @@
 // also nice separation of concerns, this function will	JUST process input, not do any calculation
 // with it
 void process_input(Window *window, Camera *camera, f64 dt) {
+  window_poll_events();
   f64 new_cursor_x, new_cursor_y;
   glfwGetCursorPos(window->handle, &new_cursor_x, &new_cursor_y);
 
-  // TODO(ss): magic numbers: camera sensitivity?
   f64 x_offset = camera->sensitivity * (new_cursor_x - window->cursor_x);
   f64 y_offset = camera->sensitivity * (new_cursor_y - window->cursor_y);
 
@@ -69,7 +69,6 @@ void process_input(Window *window, Camera *camera, f64 dt) {
   if (vec3_len(input_direction) > 0.0f)
     input_direction = vec3_norm(input_direction);
 
-  // TODO(ss): magic numbers: camera move speed?
   vec3 camera_velocity = vec3_mul(input_direction, camera->move_speed * dt);
   camera->position = vec3_add(camera->position, camera_velocity);
 }
@@ -99,8 +98,6 @@ int main(int argc, char **argv) {
                              vec3(1.f, 1.f, 1.f), vec3(0.f, 0.f, 0.f), "assets/cube.obj");
       entity->position = vec3_add(entity->position, vec3(2.f * i, -2.f * i, -1.f * i));
     }
-
-    vec3_print(entity->position);
   }
 
   u64 last_time = get_time_ms();
@@ -170,8 +167,6 @@ int main(int argc, char **argv) {
 
       rnd_end_frame(&game.render_context);
     }
-
-    poll_events();
   }
 
   vkDeviceWaitIdle(game.render_context.logical);

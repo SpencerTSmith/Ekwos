@@ -50,7 +50,7 @@ void window_free(Window *window) {
   glfwTerminate();
 }
 
-void poll_events(void) { glfwPollEvents(); }
+void window_poll_events(void) { glfwPollEvents(); }
 
 bool window_should_close(Window *window) { return glfwWindowShouldClose(window->handle); }
 
