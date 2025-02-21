@@ -11,6 +11,10 @@
 #include "game/entity.h"
 #include "render/render_context.h"
 
+enum Game_Constants {
+  GAME_DEFAULT_MAX_TICK = 60,
+};
+
 typedef struct Game Game;
 struct Game {
   Config config;

@@ -20,6 +20,10 @@ void game_init(Game *game, u32 argc, char **argv) {
   // Initialize the game's asset manager
   ass_manager_init(&game->persistent_arena, &game->asset_manager);
 
+  game->camera = (Camera){0};
+  game->camera.sensitivity = .1f;
+  game->camera.move_speed = 10.f;
+
   // Default Camera Settings
   camera_set_perspective(&game->camera, RADIANS(90.f), (f32)game->window.w / game->window.h, .1f,
                          10.f);

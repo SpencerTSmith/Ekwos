@@ -19,7 +19,6 @@ enum RND_Context_Constants {
   RENDER_CONTEXT_MAX_SURFACE_FORMATS = 16, // no idea for this, made of 2 enums, lots of elems
   RENDER_CONTEXT_ATTACHMENT_COUNT = 2,
   RENDER_CONTEXT_STAGING_SIZE = MB(64),
-  RENDER_CONTEXT_DEFAULT_MAX_FPS = 60,
 };
 
 // Just in case we want easy pointers

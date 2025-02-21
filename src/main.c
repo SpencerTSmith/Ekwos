@@ -8,12 +8,12 @@
 #include "game/entity.h"
 #include "game/game.h"
 
+#include "os/os.h"
+
 #include "render/render_mesh.h"
 #include "render/render_pipeline.h"
 
 #include <stdio.h>
-#include <time.h>
-#include <unistd.h>
 
 // TODO(ss); move the calculation of movment vectors out of here and into the update...
 // it may be cleaner to instead just save any nessecary information into camera object and calculate
@@ -24,8 +24,9 @@ void process_input(Window *window, Camera *camera, f64 dt) {
   f64 new_cursor_x, new_cursor_y;
   glfwGetCursorPos(window->handle, &new_cursor_x, &new_cursor_y);
 
-  f32 x_offset = .1f * (new_cursor_x - window->cursor_x);
-  f32 y_offset = .1f * (new_cursor_y - window->cursor_y);
+  // TODO(ss): magic numbers: camera sensitivity?
+  f64 x_offset = camera->sensitivity * (new_cursor_x - window->cursor_x);
+  f64 y_offset = camera->sensitivity * (new_cursor_y - window->cursor_y);
 
   window->cursor_x = new_cursor_x;
   window->cursor_y = new_cursor_y;
@@ -63,11 +64,13 @@ void process_input(Window *window, Camera *camera, f64 dt) {
   if (glfwGetKey(window->handle, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
     input_direction = vec3_sub(input_direction, camera->up);
 
-  // HACK(ss): The only way to make sure no div by 0?
+  // HACK(ss): The only way to make sure no div by 0? By doing this we recompute
+  // the length twice unessecarily
   if (vec3_len(input_direction) > 0.0f)
     input_direction = vec3_norm(input_direction);
 
-  vec3 camera_velocity = vec3_mul(input_direction, 5.f * dt);
+  // TODO(ss): magic numbers: camera move speed?
+  vec3 camera_velocity = vec3_mul(input_direction, camera->move_speed * dt);
   camera->position = vec3_add(camera->position, camera_velocity);
 }
 
@@ -86,13 +89,13 @@ int main(int argc, char **argv) {
     Entity *entity = NULL;
     if (i % 2 == 0) {
       entity = entity_create(&game.entity_pool, &game.render_context, &game.asset_manager,
-                             EK_ENTITY_FLAG_DEFAULTS, vec3(0.f, 0.f, -2.f), vec3(0.f, 0.f, 0.f),
+                             ENTITY_FLAG_DEFAULT, vec3(0.f, 0.f, -2.f), vec3(0.f, 0.f, 0.f),
                              vec3(1.f, 1.f, 1.f), vec3(0.f, 0.f, 0.f), "assets/flat_vase.obj");
       entity->position = vec3_add(entity->position, vec3(-2.f * i, 2.f * i, -1.f * i));
       entity->scale = vec3(5.f, 5.f, 5.f);
     } else {
       entity = entity_create(&game.entity_pool, &game.render_context, &game.asset_manager,
-                             EK_ENTITY_FLAG_DEFAULTS, vec3(0.f, 0.f, -2.f), vec3(0.f, 0.f, 0.f),
+                             ENTITY_FLAG_DEFAULT, vec3(0.f, 0.f, -2.f), vec3(0.f, 0.f, 0.f),
                              vec3(1.f, 1.f, 1.f), vec3(0.f, 0.f, 0.f), "assets/cube.obj");
       entity->position = vec3_add(entity->position, vec3(2.f * i, -2.f * i, -1.f * i));
     }
@@ -107,7 +110,7 @@ int main(int argc, char **argv) {
     {
       u64 sleep_time = game.target_frame_time_ms - (get_time_ms() - last_time);
       if (sleep_time > 0 && sleep_time < game.target_frame_time_ms) {
-        usleep(sleep_time * 1000);
+        os_sleep_ms(sleep_time);
       }
 
       u64 current_time = get_time_ms();

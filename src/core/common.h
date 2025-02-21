@@ -44,6 +44,7 @@ typedef float f32;
 #define MB(n) (1024 * KB(n))
 #define GB(n) (1024 * MB(n))
 
+// These should be cross platform in c17
 f64 get_time_s(void);
 u64 get_time_ms(void);
 

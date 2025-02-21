@@ -16,7 +16,7 @@ struct Entity_Pool {
 
 typedef u32 Entity_Flags;
 enum Entity_Flags {
-  EK_ENTITY_FLAG_DEFAULTS = 0,
+  ENTITY_FLAG_DEFAULT = 0,
 };
 
 typedef struct Entity Entity;
@@ -38,7 +38,7 @@ struct Entity {
 
 enum Entity_Constants {
   ENTITY_INVALID_ID = -1,
-  ENTITY_MAX_NUM = 5,
+  ENTITY_MAX_NUM = 10,
 };
 
 Entity_Pool entity_pool_create(u64 capacity);

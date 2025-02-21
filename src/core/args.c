@@ -2,6 +2,7 @@
 
 #include "core/log.h"
 
+#include "game/game.h"
 #include "render/render_context.h"
 
 #include "core/window.h"
@@ -32,7 +33,7 @@ Config arg_parse(u32 argc, char **argv) {
   Config config = {
       .window_width = WINDOW_DEFAULT_WIDTH,
       .window_height = WINDOW_DEFAULT_HEIGHT,
-      .fps_limit = RENDER_CONTEXT_DEFAULT_MAX_FPS,
+      .fps_limit = GAME_DEFAULT_MAX_TICK,
   };
 
   if (argc == 1)

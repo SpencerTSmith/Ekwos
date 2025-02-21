@@ -46,6 +46,7 @@ target_compile_options(ekwos PRIVATE
 	-Wshadow
 	-Wpedantic
 	-DDEBUG=1
+	-DOS_LINUX=1
 )
 
 set_target_properties(ekwos PROPERTIES
