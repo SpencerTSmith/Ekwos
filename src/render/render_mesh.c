@@ -3,7 +3,7 @@
 #include "core/log.h"
 #include "render/render_context.h"
 
-const VkVertexInputBindingDescription g_vertex_binding_desc[RND_VERTEX_BINDING_NUM] = {
+const VkVertexInputBindingDescription g_rnd_vertex_binding_descs[RND_VERTEX_BINDINGS_NUM] = {
     {
         .binding = 0,
         .stride = sizeof(RND_Vertex),
@@ -11,7 +11,7 @@ const VkVertexInputBindingDescription g_vertex_binding_desc[RND_VERTEX_BINDING_N
     },
 };
 
-const VkVertexInputAttributeDescription g_vertex_attrib_desc[RND_VERTEX_ATTRIBUTES_NUM] = {
+const VkVertexInputAttributeDescription g_rnd_vertex_attrib_descs[RND_VERTEX_ATTRIBUTES_NUM] = {
     {
         .binding = 0,
         .location = 0,

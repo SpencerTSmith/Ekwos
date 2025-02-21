@@ -44,6 +44,7 @@ struct Queue_Family_Indices {
 
 // Forward declarations //
 static void create_instance(RND_Context *rc);
+static VkSurfaceKHR create_surface(RND_Context *rc, Window *window);
 static void choose_physical_device(RND_Context *rc);
 static void create_logical_device(RND_Context *rc);
 
@@ -62,7 +63,7 @@ void rnd_context_init(RND_Context *rc, Window *window) {
 
   create_instance(rc);
 
-  rc->surface = window_surface_create(window, rc);
+  rc->surface = create_surface(rc, window);
   choose_physical_device(rc);
 
   create_logical_device(rc);
@@ -334,6 +335,8 @@ static bool check_val_layer_support(Arena *arena, const char *const *layers, u32
 VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(
     VkDebugUtilsMessageSeverityFlagsEXT msg_severity, VkDebugUtilsMessageTypeFlagsEXT msg_type,
     const VkDebugUtilsMessengerCallbackDataEXT *callback_data, void *user_data) {
+  (void)msg_type;
+  (void)user_data;
   if (msg_severity >= VK_DEBUG_UTILS_MESSAGE_SEVERITY_WARNING_BIT_EXT) {
     LOG_DEBUG("%s", callback_data->pMessage);
   }
@@ -434,6 +437,14 @@ static bool check_device_extension_support(Arena *arena, VkPhysicalDevice device
   }
 
   return true;
+}
+
+static VkSurfaceKHR create_surface(RND_Context *rc, Window *window) {
+  VkSurfaceKHR surface;
+  VK_CHECK_FATAL(glfwCreateWindowSurface(rc->instance, window->handle, NULL, &surface),
+                 EXT_VK_SURFACE, "Failed to create render surface");
+  LOG_DEBUG("Created surface");
+  return surface;
 }
 
 static void choose_physical_device(RND_Context *rc) {

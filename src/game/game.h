@@ -3,12 +3,12 @@
 
 #include "asset/asset_manager.h"
 
-#include "core/args.h"
 #include "core/window.h"
 
+#include "game/args.h"
 #include "game/camera.h"
-
 #include "game/entity.h"
+
 #include "render/render_context.h"
 
 enum Game_Constants {

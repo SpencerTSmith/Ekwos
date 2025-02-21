@@ -4,40 +4,42 @@
 #include "core/common.h"
 #include "core/linear_algebra.h"
 
-#include "render/render_common.h"
 #include "render/render_context.h"
+
+#include <stdalign.h>
 
 typedef struct RND_Vertex RND_Vertex;
 struct RND_Vertex {
-    vec3 position;
-    vec3 color;
-    vec3 normal;
-    vec2 uv;
+  vec3 position;
+  vec3 color;
+  vec3 normal;
+  vec2 uv;
 };
 
 // Remember alignment shit
 typedef struct RND_Push_Constants RND_Push_Constants;
 struct RND_Push_Constants {
-    mat4 transform;
-    alignas(16) vec3 color;
+  mat4 transform;
+  alignas(16) vec3 color;
 };
 
 typedef struct RND_Mesh RND_Mesh;
 struct RND_Mesh {
-    VkDeviceMemory vertex_memory;
-    VkDeviceMemory index_memory;
-    VkBuffer vertex_buffer;
-    VkBuffer index_buffer;
-    u32 vertex_count;
-    u32 index_count;
+  VkDeviceMemory vertex_memory;
+  VkDeviceMemory index_memory;
+  VkBuffer vertex_buffer;
+  VkBuffer index_buffer;
+  u32 vertex_count;
+  u32 index_count;
 };
 
 enum RND_Mesh_Constants {
-    RND_VERTEX_BINDING_NUM = 1,
-    RND_VERTEX_ATTRIBUTES_NUM = 2,
+  RND_VERTEX_BINDINGS_NUM = 1,
+  RND_VERTEX_ATTRIBUTES_NUM = 2,
 };
-extern const VkVertexInputBindingDescription g_vertex_binding_desc[RND_VERTEX_BINDING_NUM];
-extern const VkVertexInputAttributeDescription g_vertex_attrib_desc[RND_VERTEX_ATTRIBUTES_NUM];
+
+extern const VkVertexInputBindingDescription g_rnd_vertex_binding_descs[RND_VERTEX_BINDINGS_NUM];
+extern const VkVertexInputAttributeDescription g_rnd_vertex_attrib_descs[RND_VERTEX_ATTRIBUTES_NUM];
 
 // TODO(ss): Either need to use VMA (Vulkan Memory Allocator) library or create our own gpu memory
 // allocator ASAP

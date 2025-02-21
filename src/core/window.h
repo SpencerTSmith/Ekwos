@@ -34,7 +34,4 @@ void poll_events(void);
 bool window_should_close(Window *window);
 void window_set_to_close(Window *window);
 
-typedef struct RND_Context RND_Context;
-VkSurfaceKHR window_surface_create(Window *window, RND_Context *rc);
-
 #endif // WINDOW_H

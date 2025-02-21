@@ -8,7 +8,7 @@ cmake -B build && cmake --build build
 Probably only working on Linux, haven't tested on any systems besides my desktop and laptop both running Linux. As well, none of my custom assets are currently packaged with the repo. Running as it is will result in a default cube mesh being loaded for all entities.
 ```
 cd build
-./ekwos -w [window-width] -h [window-height]
+./ekwos -w [window-width] -h [window-height] -f [max fps]
 ```
 Need to run the game from the build folder, as the compiled shaders need to be in the same folder as the executable.
 

@@ -1,8 +1,5 @@
 #include "game/game.h"
 
-// Should this be here?
-void game_calc_fps_dt(Game *game) {}
-
 void game_init(Game *game, u32 argc, char **argv) {
   Config config = arg_parse(argc, argv);
 

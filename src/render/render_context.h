@@ -1,9 +1,9 @@
 #ifndef RENDER_CONTEXT_H
 #define RENDER_CONTEXT_H
 
-#include "core/arena.h"
 #include "core/common.h"
 #include "core/window.h"
+
 #include "render/render_allocator.h"
 #include "render/render_common.h"
 #include "render/render_uploader.h"
