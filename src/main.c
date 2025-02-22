@@ -123,9 +123,20 @@ int main(int argc, char **argv) {
 
     process_input(&game.window, &game.camera, game.dt);
 
-    // Update Logic would go here
-    //
-    // // // //
+    // Update Logic
+    {
+      u32 entities_end = 0;
+      Entity *entities = (Entity *)pool_as_array(&game.entity_pool.pool, &entities_end);
+      for (u32 i = 0; i < entities_end; i++) {
+        if (entities[i].id == ENTITY_INVALID_ID) {
+          continue;
+        }
+
+        entities[i].rotation.x += 0.10f * PI * game.dt;
+        entities[i].rotation.y += 0.10f * PI * game.dt;
+        entities[i].rotation.z += 0.10f * PI * game.dt;
+      }
+    }
 
     rnd_begin_frame(&game.render_context, &game.window);
     {
@@ -137,15 +148,10 @@ int main(int argc, char **argv) {
 
       u32 entities_end = 0;
       Entity *entities = (Entity *)pool_as_array(&game.entity_pool.pool, &entities_end);
-
       for (u32 i = 0; i < entities_end; i++) {
         if (entities[i].id == ENTITY_INVALID_ID) {
           continue;
         }
-
-        entities[i].rotation.x += 0.001f * PI;
-        entities[i].rotation.y += 0.001f * PI;
-        entities[i].rotation.z += 0.001f * PI;
         mat4 e_transform = mat4_mul(proj_view, entity_model_transform(&entities[i]));
 
         RND_Push_Constants push = {0};
