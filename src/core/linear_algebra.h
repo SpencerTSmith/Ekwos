@@ -191,7 +191,7 @@ static inline vec2 vec2_make(f32 x, f32 y) {
   return result;
 }
 
-static inline f32 vec2_length(vec2 v) { return sqrtf(v.x * v.x + v.y * v.y); }
+static inline f32 vec2_len(vec2 v) { return sqrtf(v.x * v.x + v.y * v.y); }
 
 static inline vec2 vec2_add(vec2 v1, vec2 v2) {
   vec2 result;
@@ -227,7 +227,12 @@ static inline vec2 vec2_div(vec2 v, f32 s) {
 static inline f32 vec2_dot(vec2 a, vec2 b) { return a.x * b.x + a.y * b.y; }
 
 // Only 1 division like this
-static inline vec2 vec2_norm(vec2 v) { return vec2_mul(v, 1 / vec2_length(v)); }
+static inline vec2 vec2_norm(vec2 v) { return vec2_mul(v, 1 / vec2_len(v)); }
+// Nice little 0 checker variant
+static inline vec2 vec2_norm0(vec2 v) {
+  f32 len = vec2_len(v);
+  return len > 0 ? vec2_mul(v, 1 / len) : (vec2){0};
+}
 
 static inline f32 vec2_cross(vec2 a, vec2 b) { return a.x * b.y - a.y * b.x; }
 
@@ -291,6 +296,10 @@ static inline vec3 vec3_cross(vec3 left, vec3 right) {
 static inline f32 vec3_dot(vec3 a, vec3 b) { return a.x * b.x + a.y * b.y + a.z * b.z; }
 
 static inline vec3 vec3_norm(vec3 v) { return vec3_mul(v, 1.0f / vec3_len(v)); }
+static inline vec3 vec3_norm0(vec3 v) {
+  f32 len = vec3_len(v);
+  return len > 0 ? vec3_mul(v, 1 / len) : (vec3){0};
+}
 
 static inline vec3 vec3_rotate_x(vec3 v, f32 angle) {
   vec3 result;
@@ -383,6 +392,10 @@ static inline vec4 vec4_div(vec4 v, f32 s) {
 static inline f32 vec4_dot(vec4 a, vec4 b) { return a.x * b.x + a.y * b.y + a.z * b.z + a.w * b.w; }
 
 static inline vec4 vec4_norm(vec4 v) { return vec4_mul(v, 1.0f / vec4_len(v)); }
+static inline vec4 vecf_norm0(vec4 v) {
+  f32 len = vec4_len(v);
+  return len > 0 ? vec4_mul(v, 1 / len) : (vec4){0};
+}
 
 #define mat4_identity() mat4_diagonal(1.0f)
 static inline mat4 mat4_diagonal(f32 d) {
