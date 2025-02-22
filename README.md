@@ -37,7 +37,8 @@ Need to run the game from the build folder, as the compiled shaders need to be i
         - [ ] Hashing to check if already loaded
 - [x] FPS Limiter
     - [x] Basics
-    - [ ] Accuracy, for some reason not completely accurate (when target set to 60fps, get 62.5 why?)
+    - [ ] Accuracy
+        - [ ] Target frame time stored as f64 milliseconds (since we want 16.66.. ms for 60fps), but calculating elapsed time as u64 milliseconds
     - [ ] Add CLI option to set this
 - [ ] Pull camera position updating out of input processing
     - [ ] In future, this will make it so we can use the same logic for updating the player as every other entity

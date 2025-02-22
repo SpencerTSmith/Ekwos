@@ -6,7 +6,7 @@
 #include "render/render_common.h"
 #include "render/render_context.h"
 
-static void framebuffer_resize_callback(GLFWwindow *window, int width, int height);
+translation_local void framebuffer_resize_callback(GLFWwindow *window, int width, int height);
 
 void window_init(Window *window, char *name, u32 width, u32 height) {
   if (!glfwInit()) {
@@ -65,7 +65,7 @@ VkSurfaceKHR window_surface_create(Window *window, RND_Context *rc) {
 }
 
 // TODO(ss): look into window refresh callback for smoother window resize
-static void framebuffer_resize_callback(GLFWwindow *handle, int width, int height) {
+translation_local void framebuffer_resize_callback(GLFWwindow *handle, int width, int height) {
   Window *window = (Window *)glfwGetWindowUserPointer(handle);
   window->w = width;
   window->h = height;

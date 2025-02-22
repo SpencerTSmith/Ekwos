@@ -26,9 +26,10 @@ const VkVertexInputAttributeDescription g_rnd_vertex_attrib_descs[RND_VERTEX_ATT
     },
 };
 
-static void create_vertex_buffer(RND_Context *rc, RND_Mesh *mesh, RND_Vertex *verts,
-                                 u32 vert_count);
-static void create_index_buffer(RND_Context *rc, RND_Mesh *mesh, u32 *indexs, u32 index_count);
+translation_local void create_vertex_buffer(RND_Context *rc, RND_Mesh *mesh, RND_Vertex *verts,
+                                            u32 vert_count);
+translation_local void create_index_buffer(RND_Context *rc, RND_Mesh *mesh, u32 *indexs,
+                                           u32 index_count);
 
 void rnd_mesh_init(RND_Context *rc, RND_Mesh *mesh, RND_Vertex *verts, u32 vert_count, u32 *indexs,
                    u32 indx_count) {
@@ -58,91 +59,30 @@ void rnd_mesh_draw(RND_Context *rc, RND_Mesh *mesh) {
 }
 
 void rnd_mesh_free(RND_Context *rc, RND_Mesh *mesh) {
-  vkDestroyBuffer(rc->logical, mesh->vertex_buffer, NULL);
-  vkFreeMemory(rc->logical, mesh->vertex_memory, NULL);
+  if (mesh->vertex_count > 0 && mesh->vertex_buffer != VK_NULL_HANDLE &&
+      mesh->vertex_memory != VK_NULL_HANDLE) {
+    vkDestroyBuffer(rc->logical, mesh->vertex_buffer, NULL);
+    vkFreeMemory(rc->logical, mesh->vertex_memory, NULL);
+  }
   if (mesh->index_count > 0 && mesh->index_buffer != VK_NULL_HANDLE &&
       mesh->index_memory != VK_NULL_HANDLE) {
     vkDestroyBuffer(rc->logical, mesh->index_buffer, NULL);
     vkFreeMemory(rc->logical, mesh->index_memory, NULL);
   }
+
   ZERO_STRUCT(mesh);
 }
 
 void rnd_mesh_default_cube(RND_Context *rc, RND_Mesh *mesh) {
-  // RND_Vertex verts[] = {
-  //
-  //     // left face (white)
-  //     {.position = {{-.5f, -.5f, -.5f}}, .color = {{.9f, .9f, .9f}}},
-  //     {.position = {{-.5f, .5f, .5f}}, .color = {{.9f, .9f, .9f}}},
-  //     {.position = {{-.5f, -.5f, .5f}}, .color = {{.9f, .9f, .9f}}},
-  //     {.position = {{-.5f, -.5f, -.5f}}, .color = {{.9f, .9f, .9f}}},
-  //     {.position = {{-.5f, .5f, -.5f}}, .color = {{.9f, .9f, .9f}}},
-  //     {.position = {{-.5f, .5f, .5f}}, .color = {{.9f, .9f, .9f}}},
-  //
-  //     // right face (yellow)
-  //     {.position = {{.5f, -.5f, -.5f}}, .color = {{.8f, .8f, .1f}}},
-  //     {.position = {{.5f, .5f, .5f}}, .color = {{.8f, .8f, .1f}}},
-  //     {.position = {{.5f, -.5f, .5f}}, .color = {{.8f, .8f, .1f}}},
-  //     {.position = {{.5f, -.5f, -.5f}}, .color = {{.8f, .8f, .1f}}},
-  //     {.position = {{.5f, .5f, -.5f}}, .color = {{.8f, .8f, .1f}}},
-  //     {.position = {{.5f, .5f, .5f}}, .color = {{.8f, .8f, .1f}}},
-  //
-  //     // bottom face (orange)
-  //     {.position = {{-.5f, -.5f, -.5f}}, .color = {{1.0f, .35f, .0f}}},
-  //     {.position = {{.5f, -.5f, .5f}}, .color = {{1.0f, .35f, .0f}}},
-  //     {.position = {{-.5f, -.5f, .5f}}, .color = {{1.0f, .35f, .0f}}},
-  //     {.position = {{-.5f, -.5f, -.5f}}, .color = {{1.0f, .35f, .0f}}},
-  //     {.position = {{.5f, -.5f, -.5f}}, .color = {{1.0f, .35f, .0f}}},
-  //     {.position = {{.5f, -.5f, .5f}}, .color = {{1.0f, .35f, .0f}}},
-  //
-  //     // top face (red)
-  //     {.position = {{-.5f, .5f, -.5f}}, .color = {{.8f, .1f, .1f}}},
-  //     {.position = {{.5f, .5f, .5f}}, .color = {{.8f, .1f, .1f}}},
-  //     {.position = {{-.5f, .5f, .5f}}, .color = {{.8f, .1f, .1f}}},
-  //     {.position = {{-.5f, .5f, -.5f}}, .color = {{.8f, .1f, .1f}}},
-  //     {.position = {{.5f, .5f, -.5f}}, .color = {{.8f, .1f, .1f}}},
-  //     {.position = {{.5f, .5f, .5f}}, .color = {{.8f, .1f, .1f}}},
-  //
-  //     // nose face (blue)
-  //     {.position = {{-.5f, -.5f, 0.5f}}, .color = {{.1f, .1f, .8f}}},
-  //     {.position = {{.5f, .5f, 0.5f}}, .color = {{.1f, .1f, .8f}}},
-  //     {.position = {{-.5f, .5f, 0.5f}}, .color = {{.1f, .1f, .8f}}},
-  //     {.position = {{-.5f, -.5f, 0.5f}}, .color = {{.1f, .1f, .8f}}},
-  //     {.position = {{.5f, -.5f, 0.5f}}, .color = {{.1f, .1f, .8f}}},
-  //     {.position = {{.5f, .5f, 0.5f}}, .color = {{.1f, .1f, .8f}}},
-  //
-  //     // tail face (green)
-  //     {.position = {{-.5f, -.5f, -0.5f}}, .color = {{.1f, .8f, .1f}}},
-  //     {.position = {{.5f, .5f, -0.5f}}, .color = {{.1f, .8f, .1f}}},
-  //     {.position = {{-.5f, .5f, -0.5f}}, .color = {{.1f, .8f, .1f}}},
-  //     {.position = {{-.5f, -.5f, -0.5f}}, .color = {{.1f, .8f, .1f}}},
-  //     {.position = {{.5f, -.5f, -0.5f}}, .color = {{.1f, .8f, .1f}}},
-  //     {.position = {{.5f, .5f, -0.5f}}, .color = {{.1f, .8f, .1f}}},
-  // };
-  //
-  // // Just for testing
-  // u32 indices[] = {// Left face
-  //                  0, 1, 2, 3, 4, 5,
-  //                  // Right face
-  //                  6, 7, 8, 9, 10, 11,
-  //                  // Bottom face
-  //                  12, 13, 14, 15, 16, 17,
-  //                  // Top face
-  //                  18, 19, 20, 21, 22, 23,
-  //                  // Front (nose) face
-  //                  24, 25, 26, 27, 28, 29,
-  //                  // Back (tail) face
-  //                  30, 31, 32, 33, 34, 35};
-
   RND_Vertex verts[] = {
-      {.position = vec3(1.f, -1.f, 1.f), .color = vec3(1.0f, 0.5f, 0.2f)},
-      {.position = vec3(1.f, 1.f, 1.f), .color = vec3(1.0f, 0.5f, 0.2f)},
-      {.position = vec3(1.f, -1.f, -1.f), .color = vec3(1.0f, 0.5f, 0.2f)},
-      {.position = vec3(1.f, 1.f, -1.f), .color = vec3(1.0f, 0.5f, 0.2f)},
-      {.position = vec3(-1.f, -1.f, 1.f), .color = vec3(1.0f, 0.5f, 0.2f)},
-      {.position = vec3(-1.f, 1.f, 1.f), .color = vec3(1.0f, 0.5f, 0.2f)},
-      {.position = vec3(-1.f, -1.f, -1.f), .color = vec3(1.0f, 0.5f, 0.2f)},
-      {.position = vec3(-1.f, 1.f, -1.f), .color = vec3(1.0f, 0.5f, 0.2f)},
+      {.position = vec3(1.f, -1.f, 1.f), .color = vec3(1.0f, .5f, .5f)},
+      {.position = vec3(1.f, 1.f, 1.f), .color = vec3(.1f, .1f, 0.8f)},
+      {.position = vec3(1.f, -1.f, -1.f), .color = vec3(.1f, .8f, .2f)},
+      {.position = vec3(1.f, 1.f, -1.f), .color = vec3(1.0f, 1.0f, .2f)},
+      {.position = vec3(-1.f, -1.f, 1.f), .color = vec3(0.f, 1.0f, 1.f)},
+      {.position = vec3(-1.f, 1.f, 1.f), .color = vec3(1.0f, .5f, .2f)},
+      {.position = vec3(-1.f, -1.f, -1.f), .color = vec3(1.f, .5f, 1.f)},
+      {.position = vec3(-1.f, 1.f, -1.f), .color = vec3(1.f, 0.f, .2f)},
   };
 
   u32 indices[] = {
@@ -154,8 +94,8 @@ void rnd_mesh_default_cube(RND_Context *rc, RND_Mesh *mesh) {
   create_index_buffer(rc, mesh, indices, STATIC_ARRAY_COUNT(indices));
 }
 
-static void create_vertex_buffer(RND_Context *rc, RND_Mesh *mesh, RND_Vertex *verts,
-                                 u32 vert_count) {
+translation_local void create_vertex_buffer(RND_Context *rc, RND_Mesh *mesh, RND_Vertex *verts,
+                                            u32 vert_count) {
   mesh->vertex_count = vert_count;
 
   if (vert_count < 3) {
@@ -177,7 +117,8 @@ static void create_vertex_buffer(RND_Context *rc, RND_Mesh *mesh, RND_Vertex *ve
   rnd_upload_buffer(&rc->uploader, verts, buffer_size, mesh->vertex_buffer);
 }
 
-static void create_index_buffer(RND_Context *rc, RND_Mesh *mesh, u32 *indices, u32 index_count) {
+translation_local void create_index_buffer(RND_Context *rc, RND_Mesh *mesh, u32 *indices,
+                                           u32 index_count) {
   mesh->index_count = index_count;
 
   VkDeviceSize buffer_size = sizeof(u32) * index_count;

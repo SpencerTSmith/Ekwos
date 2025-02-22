@@ -46,8 +46,8 @@ void ass_manager_free(ASS_Manager *ass, RND_Context *rc);
 
 // Returns a handle to a mesh, managed by asset manager, OJB loader taken
 // straight from a previous project... needs work probably
-ASS_Entry ass_load_mesh_obj(ASS_Manager *asset_manager, RND_Context *render_context,
-                            char *file_name);
+ASS_Entry *ass_load_mesh_obj(ASS_Manager *asset_manager, RND_Context *render_context,
+                             char *file_name);
 
 void ass_free_entry(ASS_Entry *asset_entry);
 

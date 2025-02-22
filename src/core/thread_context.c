@@ -3,7 +3,9 @@
 thread_local Thread_Context *internal_tctx;
 
 void thread_context_init(Thread_Context *tc) {
-  static u32 thread_id = 0;
+  // Does this work?
+  function_local u32 thread_id = 0;
+
   tc->id = thread_id++;
   tc->scratch_arena = arena_create(GB(1), ARENA_FLAG_DEFAULTS);
   internal_tctx = tc;

@@ -10,9 +10,8 @@
 #include <stdlib.h>
 #include <string.h>
 
-// Is this over engineering?
-static const char *arg_strings[] = {"--window-width", "--window-height", "--fps"};
-static const char *arg_short_strings[] = {"-w", "-h", "-f"};
+translation_local const char *arg_strings[] = {"--window-width", "--window-height", "--fps"};
+translation_local const char *arg_short_strings[] = {"-w", "-h", "-f"};
 
 Argument arg_from_string(char *arg) {
   if (strcmp(arg, arg_strings[ARG_WINDOW_WIDTH]) == 0 ||

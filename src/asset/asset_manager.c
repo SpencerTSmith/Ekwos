@@ -15,9 +15,9 @@ void ass_manager_init(Arena *arena, ASS_Manager *ass) {
 }
 
 void ass_manager_free(ASS_Manager *ass, RND_Context *rc) {
-  u32 mesh_count = 0;
-  RND_Mesh *meshes = pool_as_array(&ass->mesh_pool, &mesh_count);
-  for (u32 i = 0; i < mesh_count; i++) {
+  u32 mesh_last = 0;
+  RND_Mesh *meshes = pool_as_array(&ass->mesh_pool, &mesh_last);
+  for (u32 i = 0; i < mesh_last; i++) {
     rnd_mesh_free(rc, &meshes[i]);
   }
   pool_free(&ass->entry_pool);
@@ -27,26 +27,31 @@ void ass_manager_free(ASS_Manager *ass, RND_Context *rc) {
 
 // Check if we've already loaded this file
 ASS_Entry *ass_find_existing(ASS_Manager *ass, char *name) {
+  ASS_Entry *entry = NULL;
+
   // TODO(ss): This is not going to scale, probably need hash table
-  u32 entries_count = 0;
-  ASS_Entry *entries = pool_as_array(&ass->entry_pool, &entries_count);
-  for (u32 i = 0; i < entries_count; i++) {
-    if (strcmp(entries[i].name, name) == 0) {
-      return &entries[i];
+  if (name != NULL) {
+    u32 entries_last = 0;
+    ASS_Entry *entries = pool_as_array(&ass->entry_pool, &entries_last);
+    for (u32 i = 0; i < entries_last; i++) {
+      if (strcmp(entries[i].name, name) == 0) {
+        entry = &entries[i];
+        break;
+      }
     }
   }
 
-  return NULL;
+  return entry;
 }
 
-ASS_Entry ass_load_mesh_obj(ASS_Manager *ass, RND_Context *rc, char *file_name) {
+ASS_Entry *ass_load_mesh_obj(ASS_Manager *ass, RND_Context *rc, char *file_name) {
   // Check if we already loaded this
   ASS_Entry *existing = ass_find_existing(ass, file_name);
   if (existing != NULL) {
     existing->reference_count++;
     LOG_DEBUG("Asset (%s) has been reused: reference count = %u", existing->name,
               existing->reference_count);
-    return *existing;
+    return existing;
   }
 
   FILE *obj_file = fopen(file_name, "rb");
@@ -61,7 +66,7 @@ ASS_Entry ass_load_mesh_obj(ASS_Manager *ass, RND_Context *rc, char *file_name) 
       loaded_cube->reference_count++;
       LOG_DEBUG("Asset (%s) has been reused: reference count = %u", loaded_cube->name,
                 loaded_cube->reference_count);
-      return *loaded_cube;
+      return loaded_cube;
     }
 
     // First time an invalid file was loaded, load the default cube into memory
@@ -74,7 +79,7 @@ ASS_Entry ass_load_mesh_obj(ASS_Manager *ass, RND_Context *rc, char *file_name) 
     entry->id = 0;
     strcpy(entry->name, "default_cube");
 
-    return *entry;
+    return entry;
   }
 
   // HACK(ss): 2 Pass approach, so I can just use the scratch pad bump allocator and allocate
@@ -123,7 +128,6 @@ ASS_Entry ass_load_mesh_obj(ASS_Manager *ass, RND_Context *rc, char *file_name) 
       vertices[vertex_current_index].position = obj_vertex;
       vertices[vertex_current_index].color = vec3(1.0f, 0.5f, 0.2f); // Default
       vertex_current_index++;
-
     } else if (line[0] == 'v' && line[1] == 't') { // Vertex UV's
 
     } else if (line[0] == 'v' && line[1] == 'n') {
@@ -164,5 +168,5 @@ ASS_Entry ass_load_mesh_obj(ASS_Manager *ass, RND_Context *rc, char *file_name) 
   LOG_DEBUG("Loaded asset (%s) for the first time", file_name);
 
   fclose(obj_file);
-  return *entry;
+  return entry;
 }

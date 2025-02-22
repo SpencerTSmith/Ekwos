@@ -10,19 +10,19 @@ typedef struct RND_Vertex RND_Vertex;
 // in case we ever move this to it's own thread
 typedef struct RND_Uploader RND_Uploader;
 struct RND_Uploader {
-    // NOTE(ss): I don't particularly like storing this here, but it will make the api a little bit
-    // better... need to think of nicer way to do this
-    VkDevice device;
+  // NOTE(ss): I don't particularly like storing this here, but it will make the api a little bit
+  // better... need to think of nicer way to do this
+  VkDevice device;
 
-    VkCommandPool command_pool;
-    VkCommandBuffer command_buffer;
+  VkCommandPool command_pool;
+  VkCommandBuffer command_buffer;
 
-    VkBuffer staging_buffer;
-    VkDeviceMemory staging_memory;
+  VkBuffer staging_buffer;
+  VkDeviceMemory staging_memory;
 
-    VkQueue transfer_q;
-    u32 transfer_index;
-    VkSemaphore transfer_finished_sem;
+  VkQueue transfer_q;
+  u32 transfer_index;
+  VkSemaphore transfer_finished_sem;
 };
 
 RND_Uploader rnd_uploader_create(RND_Context *rc);

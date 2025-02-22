@@ -17,6 +17,7 @@ typedef uint8_t u8;
 typedef double f64;
 typedef float f32;
 
+#define global static
 #define thread_local _Thread_local
 #define function_local static
 #define translation_local static
@@ -40,9 +41,11 @@ typedef float f32;
 
 #define VOID_PROC ((void)0)
 
-#define KB(n) (1024 * n)
+#define KB(n) (1024 * (n))
 #define MB(n) (1024 * KB(n))
 #define GB(n) (1024 * MB(n))
+
+#define RGB2F(fl) ((fl) / 255.f)
 
 // These should be cross platform in c17
 f64 get_time_s(void);

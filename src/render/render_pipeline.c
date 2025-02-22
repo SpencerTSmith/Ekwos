@@ -16,10 +16,10 @@ struct Shader_Code {
 };
 
 // Sets all besides pipeline_layout, render_pass, and subpass
-static Pipeline_Config default_pipeline_config(void);
+translation_local Pipeline_Config default_pipeline_config(void);
 
-static Shader_Code read_shader_file(Arena *arena, const char *file_path);
-static VkShaderModule create_shader_module(Shader_Code code, VkDevice device);
+translation_local Shader_Code read_shader_file(Arena *arena, const char *file_path);
+translation_local VkShaderModule create_shader_module(Shader_Code code, VkDevice device);
 
 RND_Pipeline rnd_pipeline_create(RND_Context *rc, const char *vert_shader_path,
                                  const char *frag_shader_path, const Pipeline_Config *config) {
@@ -141,7 +141,7 @@ void rnd_push_constants(RND_Context *rc, RND_Pipeline *pl, RND_Push_Constants pu
                      sizeof(RND_Push_Constants), &push);
 }
 
-static Pipeline_Config default_pipeline_config(void) {
+translation_local Pipeline_Config default_pipeline_config(void) {
   Pipeline_Config config = {0};
   // What is the primitive assembly like? (How are vertices treated... triangles, points, etc)
   config.input_assembly_info.sType = VK_STRUCTURE_TYPE_PIPELINE_INPUT_ASSEMBLY_STATE_CREATE_INFO;
@@ -203,7 +203,7 @@ static Pipeline_Config default_pipeline_config(void) {
   return config;
 }
 
-static Shader_Code read_shader_file(Arena *arena, const char *file_path) {
+translation_local Shader_Code read_shader_file(Arena *arena, const char *file_path) {
   Shader_Code shader_data = {0};
 
   FILE *shader_file = fopen(file_path, "rb");
@@ -245,7 +245,7 @@ static Shader_Code read_shader_file(Arena *arena, const char *file_path) {
   return shader_data;
 }
 
-static VkShaderModule create_shader_module(Shader_Code code, VkDevice device) {
+translation_local VkShaderModule create_shader_module(Shader_Code code, VkDevice device) {
   VkShaderModuleCreateInfo ci = {0};
   ci.sType = VK_STRUCTURE_TYPE_SHADER_MODULE_CREATE_INFO;
   ci.codeSize = code.size;

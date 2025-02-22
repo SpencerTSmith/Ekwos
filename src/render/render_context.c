@@ -10,16 +10,17 @@
 #include <string.h>
 
 #ifdef DEBUG
-static const char *const enabled_validation_layers[] = {"VK_LAYER_KHRONOS_validation"};
-static const bool enable_val_layers = true;
+translation_local const char *const enabled_validation_layers[] = {"VK_LAYER_KHRONOS_validation"};
+translation_local const bool enable_val_layers = true;
 #else
-static const char *const enabled_validation_layers[] = NULL;
-static const u32 num_enable_validation_layers = 0;
-static const bool enable_val_layers = false;
+translation_local const char *const enabled_validation_layers[] = NULL;
+translation_local const u32 num_enable_validation_layers = 0;
+translation_local const bool enable_val_layers = false;
 #endif // DEBUG defined
 
-static const char *const required_device_extensions[] = {VK_KHR_SWAPCHAIN_EXTENSION_NAME};
-static VkFormat possible_depth_formats[] = {
+translation_local const char *const required_device_extensions[] = {
+    VK_KHR_SWAPCHAIN_EXTENSION_NAME};
+translation_local VkFormat possible_depth_formats[] = {
     VK_FORMAT_D32_SFLOAT,
     VK_FORMAT_D32_SFLOAT_S8_UINT,
     VK_FORMAT_D24_UNORM_S8_UINT,
@@ -43,17 +44,17 @@ struct Queue_Family_Indices {
 };
 
 // Forward declarations //
-static void create_instance(RND_Context *rc);
-static VkSurfaceKHR create_surface(RND_Context *rc, Window *window);
-static void choose_physical_device(RND_Context *rc);
-static void create_logical_device(RND_Context *rc);
+translation_local void create_instance(RND_Context *rc);
+translation_local VkSurfaceKHR create_surface(RND_Context *rc, Window *window);
+translation_local void choose_physical_device(RND_Context *rc);
+translation_local void create_logical_device(RND_Context *rc);
 
 // Swap Chain Stuff //
-static void create_swap_chain(RND_Context *rc, Window *window);
+translation_local void create_swap_chain(RND_Context *rc, Window *window);
 // Takes in a handle in case we are recreating a swap chain, we can just destroy the old one, as
 // specified by the handle
-static void destroy_swap_chain(RND_Context *rc, VkSwapchainKHR swap_handle);
-static void recreate_swap_chain(RND_Context *rc, Window *window);
+translation_local void destroy_swap_chain(RND_Context *rc, VkSwapchainKHR swap_handle);
+translation_local void recreate_swap_chain(RND_Context *rc, Window *window);
 void rnd_upload_vertex_buffer(RND_Uploader *uploader, RND_Vertex *verts, u32 vert_count,
                               VkBuffer vertex_buffer);
 void rnd_upload_index_buffer(RND_Uploader *uploader, u32 *indexs, u32 index_count,
@@ -107,7 +108,7 @@ void rnd_context_free(RND_Context *rc) {
 
 // Returns result of acquiring the image, stores the current image index into the
 // right field in rc->swap
-static VkResult acquire_next_image(RND_Context *rc);
+translation_local VkResult acquire_next_image(RND_Context *rc);
 
 void rnd_begin_frame(RND_Context *rc, Window *window) {
   u32 current_frame = rc->swap.current_frame_idx;
@@ -244,7 +245,7 @@ VkCommandBuffer rnd_get_current_cmd(const RND_Context *rc) {
   return rnd_get_current_frame(rc)->command_buffer;
 }
 
-static VkResult acquire_next_image(RND_Context *rc) {
+translation_local VkResult acquire_next_image(RND_Context *rc) {
   u32 current_frame = rc->swap.current_frame_idx;
 
   VK_CHECK_ERROR(vkWaitForFences(rc->logical, 1, &rnd_get_current_frame(rc)->in_flight_fence,
@@ -259,7 +260,7 @@ static VkResult acquire_next_image(RND_Context *rc) {
   return result;
 }
 
-static const char **get_glfw_required_extensions(Arena *arena, u32 *num_extensions) {
+translation_local const char **get_glfw_required_extensions(Arena *arena, u32 *num_extensions) {
   u32 glfw_extension_count = 0;
   const char **glfw_extensions;
   glfw_extensions = glfwGetRequiredInstanceExtensions(&glfw_extension_count);
@@ -304,7 +305,8 @@ static const char **get_glfw_required_extensions(Arena *arena, u32 *num_extensio
   return extensions;
 }
 
-static bool check_val_layer_support(Arena *arena, const char *const *layers, u32 num_layers) {
+translation_local bool check_val_layer_support(Arena *arena, const char *const *layers,
+                                               u32 num_layers) {
   u32 num_supported_layers;
   VK_CHECK_ERROR(vkEnumerateInstanceLayerProperties(&num_supported_layers, NULL),
                  "Failed to enumerate instance layer properties");
@@ -343,7 +345,7 @@ VKAPI_ATTR VkBool32 VKAPI_CALL debug_callback(
   return VK_FALSE;
 }
 
-static void create_instance(RND_Context *rc) {
+translation_local void create_instance(RND_Context *rc) {
   // Just some temporary memory for getting extensions etc.
   Scratch scratch = thread_get_scratch();
 
@@ -408,8 +410,9 @@ static void create_instance(RND_Context *rc) {
   thread_end_scratch(&scratch);
 }
 
-static bool check_device_extension_support(Arena *arena, VkPhysicalDevice device,
-                                           const char *const *extensions, u32 num_extensions) {
+translation_local bool check_device_extension_support(Arena *arena, VkPhysicalDevice device,
+                                                      const char *const *extensions,
+                                                      u32 num_extensions) {
   u32 extension_count = 0;
 
   VK_CHECK_ERROR(vkEnumerateDeviceExtensionProperties(device, NULL, &extension_count, NULL),
@@ -439,7 +442,7 @@ static bool check_device_extension_support(Arena *arena, VkPhysicalDevice device
   return true;
 }
 
-static VkSurfaceKHR create_surface(RND_Context *rc, Window *window) {
+translation_local VkSurfaceKHR create_surface(RND_Context *rc, Window *window) {
   VkSurfaceKHR surface;
   VK_CHECK_FATAL(glfwCreateWindowSurface(rc->instance, window->handle, NULL, &surface),
                  EXT_VK_SURFACE, "Failed to create render surface");
@@ -447,7 +450,7 @@ static VkSurfaceKHR create_surface(RND_Context *rc, Window *window) {
   return surface;
 }
 
-static void choose_physical_device(RND_Context *rc) {
+translation_local void choose_physical_device(RND_Context *rc) {
   Scratch scratch = thread_get_scratch();
 
   u32 device_count = 0;
@@ -497,8 +500,8 @@ static void choose_physical_device(RND_Context *rc) {
   thread_end_scratch(&scratch);
 }
 
-static Queue_Family_Indices get_queue_family_indices(VkPhysicalDevice device,
-                                                     VkSurfaceKHR surface) {
+translation_local Queue_Family_Indices get_queue_family_indices(VkPhysicalDevice device,
+                                                                VkSurfaceKHR surface) {
   Scratch scratch = thread_get_scratch();
 
   // Find queue families the physical device supports, pick the one that supports graphics and
@@ -549,7 +552,7 @@ static Queue_Family_Indices get_queue_family_indices(VkPhysicalDevice device,
   return (Queue_Family_Indices){.graphic = graphic_index, .present = present_index};
 }
 
-static void create_logical_device(RND_Context *rc) {
+translation_local void create_logical_device(RND_Context *rc) {
   VkPhysicalDevice physical_device = rc->physical;
   VkSurfaceKHR surface = rc->surface;
 
@@ -619,7 +622,8 @@ static void create_logical_device(RND_Context *rc) {
   LOG_DEBUG("Got present device queue with family index %u", rc->present_index);
 }
 
-static Swap_Chain_Info get_swap_chain_info(VkPhysicalDevice device, VkSurfaceKHR surface) {
+translation_local Swap_Chain_Info get_swap_chain_info(VkPhysicalDevice device,
+                                                      VkSurfaceKHR surface) {
   Swap_Chain_Info info = {0};
   VK_CHECK_ERROR(vkGetPhysicalDeviceSurfaceCapabilitiesKHR(device, surface, &info.capabilities),
                  "Unable to query device surface capabilities");
@@ -651,7 +655,8 @@ static Swap_Chain_Info get_swap_chain_info(VkPhysicalDevice device, VkSurfaceKHR
   return info;
 }
 
-static VkSurfaceFormatKHR choose_swap_surface_format(VkSurfaceFormatKHR *formats, u32 num_formats) {
+translation_local VkSurfaceFormatKHR choose_swap_surface_format(VkSurfaceFormatKHR *formats,
+                                                                u32 num_formats) {
   for (u32 i = 0; i < num_formats; i++) {
     if (formats[i].format == VK_FORMAT_B8G8R8A8_SRGB &&
         formats[i].colorSpace == VK_COLOR_SPACE_SRGB_NONLINEAR_KHR) {
@@ -665,9 +670,9 @@ static VkSurfaceFormatKHR choose_swap_surface_format(VkSurfaceFormatKHR *formats
   return formats[0];
 }
 
-static VkFormat choose_swap_depth_format(VkPhysicalDevice device, VkFormat *formats,
-                                         u32 num_formats, VkImageTiling tiling,
-                                         VkFormatFeatureFlags features) {
+translation_local VkFormat choose_swap_depth_format(VkPhysicalDevice device, VkFormat *formats,
+                                                    u32 num_formats, VkImageTiling tiling,
+                                                    VkFormatFeatureFlags features) {
   for (u32 i = 0; i < num_formats; i++) {
     VkFormatProperties props;
     vkGetPhysicalDeviceFormatProperties(device, formats[i], &props);
@@ -683,7 +688,8 @@ static VkFormat choose_swap_depth_format(VkPhysicalDevice device, VkFormat *form
   exit(EXT_VK_DEPTH_FORMAT);
 }
 
-static VkPresentModeKHR choose_swap_present_mode(VkPresentModeKHR *modes, u32 num_modes) {
+translation_local VkPresentModeKHR choose_swap_present_mode(VkPresentModeKHR *modes,
+                                                            u32 num_modes) {
   for (u32 i = 0; i < num_modes; i++) {
     // Triple buffering
     if (modes[i] == VK_PRESENT_MODE_MAILBOX_KHR) {
@@ -697,7 +703,8 @@ static VkPresentModeKHR choose_swap_present_mode(VkPresentModeKHR *modes, u32 nu
   return VK_PRESENT_MODE_FIFO_KHR;
 }
 
-static VkExtent2D choose_swap_extent(VkSurfaceCapabilitiesKHR capabilities, Window *window) {
+translation_local VkExtent2D choose_swap_extent(VkSurfaceCapabilitiesKHR capabilities,
+                                                Window *window) {
   // Window manager already specified it for us
   if (capabilities.currentExtent.width != UINT32_MAX) {
     return capabilities.currentExtent;
@@ -716,11 +723,11 @@ static VkExtent2D choose_swap_extent(VkSurfaceCapabilitiesKHR capabilities, Wind
   return actual_extend;
 }
 
-static void create_render_pass(RND_Context *rc);
-static void create_target_resources(RND_Context *rc);
-static void create_frame_resources(RND_Context *rc);
+translation_local void create_render_pass(RND_Context *rc);
+translation_local void create_target_resources(RND_Context *rc);
+translation_local void create_frame_resources(RND_Context *rc);
 
-static void create_swap_chain(RND_Context *rc, Window *window) {
+translation_local void create_swap_chain(RND_Context *rc, Window *window) {
   Swap_Chain_Info info = get_swap_chain_info(rc->physical, rc->surface);
 
   // Get all that info in there
@@ -791,7 +798,7 @@ static void create_swap_chain(RND_Context *rc, Window *window) {
 }
 
 // TODO(ss): solve this, make it so it just calls the original recreate swap chain
-static void recreate_swap_chain(RND_Context *rc, Window *window) {
+translation_local void recreate_swap_chain(RND_Context *rc, Window *window) {
   VkExtent2D extent = {window->w, window->h};
 
   // Wait while either dimension is 0, and until device is idle
@@ -807,7 +814,7 @@ static void recreate_swap_chain(RND_Context *rc, Window *window) {
   create_swap_chain(rc, window);
 }
 
-static void create_render_pass(RND_Context *rc) {
+translation_local void create_render_pass(RND_Context *rc) {
   VkAttachmentDescription color_attachment = {0};
   color_attachment.format = rc->swap.surface_format.format;
   color_attachment.samples = VK_SAMPLE_COUNT_1_BIT;        // maybe more if multisampling?
@@ -873,7 +880,7 @@ static void create_render_pass(RND_Context *rc) {
   LOG_DEBUG("Created render pass");
 }
 
-static void create_target_resources(RND_Context *rc) {
+translation_local void create_target_resources(RND_Context *rc) {
   VK_CHECK_ERROR(
       vkGetSwapchainImagesKHR(rc->logical, rc->swap.handle, &rc->swap.target_count, NULL),
       "Unable to get swap chain images");
@@ -972,7 +979,7 @@ static void create_target_resources(RND_Context *rc) {
   }
 }
 
-static void create_frame_resources(RND_Context *rc) {
+translation_local void create_frame_resources(RND_Context *rc) {
   VkCommandPoolCreateInfo pi = {0};
   pi.sType = VK_STRUCTURE_TYPE_COMMAND_POOL_CREATE_INFO;
   pi.flags = VK_COMMAND_POOL_CREATE_RESET_COMMAND_BUFFER_BIT;
@@ -1026,7 +1033,7 @@ static void create_frame_resources(RND_Context *rc) {
   }
 }
 
-static void destroy_swap_chain(RND_Context *rc, VkSwapchainKHR swap_handle) {
+translation_local void destroy_swap_chain(RND_Context *rc, VkSwapchainKHR swap_handle) {
   if (swap_handle != VK_NULL_HANDLE && rc->logical != VK_NULL_HANDLE) {
     for (u32 i = 0; i < rc->swap.frames_in_flight; i++) {
       if (rc->swap.frames[i].render_finished_sem != VK_NULL_HANDLE) {

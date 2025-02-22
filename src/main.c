@@ -64,10 +64,7 @@ void process_input(Window *window, Camera *camera, f64 dt) {
   if (glfwGetKey(window->handle, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
     input_direction = vec3_sub(input_direction, camera->up);
 
-  // HACK(ss): The only way to make sure no div by 0? By doing this we recompute
-  // the length twice unessecarily
-  if (vec3_len(input_direction) > 0.0f)
-    input_direction = vec3_norm(input_direction);
+  input_direction = vec3_norm0(input_direction);
 
   vec3 camera_velocity = vec3_mul(input_direction, camera->move_speed * dt);
   camera->position = vec3_add(camera->position, camera_velocity);
@@ -95,27 +92,25 @@ int main(int argc, char **argv) {
     } else {
       entity = entity_create(&game.entity_pool, &game.render_context, &game.asset_manager,
                              ENTITY_FLAG_DEFAULT, vec3(0.f, 0.f, -2.f), vec3(0.f, 0.f, 0.f),
-                             vec3(1.f, 1.f, 1.f), vec3(0.f, 0.f, 0.f), "assets/cube.obj");
+                             vec3(1.f, 1.f, 1.f), vec3(0.f, 0.f, 0.f), NULL);
       entity->position = vec3_add(entity->position, vec3(2.f * i, -2.f * i, -1.f * i));
     }
   }
 
-  u64 last_time = get_time_ms();
+  u64 last_frame_time = get_time_ms();
   char fps_display[256];
 
   while (!window_should_close(&game.window)) {
     {
-      u64 sleep_time = game.target_frame_time_ms - (get_time_ms() - last_time);
+      u64 sleep_time = (u64)(game.target_frame_time_ms - (get_time_ms() - last_frame_time));
       if (sleep_time > 0 && sleep_time < game.target_frame_time_ms) {
         os_sleep_ms(sleep_time);
       }
 
-      u64 current_time = get_time_ms();
-
       // New dt after sleeping
-      game.dt = (current_time - last_time) / 1000.0;
+      game.dt = (get_time_ms() - last_frame_time) / 1000.0;
 
-      game.fps = 1 / game.dt;
+      game.fps = 1.0 / game.dt;
 
       // TODO(ss): Font rendering so we can just render it in game
       snprintf(fps_display, sizeof(fps_display), "%s FPS: %.2f, Frame Time: %.6fs",
@@ -123,30 +118,27 @@ int main(int argc, char **argv) {
       glfwSetWindowTitle(game.window.handle, fps_display);
 
       game.frame_count += 1;
-      last_time = current_time;
+      last_frame_time = get_time_ms();
     }
 
     process_input(&game.window, &game.camera, game.dt);
 
-    // Updates would go here
+    // Update Logic would go here
     //
     // // // //
 
-    // Render
+    rnd_begin_frame(&game.render_context, &game.window);
     {
       f32 aspect = rnd_swap_aspect_ratio(&game.render_context);
-      // camera_set_orthographic(&game.camera, -aspect, aspect, -1.f, 1.f, 1.f, -1.f);
-      camera_set_perspective(&game.camera, RADIANS(90.0f), aspect, .1f, 100.f);
+      camera_set_perspective(&game.camera, RADIANS(90.0f), aspect, .1f, 1000.f);
 
       mat4 proj_view = mat4_mul(game.camera.projection, game.camera.view);
-
-      rnd_begin_frame(&game.render_context, &game.window);
-
       rnd_pipeline_bind(&game.render_context, &mesh_pipeline);
 
-      u32 entities_count = 0;
-      Entity *entities = (Entity *)pool_as_array(&game.entity_pool.pool, &entities_count);
-      for (u32 i = 0; i < game.entity_pool.pool.block_last_index; i++) {
+      u32 entities_end = 0;
+      Entity *entities = (Entity *)pool_as_array(&game.entity_pool.pool, &entities_end);
+
+      for (u32 i = 0; i < entities_end; i++) {
         if (entities[i].id == ENTITY_INVALID_ID) {
           continue;
         }
@@ -161,12 +153,11 @@ int main(int argc, char **argv) {
         push.color = entities[i].color;
         rnd_push_constants(&game.render_context, &mesh_pipeline, push);
 
-        rnd_mesh_bind(&game.render_context, entities[i].mesh_asset.data);
-        rnd_mesh_draw(&game.render_context, entities[i].mesh_asset.data);
+        rnd_mesh_bind(&game.render_context, entities[i].mesh_asset->data);
+        rnd_mesh_draw(&game.render_context, entities[i].mesh_asset->data);
       }
-
-      rnd_end_frame(&game.render_context);
     }
+    rnd_end_frame(&game.render_context);
   }
 
   vkDeviceWaitIdle(game.render_context.logical);

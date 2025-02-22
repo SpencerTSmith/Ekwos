@@ -21,7 +21,7 @@ enum Entity_Flags {
 
 typedef struct Entity Entity;
 struct Entity {
-  // Valid id's start at 1, if id is 0 = uninitialized
+  // Valid id's start at 0, if id is -1 = uninitialized
   i32 id;
   Entity_Flags flags;
 
@@ -32,13 +32,12 @@ struct Entity {
 
   vec3 color;
 
-  // TODO(ss): Handles into an asset manager, instead
-  ASS_Entry mesh_asset;
+  ASS_Entry *mesh_asset;
 };
 
 enum Entity_Constants {
   ENTITY_INVALID_ID = -1,
-  ENTITY_MAX_NUM = 10,
+  ENTITY_MAX_NUM = 1000,
 };
 
 Entity_Pool entity_pool_create(u64 capacity);
