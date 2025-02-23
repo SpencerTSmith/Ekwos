@@ -17,6 +17,8 @@ typedef uint8_t u8;
 typedef double f64;
 typedef float f32;
 
+typedef size_t size;
+
 #define global static
 #define thread_local _Thread_local
 #define function_local static

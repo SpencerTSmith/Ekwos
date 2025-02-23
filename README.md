@@ -13,6 +13,9 @@ cd build
 Need to run the game from the build folder, as the compiled shaders need to be in the same folder as the executable.
 
 ## Short Term TODOs
+- [x] Entity Pool
+    - [ ] More elegant solution for checking if an entity is invalid
+        - [ ] Pool free list is stored directly in buffer, meaning that the first 64 bits of the freed pool slot contains a pointer to the next free node... can't store any checks for if entity is invalid there
 - [x] CPU->GPU Uploader
     - [x] Basics
     - [ ] More sophisticated synchronization
