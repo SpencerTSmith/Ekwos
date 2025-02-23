@@ -236,7 +236,7 @@ static inline vec2 vec2_norm0(vec2 v) {
 
 static inline f32 vec2_cross(vec2 a, vec2 b) { return a.x * b.y - a.y * b.x; }
 
-#define vec3(x, y, z) vec3_make(x, y, z)
+#define vec3(xx, yy, zz) ((vec3){.x = (xx), .y = (yy), .z = (zz)})
 static inline vec3 vec3_make(f32 x, f32 y, f32 z) {
   vec3 result;
   result.x = x;

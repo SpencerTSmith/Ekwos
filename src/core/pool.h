@@ -15,7 +15,6 @@ struct Pool {
   Arena arena;
   Pool_Block *free_block;
   u32 block_size;
-  u32 block_capacity;
   u32 block_last_index; // We need to keep track of the last occupied index if we want to make
                         // sure to loop through all elements
 };

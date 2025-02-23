@@ -80,7 +80,7 @@ int main(int argc, char **argv) {
   RND_Pipeline mesh_pipeline = rnd_pipeline_create(&game.render_context, "shaders/vert.vert.spv",
                                                    "shaders/frag.frag.spv", NULL);
 
-  for (u32 i = 0; i < game.entity_pool.pool.block_capacity; i++) {
+  for (u32 i = 0; i < ENTITY_MAX_NUM; i++) {
 
     Entity *entity = NULL;
     if (i % 2 == 0) {
@@ -128,7 +128,7 @@ int main(int argc, char **argv) {
       u32 entities_end = 0;
       Entity *entities = (Entity *)pool_as_array(&game.entity_pool.pool, &entities_end);
       for (u32 i = 0; i < entities_end; i++) {
-        if (entities[i].id == ENTITY_INVALID_ID) {
+        if (entities[i].flags == ENTITY_FLAG_INVALID) {
           continue;
         }
 
@@ -149,7 +149,7 @@ int main(int argc, char **argv) {
       u32 entities_end = 0;
       Entity *entities = (Entity *)pool_as_array(&game.entity_pool.pool, &entities_end);
       for (u32 i = 0; i < entities_end; i++) {
-        if (entities[i].id == ENTITY_INVALID_ID) {
+        if (entities[i].flags == ENTITY_FLAG_INVALID) {
           continue;
         }
         mat4 e_transform = mat4_mul(proj_view, entity_model_transform(&entities[i]));

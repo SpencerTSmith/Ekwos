@@ -8,7 +8,6 @@ Pool pool_create(u64 count, u64 block_size, u64 block_alignment) {
       .free_block = NULL,
       .block_size = ALIGN_ROUND_UP(block_size, block_alignment),
       .block_last_index = 0,
-      .block_capacity = count,
   };
 
   assert(block_size >= sizeof(Pool_Block) && "Requested pool block size is too small");
@@ -28,9 +27,9 @@ void *pool_alloc(Pool *pool) {
   if (pool->free_block != NULL) {
     ptr = pool->free_block;
     pool->free_block = pool->free_block->next;
-  } else { // Don't have a free block, add to the end
-    // alignment is 1 since we can just pack these like an array,
-    // as well we can use the arena logic to resize and check capacity and such
+  } else {
+    // Don't have a free block, add to the end alignment is 1 since we can just pack these like an
+    // array, as well we can use the arena logic to resize and check capacity and such
     ptr = arena_alloc(&pool->arena, pool->block_size, 1);
     pool->block_last_index++;
   }
@@ -49,7 +48,7 @@ void pool_pop(Pool *pool, void *ptr) {
   ZERO_SIZE(ptr, pool->block_size);
 
   // Add this to the start of linked list
-  Pool_Block *new_free = ptr;
+  Pool_Block *new_free = (Pool_Block *)ptr;
   new_free->next = pool->free_block;
 
   pool->free_block = new_free;
@@ -59,5 +58,6 @@ void *pool_as_array(Pool *pool, u32 *out_last_index) {
   if (out_last_index != NULL) {
     *out_last_index = pool->block_last_index;
   }
+
   return pool->arena.base_ptr;
 }

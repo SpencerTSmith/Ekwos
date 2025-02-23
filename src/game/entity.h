@@ -14,16 +14,15 @@ struct Entity_Pool {
   i32 next_entity_id;
 };
 
-typedef u32 Entity_Flags;
+typedef i32 Entity_Flags;
 enum Entity_Flags {
+  ENTITY_FLAG_INVALID = -1,
   ENTITY_FLAG_DEFAULT = 0,
 };
 
 typedef struct Entity Entity;
 struct Entity {
-  // Valid id's start at 0, if id is -1 = uninitialized
-  i32 id;
-  Entity_Flags flags;
+  u32 id;
 
   // Transforms
   vec3 scale;
@@ -33,10 +32,15 @@ struct Entity {
   vec3 color;
 
   ASS_Entry *mesh_asset;
+
+  // HACK(ss): Storing this down here because pool allocator just stores the free list
+  // directly in the buffer
+  // meaning that this needs to not be overwritten by the node pointer, this is
+  // absolutely terrible design, but it works
+  Entity_Flags flags;
 };
 
 enum Entity_Constants {
-  ENTITY_INVALID_ID = -1,
   ENTITY_MAX_NUM = 1000,
 };
 

@@ -3,7 +3,7 @@
 Entity_Pool entity_pool_create(u64 capacity) {
   Entity_Pool pool = {
       .pool = pool_create_type(capacity, Entity),
-      .next_entity_id = 0,
+      .next_entity_id = 1,
   };
 
   return pool;
@@ -30,7 +30,7 @@ Entity *entity_create(Entity_Pool *ep, RND_Context *rc, ASS_Manager *am, Entity_
   };
 
   // and increment the id
-  ep->next_entity_id += 1;
+  ep->next_entity_id++;
 
   return entity;
 }
@@ -80,4 +80,7 @@ mat4 entity_model_transform(Entity *entity) {
   return transform;
 }
 
-void entity_free(Entity_Pool *entity_pool, Entity *entity) { pool_pop(&entity_pool->pool, entity); }
+void entity_free(Entity_Pool *entity_pool, Entity *entity) {
+  pool_pop(&entity_pool->pool, entity);
+  entity->flags = ENTITY_FLAG_INVALID; // This feels icky to do this
+}

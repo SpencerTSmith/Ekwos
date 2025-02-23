@@ -42,9 +42,12 @@ void rnd_mesh_init(RND_Context *rc, RND_Mesh *mesh, RND_Vertex *verts, u32 vert_
 }
 
 void rnd_mesh_bind(RND_Context *rc, RND_Mesh *mesh) {
-  VkBuffer buffers[] = {mesh->vertex_buffer};
-  VkDeviceSize offsets[] = {0};
-  vkCmdBindVertexBuffers(rnd_get_current_cmd(rc), 0, 1, buffers, offsets);
+  if (mesh->vertex_buffer != VK_NULL_HANDLE && mesh->vertex_count > 0) {
+    VkBuffer buffers[] = {mesh->vertex_buffer};
+    VkDeviceSize offsets[] = {0};
+
+    vkCmdBindVertexBuffers(rnd_get_current_cmd(rc), 0, 1, buffers, offsets);
+  }
   if (mesh->index_buffer != VK_NULL_HANDLE && mesh->index_count > 0) {
     vkCmdBindIndexBuffer(rnd_get_current_cmd(rc), mesh->index_buffer, 0, VK_INDEX_TYPE_UINT32);
   }
@@ -53,7 +56,7 @@ void rnd_mesh_bind(RND_Context *rc, RND_Mesh *mesh) {
 void rnd_mesh_draw(RND_Context *rc, RND_Mesh *mesh) {
   if (mesh->index_buffer != VK_NULL_HANDLE && mesh->index_count > 0) {
     vkCmdDrawIndexed(rnd_get_current_cmd(rc), mesh->index_count, 1, 0, 0, 0);
-  } else {
+  } else if (mesh->vertex_buffer != VK_NULL_HANDLE && mesh->vertex_count > 0) {
     vkCmdDraw(rnd_get_current_cmd(rc), mesh->vertex_count, 1, 0, 0);
   }
 }
