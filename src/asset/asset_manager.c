@@ -88,19 +88,23 @@ ASS_Entry *ass_load_mesh_obj(ASS_Manager *ass, RND_Context *rc, char *file_name)
   char line[512];
   u32 vertex_count = 0;
   u32 index_count = 0;
+  u32 uv_count = 0;
+  u32 normal_count = 0;
   while (fgets(line, 512, obj_file) != NULL) {
     if (line[0] == '\0') // Empty
       continue;
     if (line[0] == '#') // Comment
       continue;
 
-    // Real stuff, assuming same # of vertices as texture coords, etc
     if (line[0] == 'v' && line[1] == ' ') { // Vertices
       vertex_count++;
     } else if (line[0] == 'f' && line[1] == ' ') { // Face Indices
       index_count += 3;
+    } else if (line[0] == 'v' && line[1] == 't') {
+      uv_count++;
+    } else if (line[0] == 'v' && line[1] == 'n') {
+      normal_count++;
     }
-    // Potentially other things
   }
   rewind(obj_file);
 
@@ -111,6 +115,12 @@ ASS_Entry *ass_load_mesh_obj(ASS_Manager *ass, RND_Context *rc, char *file_name)
 
   u32 *indices = arena_calloc(scratch.arena, index_count, u32);
   u32 index_current_index = 0;
+
+  vec3 *normals = arena_calloc(scratch.arena, normal_count, vec3);
+  u32 normal_current_index = 0;
+
+  vec2 *uvs = arena_calloc(scratch.arena, normal_count, vec2);
+  u32 uv_current_index = 0;
 
   while (fgets(line, 512, obj_file) != NULL) {
     if (line[0] == '\0') // Empty
@@ -129,15 +139,27 @@ ASS_Entry *ass_load_mesh_obj(ASS_Manager *ass, RND_Context *rc, char *file_name)
       vertices[vertex_current_index].color = vec3(1.0f, 0.5f, 0.2f); // Default
       vertex_current_index++;
     } else if (line[0] == 'v' && line[1] == 't') { // Vertex UV's
+      vec2 uv_vertex;
+      if (!sscanf(line, "vt %f %f", &uv_vertex.x, &uv_vertex.y)) {
+        LOG_ERROR("Error reading vertex data from .obj file (%s)", file_name);
+      }
 
+      uvs[uv_current_index] = uv_vertex;
+      uv_current_index++;
     } else if (line[0] == 'v' && line[1] == 'n') {
+      vec3 normal;
+      if (!sscanf(line, "vn %f %f %f", &normal.x, &normal.y, &normal.z)) {
+        LOG_ERROR("Error reading vertex data from .obj file (%s)", file_name);
+      }
 
+      normals[normal_current_index] = normal;
+      normal_current_index++;
     } else if (line[0] == 'f' && line[1] == ' ') { // Face Indices
       u32 vertex_indices[3];
       u32 texture_indices[3];
       u32 normal_indices[3];
 
-      if (!sscanf(line, "f %u/%u/%u %u/%u/%u %u/%u/%u ", &vertex_indices[0], &texture_indices[0],
+      if (!sscanf(line, "f %u/%u/%u %u/%u/%u %u/%u/%u", &vertex_indices[0], &texture_indices[0],
                   &normal_indices[0], &vertex_indices[1], &texture_indices[1], &normal_indices[1],
                   &vertex_indices[2], &texture_indices[2], &normal_indices[2])) {
         LOG_ERROR("Error reading vertex indice data from .obj file (%s)", file_name);
@@ -148,6 +170,14 @@ ASS_Entry *ass_load_mesh_obj(ASS_Manager *ass, RND_Context *rc, char *file_name)
       indices[index_current_index + 1] = vertex_indices[1] - 1;
       indices[index_current_index + 2] = vertex_indices[2] - 1;
       index_current_index += 3;
+
+      vertices[vertex_indices[0] - 1].uv = uvs[texture_indices[0] - 1];
+      vertices[vertex_indices[1] - 1].uv = uvs[texture_indices[1] - 1];
+      vertices[vertex_indices[2] - 1].uv = uvs[texture_indices[2] - 1];
+
+      vertices[vertex_indices[0] - 1].normal = normals[normal_indices[0] - 1];
+      vertices[vertex_indices[1] - 1].normal = normals[normal_indices[1] - 1];
+      vertices[vertex_indices[2] - 1].normal = normals[normal_indices[2] - 1];
     }
   }
 
@@ -170,3 +200,5 @@ ASS_Entry *ass_load_mesh_obj(ASS_Manager *ass, RND_Context *rc, char *file_name)
   fclose(obj_file);
   return entry;
 }
+
+ASS_Entry *ass_load_mesh_gtlf(ASS_Manager *ass, RND_Context *rc, char *file_name) { return NULL; }

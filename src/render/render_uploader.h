@@ -4,7 +4,6 @@
 #include "render/render_common.h"
 
 typedef struct RND_Context RND_Context;
-typedef struct RND_Vertex RND_Vertex;
 
 // This will get it's own command pool,
 // in case we ever move this to it's own thread

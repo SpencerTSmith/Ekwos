@@ -55,10 +55,6 @@ translation_local void create_swap_chain(RND_Context *rc, Window *window);
 // specified by the handle
 translation_local void destroy_swap_chain(RND_Context *rc, VkSwapchainKHR swap_handle);
 translation_local void recreate_swap_chain(RND_Context *rc, Window *window);
-void rnd_upload_vertex_buffer(RND_Uploader *uploader, RND_Vertex *verts, u32 vert_count,
-                              VkBuffer vertex_buffer);
-void rnd_upload_index_buffer(RND_Uploader *uploader, u32 *indexs, u32 index_count,
-                             VkBuffer index_buffer);
 
 void rnd_context_init(RND_Context *rc, Window *window) {
 

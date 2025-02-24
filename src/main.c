@@ -86,7 +86,7 @@ int main(int argc, char **argv) {
     if (i % 2 == 0) {
       entity = entity_create(&game.entity_pool, &game.render_context, &game.asset_manager,
                              ENTITY_FLAG_DEFAULT, vec3(0.f, 0.f, -2.f), vec3(0.f, 0.f, 0.f),
-                             vec3(1.f, 1.f, 1.f), vec3(0.f, 0.f, 0.f), "assets/flat_vase.obj");
+                             vec3(1.f, 1.f, 1.f), vec3(0.f, 0.f, 0.f), "assets/cube.obj");
       entity->position = vec3_add(entity->position, vec3(-2.f * i, 2.f * i, -1.f * i));
       entity->scale = vec3(5.f, 5.f, 5.f);
     } else {
