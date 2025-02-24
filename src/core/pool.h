@@ -8,6 +8,9 @@ struct Pool_Block {
   Pool_Block *next;
 };
 
+// NOTE(ss): Mostly plan on using this as an array with a free list...
+// not nessecarily like a general purpose pool allocator
+
 // Backed by an arena, this may not be great, since using arena functions we may be going through a
 // lot of logic that isn't neseccary for this data structure? Need to think more.
 typedef struct Pool Pool;

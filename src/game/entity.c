@@ -1,6 +1,7 @@
 #include "game/entity.h"
 
 Entity_Pool entity_pool_create(u64 capacity) {
+  ASSERT(capacity <= ENTITY_MAX_NUM, "Entity pool created with capcity greater than max");
   Entity_Pool pool = {
       .pool = pool_create_type(capacity, Entity),
       .next_entity_id = 1,
@@ -35,7 +36,7 @@ Entity *entity_create(Entity_Pool *ep, RND_Context *rc, ASS_Manager *am, Entity_
   return entity;
 }
 
-mat4 entity_model_transform(Entity *entity) {
+mat4 entity_model_transform(const Entity *entity) {
   // mat4 transform = mat4_mul(mat4_translation(entity->position),
   //                           mat4_mul(mat4_rotation_y(entity->rotation.y),
   //                                    mat4_mul(mat4_rotation_x(entity->rotation.x),
@@ -78,6 +79,46 @@ mat4 entity_model_transform(Entity *entity) {
                         },
                     }};
   return transform;
+}
+
+mat4 entity_normal_matrix(const Entity *entity) {
+  // Taken algebra from Brendan Galea, couldn't be bothered, tait bryan angles, Y, X, Z
+  f32 sinx = sinf(entity->rotation.x);
+  f32 cosx = cosf(entity->rotation.x);
+  f32 siny = sinf(entity->rotation.y);
+  f32 cosy = cosf(entity->rotation.y);
+  f32 sinz = sinf(entity->rotation.z);
+  f32 cosz = cosf(entity->rotation.z);
+
+  vec3 inv_scale = vec3_inv(entity->scale);
+
+  // Optimization... we don't need the translation, and the inverse transopse of a rotation is that
+  // same rotation since inverse of rotation mat is it's transopse, the transpose of a scale matrix
+  // is itself, and the inverse is easy, like the above
+  mat4 normal = {.cols = {
+                     {
+                         .x = inv_scale.x * (cosy * cosz + siny * sinx * sinz),
+                         .y = inv_scale.x * (cosx * sinz),
+                         .z = inv_scale.x * (cosy * sinx * sinz - cosz * siny),
+                         .w = 0.0f,
+                     },
+                     {
+                         .x = inv_scale.y * (cosz * siny * sinx - cosy * sinz),
+                         .y = inv_scale.y * (cosx * cosz),
+                         .z = inv_scale.y * (cosy * cosz * sinx + siny * sinz),
+                         .w = 0.0f,
+                     },
+                     {
+                         .x = inv_scale.z * (cosx * siny),
+                         .y = inv_scale.z * (-sinx),
+                         .z = inv_scale.z * (cosy * cosx),
+                         .w = 0.0f,
+                     },
+                     {
+                         .elements = {0.0f},
+                     },
+                 }};
+  return normal;
 }
 
 void entity_free(Entity_Pool *entity_pool, Entity *entity) {

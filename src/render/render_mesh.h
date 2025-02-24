@@ -19,8 +19,8 @@ struct RND_Vertex {
 // Remember alignment shit
 typedef struct RND_Push_Constants RND_Push_Constants;
 struct RND_Push_Constants {
-  mat4 transform;
-  alignas(16) vec3 color;
+  mat4 clip_transform;
+  mat4 normal_matrix; // For some reason only works when its a mat4?!
 };
 
 typedef struct RND_Mesh RND_Mesh;
@@ -35,9 +35,8 @@ struct RND_Mesh {
 
 enum RND_Mesh_Constants {
   RND_VERTEX_BINDINGS_NUM = 1,
-  RND_VERTEX_ATTRIBUTES_NUM = 2,
+  RND_VERTEX_ATTRIBUTES_NUM = 4,
 };
-
 extern const VkVertexInputBindingDescription g_rnd_vertex_binding_descs[RND_VERTEX_BINDINGS_NUM];
 extern const VkVertexInputAttributeDescription g_rnd_vertex_attrib_descs[RND_VERTEX_ATTRIBUTES_NUM];
 

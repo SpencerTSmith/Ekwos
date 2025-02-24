@@ -52,6 +52,8 @@ Entity *entity_create(Entity_Pool *entity_pool, RND_Context *render_context,
                       vec3 scale, vec3 color, char *mesh_file);
 void entity_free(Entity_Pool *entity_pool, Entity *entity);
 
-mat4 entity_model_transform(Entity *entity);
+mat4 entity_model_transform(const Entity *entity);
+// Inverse transpose of the model transform
+mat4 entity_normal_matrix(const Entity *entity);
 
 #endif // ENTITY_H

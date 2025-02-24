@@ -24,6 +24,18 @@ const VkVertexInputAttributeDescription g_rnd_vertex_attrib_descs[RND_VERTEX_ATT
         .format = VK_FORMAT_R32G32B32_SFLOAT,
         .offset = offsetof(RND_Vertex, color),
     },
+    {
+        .binding = 0,
+        .location = 2,
+        .format = VK_FORMAT_R32G32B32_SFLOAT,
+        .offset = offsetof(RND_Vertex, normal),
+    },
+    {
+        .binding = 0,
+        .location = 3,
+        .format = VK_FORMAT_R32G32_SFLOAT,
+        .offset = offsetof(RND_Vertex, uv),
+    },
 };
 
 translation_local void create_vertex_buffer(RND_Context *rc, RND_Mesh *mesh, RND_Vertex *verts,
@@ -78,14 +90,30 @@ void rnd_mesh_free(RND_Context *rc, RND_Mesh *mesh) {
 
 void rnd_mesh_default_cube(RND_Context *rc, RND_Mesh *mesh) {
   RND_Vertex verts[] = {
-      {.position = vec3(1.f, -1.f, 1.f), .color = vec3(1.0f, .5f, .5f)},
-      {.position = vec3(1.f, 1.f, 1.f), .color = vec3(.1f, .1f, 0.8f)},
-      {.position = vec3(1.f, -1.f, -1.f), .color = vec3(.1f, .8f, .2f)},
-      {.position = vec3(1.f, 1.f, -1.f), .color = vec3(1.0f, 1.0f, .2f)},
-      {.position = vec3(-1.f, -1.f, 1.f), .color = vec3(0.f, 1.0f, 1.f)},
-      {.position = vec3(-1.f, 1.f, 1.f), .color = vec3(1.0f, .5f, .2f)},
-      {.position = vec3(-1.f, -1.f, -1.f), .color = vec3(1.f, .5f, 1.f)},
-      {.position = vec3(-1.f, 1.f, -1.f), .color = vec3(1.f, 0.f, .2f)},
+      {.position = vec3(1.f, -1.f, 1.f),
+       .color = vec3(1.0f, .5f, .5f),
+       .normal = vec3(0.577f, -0.577f, 0.577f)},
+      {.position = vec3(1.f, 1.f, 1.f),
+       .color = vec3(.1f, .1f, 0.8f),
+       .normal = vec3(0.577f, 0.577f, 0.577f)},
+      {.position = vec3(1.f, -1.f, -1.f),
+       .color = vec3(.1f, .8f, .2f),
+       .normal = vec3(0.577f, -0.577f, -0.577f)},
+      {.position = vec3(1.f, 1.f, -1.f),
+       .color = vec3(1.0f, 1.0f, .2f),
+       .normal = vec3(0.577f, 0.577f, -0.577f)},
+      {.position = vec3(-1.f, -1.f, 1.f),
+       .color = vec3(0.f, 1.0f, 1.f),
+       .normal = vec3(-0.577f, -0.577f, 0.577f)},
+      {.position = vec3(-1.f, 1.f, 1.f),
+       .color = vec3(1.0f, .5f, .2f),
+       .normal = vec3(-0.577f, -0.577f, 0.577f)},
+      {.position = vec3(-1.f, -1.f, -1.f),
+       .color = vec3(1.f, .5f, 1.f),
+       .normal = vec3(-0.577f, -0.577f, -0.577f)},
+      {.position = vec3(-1.f, 1.f, -1.f),
+       .color = vec3(1.f, 0.f, .2f),
+       .normal = vec3(-0.577f, 0.577f, -0.577f)},
   };
 
   u32 indices[] = {

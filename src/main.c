@@ -81,12 +81,11 @@ int main(int argc, char **argv) {
                                                    "shaders/frag.frag.spv", NULL);
 
   for (u32 i = 0; i < ENTITY_MAX_NUM; i++) {
-
     Entity *entity = NULL;
     if (i % 2 == 0) {
       entity = entity_create(&game.entity_pool, &game.render_context, &game.asset_manager,
                              ENTITY_FLAG_DEFAULT, vec3(0.f, 0.f, -2.f), vec3(0.f, 0.f, 0.f),
-                             vec3(1.f, 1.f, 1.f), vec3(0.f, 0.f, 0.f), "assets/cube.obj");
+                             vec3(1.f, 1.f, 1.f), vec3(0.f, 0.f, 0.f), "assets/smooth_vase.obj");
       entity->position = vec3_add(entity->position, vec3(-2.f * i, 2.f * i, -1.f * i));
       entity->scale = vec3(5.f, 5.f, 5.f);
     } else {
@@ -95,7 +94,20 @@ int main(int argc, char **argv) {
                              vec3(1.f, 1.f, 1.f), vec3(0.f, 0.f, 0.f), NULL);
       entity->position = vec3_add(entity->position, vec3(2.f * i, -2.f * i, -1.f * i));
     }
+
+    // Testing purposes
+    if (i == 0 || i == 1 || i == 2 || i == 3) {
+      entity_free(&game.entity_pool, entity);
+    }
   }
+
+  // Testing purposes
+  entity_create(&game.entity_pool, &game.render_context, &game.asset_manager, ENTITY_FLAG_DEFAULT,
+                vec3(0.f, 4.f, -2.f), vec3(0.f, 0.f, 0.f), vec3(1.f, 1.f, 1.f), vec3(0.f, 0.f, 0.f),
+                "assets/sphere.obj");
+  entity_create(&game.entity_pool, &game.render_context, &game.asset_manager, ENTITY_FLAG_DEFAULT,
+                vec3(0.f, 0.f, -2.f), vec3(0.f, 0.f, 0.f), vec3(1.f, 1.f, 1.f), vec3(0.f, 0.f, 0.f),
+                "assets/sphere.obj");
 
   u64 last_frame_time = get_time_ms();
   char fps_display[256];
@@ -152,11 +164,13 @@ int main(int argc, char **argv) {
         if (entities[i].flags == ENTITY_FLAG_INVALID) {
           continue;
         }
-        mat4 e_transform = mat4_mul(proj_view, entity_model_transform(&entities[i]));
+        mat4 model_transform = entity_model_transform(&entities[i]);
+        mat4 clip_transform = mat4_mul(proj_view, model_transform);
 
-        RND_Push_Constants push = {0};
-        push.transform = e_transform;
-        push.color = entities[i].color;
+        RND_Push_Constants push = {
+            .clip_transform = clip_transform,
+            .normal_matrix = entity_normal_matrix(&entities[i]),
+        };
         rnd_push_constants(&game.render_context, &mesh_pipeline, push);
 
         rnd_mesh_bind(&game.render_context, entities[i].mesh_asset->data);

@@ -174,6 +174,12 @@ union mat4 {
   vec4 cols[4];
 };
 
+typedef union mat3 mat3;
+union mat3 {
+  f32 m[3][3];
+  vec3 cols[3];
+};
+
 void vec2_print(vec2 v);
 
 void vec3_print(vec3 v);
@@ -280,6 +286,15 @@ static inline vec3 vec3_div(vec3 v, f32 s) {
   result.x = v.x / s;
   result.y = v.y / s;
   result.z = v.z / s;
+
+  return result;
+}
+
+static inline vec3 vec3_inv(vec3 v) {
+  vec3 result;
+  result.x = 1.f / v.x;
+  result.y = 1.f / v.y;
+  result.z = 1.f / v.z;
 
   return result;
 }
