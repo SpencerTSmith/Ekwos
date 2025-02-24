@@ -2,10 +2,12 @@
 set -euo pipefail
 
 PROJECT_NAME="ekwos"
+
 SRC_DIR="src"
 LIBS_DIR="libs"
-BIN_DIR="bin"
 SHADER_DIR="src/shaders"
+
+BIN_DIR="bin"
 OUTPUT_SHADER_DIR="${BIN_DIR}/shaders"
 
 mkdir -p "${BIN_DIR}"
@@ -22,11 +24,12 @@ for SHADER in ${SHADER_SRCS}; do
 done
 
 C_SOURCES=$(find "${SRC_DIR}" -name "*.c")
+LIB_SOURCES=$(find "${LIBS_DIR}" -name "*.c")
 
 CFLAGS=" -g -Wall -Wextra -Wshadow -Wpedantic -DDEBUG=1 -DOS_LINUX=1 -std=gnu17"
 LDFLAGS="-lglfw -lvulkan -lm"
 
 echo "Compiling C sources..."
-gcc ${CFLAGS} -I${SRC_DIR} ${C_SOURCES} ${LDFLAGS} -o "${BIN_DIR}/${PROJECT_NAME}"
+gcc ${CFLAGS} -I${SRC_DIR} -I${LIBS_DIR} ${C_SOURCES} ${LDFLAGS} -o "${BIN_DIR}/${PROJECT_NAME}"
 
 echo "Build Complete... ${BIN_DIR}/${PROJECT_NAME}"

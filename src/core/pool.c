@@ -39,10 +39,7 @@ void *pool_alloc(Pool *pool) {
 void pool_pop(Pool *pool, void *ptr) {
   void *pool_base = pool->arena.base_ptr;
   void *pool_filled = pool->arena.base_ptr + pool->arena.offset;
-  if (ptr < pool_base || ptr >= pool_filled) {
-    LOG_ERROR("Tried to pop pool element outside of pool");
-    return;
-  }
+  ASSERT(ptr > pool_base && ptr <= pool_filled, "Tried to pop pool element outside of pool");
 
   ZERO_SIZE(ptr, pool->block_size);
 

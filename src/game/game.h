@@ -12,7 +12,7 @@
 #include "render/render_context.h"
 
 enum Game_Constants {
-  GAME_DEFAULT_MAX_TICK = 144,
+  GAME_DEFAULT_MAX_TICK = 240,
 };
 
 typedef struct Game Game;

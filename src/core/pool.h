@@ -14,9 +14,11 @@ typedef struct Pool Pool;
 struct Pool {
   Arena arena;
   Pool_Block *free_block;
-  u32 block_size;
-  u32 block_last_index; // We need to keep track of the last occupied index if we want to make
-                        // sure to loop through all elements
+  isize block_size;
+
+  // We need to keep track of the last occupied index if we want to make sure to loop through all
+  // elements in a pool, but do we want do do this??
+  u32 block_last_index;
 };
 
 Pool pool_create(u64 block_count, u64 block_size, u64 block_alignment);
