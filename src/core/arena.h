@@ -6,13 +6,12 @@
 #include <stdalign.h>
 
 // TODO(ss): actually write the rest of this
-typedef i32 Arena_Flags;
-enum Arena_Flags {
+typedef enum Arena_Flags {
   ARENA_FLAG_DEFAULTS = 0,
   ARENA_FLAG_FREE_LIST = (1 << 0),
   ARENA_FLAG_RESIZABLE = (1 << 1),
   ARENA_FLAG_CHAINABLE = (1 << 2),
-};
+} Arena_Flags;
 
 typedef struct Arena Arena;
 struct Arena {

@@ -11,11 +11,10 @@ enum ASS_Manager_Constants {
   ASS_MAX_TEXTURES = 20,
 };
 
-typedef u32 ASS_Type;
-enum ASS_Type {
+typedef enum ASS_Type {
   ASS_TYPE_MESH,
   ASS_TYPE_TEXTURE,
-};
+} ASS_Type;
 
 typedef struct ASS_Manager ASS_Manager;
 struct ASS_Manager {
@@ -49,7 +48,7 @@ void ass_manager_free(ASS_Manager *ass, RND_Context *rc);
 ASS_Entry *ass_load_mesh_obj(ASS_Manager *asset_manager, RND_Context *render_context,
                              char *file_name);
 ASS_Entry *ass_load_mesh_gtlf(ASS_Manager *asset_manager, RND_Context *render_context,
-                               char *file_name);
+                              char *file_name);
 
 void ass_free_entry(ASS_Entry *asset_entry);
 

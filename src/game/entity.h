@@ -14,11 +14,10 @@ struct Entity_Pool {
   i32 next_entity_id;
 };
 
-typedef i32 Entity_Flags;
-enum Entity_Flags {
+typedef enum Entity_Flags {
   ENTITY_FLAG_INVALID = -1,
   ENTITY_FLAG_DEFAULT = 0,
-};
+} Entity_Flags;
 
 typedef struct Entity Entity;
 struct Entity {

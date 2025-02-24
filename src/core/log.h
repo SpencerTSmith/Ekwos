@@ -6,18 +6,16 @@
 #include <assert.h>
 #include <stdlib.h>
 
-typedef u64 Log_Level;
-enum Log_Level {
+typedef enum Log_Level {
   LOG_FATAL,
   LOG_ERROR,
   LOG_WARN,
   LOG_DEBUG,
   LOG_INFO,
   LOG_MAX_NUM,
-};
+} Log_Level;
 
-typedef u64 Exit_Code;
-enum Exit_Code {
+typedef enum Exit_Code {
   EXT_SUCCESS,
   EXT_DEBUG_TRAP,
   EXT_GLFW_INIT,
@@ -52,7 +50,7 @@ enum Exit_Code {
   EXT_VK_MEMORY_BIND,
   EXT_VK_DEPTH_VIEW,
   EXT_COUNT
-};
+} Exit_Code;
 
 void log_message(Log_Level level, const char *file, u64 line, const char *message, ...);
 
