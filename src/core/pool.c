@@ -1,6 +1,5 @@
 #include "core/pool.h"
 #include "core/log.h"
-#include <assert.h>
 
 Pool pool_create(u64 count, u64 block_size, u64 block_alignment) {
   Pool pool = {
@@ -10,7 +9,7 @@ Pool pool_create(u64 count, u64 block_size, u64 block_alignment) {
       .block_last_index = 0,
   };
 
-  assert(block_size >= sizeof(Pool_Block) && "Requested pool block size is too small");
+  ASSERT(block_size >= sizeof(Pool_Block), "Requested pool block size is too small");
 
   return pool;
 }

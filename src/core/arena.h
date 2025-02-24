@@ -6,7 +6,7 @@
 #include <stdalign.h>
 
 // TODO(ss): actually write the rest of this
-typedef u64 Arena_Flags;
+typedef i32 Arena_Flags;
 enum Arena_Flags {
   ARENA_FLAG_DEFAULTS = 0,
   ARENA_FLAG_FREE_LIST = (1 << 0),
@@ -17,21 +17,27 @@ enum Arena_Flags {
 typedef struct Arena Arena;
 struct Arena {
   u8 *base_ptr;
-  u64 capacity;
-  u64 offset;
+  isize capacity;
+  isize offset;
+  Arena_Flags flags;
 };
 
-Arena arena_create(u64 reserve_size, Arena_Flags flags);
+// TODO(ss): actually write this, allow giving a backing buffer
+Arena arena_create_backing(void *backing_buffer, isize reserve_size, Arena_Flags flags);
+Arena arena_create(isize reserve_size, Arena_Flags flags);
 void arena_free(Arena *arena);
-void *arena_alloc(Arena *arena, u64 size, u64 alignment);
-void arena_pop_to(Arena *arena, u64 offset);
-void arena_pop(Arena *arena, u64 size);
+void *arena_alloc(Arena *arena, isize size, isize alignment);
+void arena_pop_to(Arena *arena, isize offset);
+void arena_pop(Arena *arena, isize size);
 void arena_clear(Arena *arena);
 
 // Helper Macros ----------------------------------------------------------------
 
 // specify the arena, the number of elements, and the type... c(ounted)alloc
 #define arena_calloc(a, count, T) (T *)arena_alloc((a), sizeof(T) * (count), alignof(T))
+
+// t(yped)alloc, useful for structs
+#define arena_talloc(a, T) (arena_calloc(a, 1, T))
 
 // Scratch Use Case -------------------------------------------------------------
 
@@ -40,7 +46,7 @@ void arena_clear(Arena *arena);
 typedef struct Scratch Scratch;
 struct Scratch {
   Arena *arena;
-  u64 offset_save;
+  isize offset_save;
 };
 
 Scratch scratch_begin(Arena *arena);

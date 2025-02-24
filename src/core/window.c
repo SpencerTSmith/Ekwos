@@ -10,14 +10,11 @@ translation_local void framebuffer_resize_callback(GLFWwindow *window, int width
 
 void window_init(Window *window, char *name, u32 width, u32 height) {
   if (!glfwInit()) {
-    LOG_FATAL("GLFW failed to initialize");
-    exit(EXT_GLFW_INIT);
+    LOG_FATAL("GLFW failed to initialize", EXT_GLFW_INIT);
   }
 
   if (!glfwVulkanSupported()) {
-    LOG_FATAL("Vulkan is not supported");
-    glfwTerminate();
-    exit(EXT_VULKAN_SUPPORT);
+    LOG_FATAL("Vulkan is not supported", EXT_VULKAN_SUPPORT);
   }
 
   glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
@@ -25,9 +22,7 @@ void window_init(Window *window, char *name, u32 width, u32 height) {
 
   window->handle = glfwCreateWindow(width, height, name, NULL, NULL);
   if (window->handle == NULL) {
-    LOG_FATAL("Failed to create GLFW window");
-    glfwTerminate();
-    exit(EXT_GLFW_WINDOW_CREATION);
+    LOG_FATAL("Failed to create GLFW window", EXT_GLFW_WINDOW_CREATION);
   }
 
   glfwSetWindowUserPointer(window->handle, window);
@@ -55,14 +50,6 @@ void window_poll_events(void) { glfwPollEvents(); }
 bool window_should_close(Window *window) { return glfwWindowShouldClose(window->handle); }
 
 void window_set_to_close(Window *window) { glfwSetWindowShouldClose(window->handle, true); }
-
-VkSurfaceKHR window_surface_create(Window *window, RND_Context *rc) {
-  VkSurfaceKHR surface;
-  VK_CHECK_FATAL(glfwCreateWindowSurface(rc->instance, window->handle, NULL, &surface),
-                 EXT_VK_SURFACE, "Failed to create render surface");
-  LOG_DEBUG("Created surface");
-  return surface;
-}
 
 // TODO(ss): look into window refresh callback for smoother window resize
 translation_local void framebuffer_resize_callback(GLFWwindow *handle, int width, int height) {

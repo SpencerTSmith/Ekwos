@@ -8,7 +8,6 @@
 #include "render/render_common.h"
 #include "render/render_uploader.h"
 
-#include <assert.h>
 #include <stdbool.h>
 
 enum RND_Context_Constants {

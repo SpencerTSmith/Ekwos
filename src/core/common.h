@@ -1,6 +1,7 @@
 #ifndef COMMON_H
 #define COMMON_H
 
+#include <stddef.h>
 #include <stdint.h>
 #include <string.h>
 
@@ -17,7 +18,13 @@ typedef uint8_t u8;
 typedef double f64;
 typedef float f32;
 
-typedef size_t size;
+typedef size_t usize;
+typedef ptrdiff_t isize;
+
+typedef i64 b64;
+typedef i32 b32;
+typedef i16 b16;
+typedef i8 b8;
 
 #define global static
 #define thread_local _Thread_local

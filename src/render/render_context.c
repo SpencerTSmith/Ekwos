@@ -266,8 +266,7 @@ translation_local const char **get_glfw_required_extensions(Arena *arena, u32 *n
   glfw_extensions = glfwGetRequiredInstanceExtensions(&glfw_extension_count);
 
   if (!glfw_extensions) {
-    LOG_FATAL("Failed to get required Vulkan extensions");
-    exit(EXT_GLFW_EXTENSIONS);
+    LOG_FATAL("Failed to get required Vulkan extensions", EXT_GLFW_EXTENSIONS);
   }
 
   const char **extensions = NULL;
@@ -373,8 +372,7 @@ translation_local void create_instance(RND_Context *rc) {
   if (enable_val_layers) {
     if (!check_val_layer_support(scratch.arena, enabled_validation_layers,
                                  STATIC_ARRAY_COUNT(enabled_validation_layers))) {
-      LOG_FATAL("Failed to find specified Validation Layers");
-      exit(EXT_VK_LAYERS);
+      LOG_FATAL("Failed to find specified Validation Layers", EXT_VK_LAYERS);
     }
     debug_info.sType = VK_STRUCTURE_TYPE_DEBUG_UTILS_MESSENGER_CREATE_INFO_EXT;
     debug_info.messageSeverity = VK_DEBUG_UTILS_MESSAGE_SEVERITY_VERBOSE_BIT_EXT |
@@ -493,8 +491,7 @@ translation_local void choose_physical_device(RND_Context *rc) {
     LOG_DEBUG(
         "Unable to find discrete GPU that supports exension, chose next best physical device");
   } else {
-    LOG_FATAL("Failed to find suitable graphics device");
-    exit(EXT_VK_NO_DEVICE);
+    LOG_FATAL("Failed to find suitable graphics device", EXT_VK_NO_DEVICE);
   }
 
   thread_end_scratch(&scratch);
@@ -517,6 +514,7 @@ translation_local Queue_Family_Indices get_queue_family_indices(VkPhysicalDevice
   u32 graphic_index = VK_QUEUE_FAMILY_IGNORED;
   u32 present_index = VK_QUEUE_FAMILY_IGNORED;
   u32 transfer_index = VK_QUEUE_FAMILY_IGNORED;
+
   for (u32 i = 0; i < queue_family_count; i++) {
     bool graphic_support = queue_family_props[i].queueFlags & VK_QUEUE_GRAPHICS_BIT;
     if (graphic_support) {
@@ -543,8 +541,7 @@ translation_local Queue_Family_Indices get_queue_family_indices(VkPhysicalDevice
   }
 
   if (graphic_index == VK_QUEUE_FAMILY_IGNORED || present_index == VK_QUEUE_FAMILY_IGNORED) {
-    LOG_FATAL("Failed to find suitable queue families");
-    exit(EXT_VK_QUEUE_FAMILIES);
+    LOG_FATAL("Failed to find suitable queue families", EXT_VK_QUEUE_FAMILIES);
   }
 
   thread_end_scratch(&scratch);
@@ -632,8 +629,7 @@ translation_local Swap_Chain_Info get_swap_chain_info(VkPhysicalDevice device,
       vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &info.surface_format_count, NULL),
       "Unable to query device surface formats");
   if (info.surface_format_count == 0) {
-    LOG_FATAL("Swap chain support inadequate");
-    exit(EXT_VK_SWAP_CHAIN_INFO);
+    LOG_FATAL("Swap chain support inadequate", EXT_VK_SWAP_CHAIN_INFO);
   }
 
   VK_CHECK_ERROR(vkGetPhysicalDeviceSurfaceFormatsKHR(device, surface, &info.surface_format_count,
@@ -644,8 +640,7 @@ translation_local Swap_Chain_Info get_swap_chain_info(VkPhysicalDevice device,
       vkGetPhysicalDeviceSurfacePresentModesKHR(device, surface, &info.present_mode_count, NULL),
       "Unable to query device surface present modes");
   if (info.present_mode_count == 0) {
-    LOG_FATAL("Swap chain support inadequate");
-    exit(EXT_VK_SWAP_CHAIN_INFO);
+    LOG_FATAL("Swap chain support inadequate", EXT_VK_SWAP_CHAIN_INFO);
   }
 
   VK_CHECK_ERROR(vkGetPhysicalDeviceSurfacePresentModesKHR(
@@ -684,8 +679,7 @@ translation_local VkFormat choose_swap_depth_format(VkPhysicalDevice device, VkF
     }
   }
 
-  LOG_FATAL("Failed to find supported depth format");
-  exit(EXT_VK_DEPTH_FORMAT);
+  LOG_FATAL("Failed to find supported depth format", EXT_VK_DEPTH_FORMAT);
 }
 
 translation_local VkPresentModeKHR choose_swap_present_mode(VkPresentModeKHR *modes,

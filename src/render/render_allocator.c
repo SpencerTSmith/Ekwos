@@ -30,7 +30,7 @@ translation_local u64 choose_memory_type(RND_Allocator *allocator, VkMemoryRequi
   }
 
   if (memory_type_index == UINT64_MAX) {
-    LOG_FATAL("Failed to find suitable memory type index for image allocation");
+    LOG_FATAL("Failed to find suitable memory type index for image allocation", EXT_VK_ALLOCATION);
   }
 
   return memory_type_index;
@@ -39,7 +39,7 @@ translation_local u64 choose_memory_type(RND_Allocator *allocator, VkMemoryRequi
 void rnd_alloc_image(RND_Allocator *allocator, VkImageCreateInfo info,
                      VkMemoryPropertyFlags memory_properties, VkImage *image,
                      VkDeviceMemory *memory) {
-  assert(allocator->capacity != 0 && "Tried to use rendering memory arena before initialization");
+  ASSERT(allocator->capacity != 0, "Tried to use rendering memory arena before initialization");
 
   VK_CHECK_FATAL(vkCreateImage(allocator->device, &info, NULL, image), EXT_VK_IMAGE_CREATE,
                  "Failed to create image");
@@ -64,7 +64,7 @@ void rnd_alloc_image(RND_Allocator *allocator, VkImageCreateInfo info,
 void rnd_alloc_buffer(RND_Allocator *allocator, VkBufferCreateInfo info,
                       VkMemoryPropertyFlags memory_properties, VkBuffer *buffer,
                       VkDeviceMemory *memory) {
-  assert(allocator->capacity != 0 && "Tried to use rendering memory arena before initialization");
+  ASSERT(allocator->capacity != 0, "Tried to use rendering memory arena before initialization");
 
   VK_CHECK_FATAL(vkCreateBuffer(allocator->device, &info, NULL, buffer), EXT_VK_BUFFER_CREATE,
                  "Failed to create buffer");
