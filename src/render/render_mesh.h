@@ -4,9 +4,8 @@
 #include "core/common.h"
 #include "core/linear_algebra.h"
 
+#include "render/render_buffer.h"
 #include "render/render_context.h"
-
-#include <stdalign.h>
 
 typedef struct RND_Vertex RND_Vertex;
 struct RND_Vertex {
@@ -25,12 +24,8 @@ struct RND_Push_Constants {
 
 typedef struct RND_Mesh RND_Mesh;
 struct RND_Mesh {
-  VkDeviceMemory vertex_memory;
-  VkDeviceMemory index_memory;
-  VkBuffer vertex_buffer;
-  VkBuffer index_buffer;
-  u32 vertex_count;
-  u32 index_count;
+  RND_Buffer vertex_buffer;
+  RND_Buffer index_buffer;
 };
 
 enum RND_Mesh_Constants {
@@ -39,9 +34,6 @@ enum RND_Mesh_Constants {
 };
 extern const VkVertexInputBindingDescription g_rnd_vertex_binding_descs[RND_VERTEX_BINDINGS_NUM];
 extern const VkVertexInputAttributeDescription g_rnd_vertex_attrib_descs[RND_VERTEX_ATTRIBUTES_NUM];
-
-// TODO(ss): Either need to use VMA (Vulkan Memory Allocator) library or create our own gpu memory
-// allocator ASAP
 
 void rnd_mesh_init(RND_Context *rc, RND_Mesh *mesh, RND_Vertex *vertices, u32 vert_count,
                    u32 *indices, u32 index_count);

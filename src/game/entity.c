@@ -1,9 +1,9 @@
 #include "game/entity.h"
 
-Entity_Pool entity_pool_create(u64 capacity) {
+Entity_Pool entity_pool_make(u64 capacity) {
   ASSERT(capacity <= ENTITY_MAX_NUM, "Entity pool created with capcity greater than max");
   Entity_Pool pool = {
-      .pool = pool_create_type(capacity, Entity),
+      .pool = pool_make_type(capacity, Entity),
       .next_entity_id = 1,
   };
 
@@ -15,8 +15,8 @@ void entity_pool_free(Entity_Pool *pool) {
   ZERO_STRUCT(pool);
 }
 
-Entity *entity_create(Entity_Pool *ep, RND_Context *rc, ASS_Manager *am, Entity_Flags flags,
-                      vec3 position, vec3 rotation, vec3 scale, vec3 color, char *mesh_file) {
+Entity *entity_make(Entity_Pool *ep, RND_Context *rc, ASS_Manager *am, Entity_Flags flags,
+                    vec3 position, vec3 rotation, vec3 scale, vec3 color, char *mesh_file) {
 
   Entity *entity = pool_alloc(&ep->pool);
 

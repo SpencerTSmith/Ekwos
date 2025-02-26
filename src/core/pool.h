@@ -24,7 +24,7 @@ struct Pool {
   u32 block_last_index;
 };
 
-Pool pool_create(u64 block_count, u64 block_size, u64 block_alignment);
+Pool pool_make(u64 block_count, u64 block_size, u64 block_alignment);
 void pool_free(Pool *pool);
 
 void *pool_alloc(Pool *pool);
@@ -34,6 +34,6 @@ void pool_pop(Pool *pool, void *ptr);
 // Use pool->blocks_occupied
 void *pool_as_array(Pool *pool, u32 *out_last_index);
 
-#define pool_create_type(c, T) pool_create(c, sizeof(T), alignof(T))
+#define pool_make_type(c, T) pool_make(c, sizeof(T), alignof(T))
 
 #endif // POOL_H

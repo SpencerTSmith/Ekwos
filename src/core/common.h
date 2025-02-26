@@ -1,6 +1,7 @@
 #ifndef COMMON_H
 #define COMMON_H
 
+#include <stdalign.h>
 #include <stddef.h>
 #include <stdint.h>
 #include <string.h>
@@ -54,7 +55,7 @@ typedef i8 b8;
 #define MB(n) (1024 * KB(n))
 #define GB(n) (1024 * MB(n))
 
-#define RGB2F(fl) ((fl) / 255.f)
+#define RGB_I2F(fl) ((fl) / 255.f)
 
 // These should be cross platform in c17
 f64 get_time_s(void);

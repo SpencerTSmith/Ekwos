@@ -10,8 +10,8 @@
 #include <stdio.h>
 
 void ass_manager_init(Arena *arena, ASS_Manager *ass) {
-  ass->entry_pool = pool_create_type(ASS_MAX_ENTRIES, ASS_Entry);
-  ass->mesh_pool = pool_create_type(ASS_MAX_MESHES, RND_Mesh);
+  ass->entry_pool = pool_make_type(ASS_MAX_ENTRIES, ASS_Entry);
+  ass->mesh_pool = pool_make_type(ASS_MAX_MESHES, RND_Mesh);
 }
 
 void ass_manager_free(ASS_Manager *ass, RND_Context *rc) {

@@ -1,9 +1,9 @@
 #include "core/pool.h"
 #include "core/log.h"
 
-Pool pool_create(u64 count, u64 block_size, u64 block_alignment) {
+Pool pool_make(u64 count, u64 block_size, u64 block_alignment) {
   Pool pool = {
-      .arena = arena_create(count * block_size, ARENA_FLAG_DEFAULTS),
+      .arena = arena_make(count * block_size, ARENA_FLAG_DEFAULTS),
       .free_block = NULL,
       .block_size = ALIGN_ROUND_UP(block_size, block_alignment),
       .block_last_index = 0,

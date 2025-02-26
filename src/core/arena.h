@@ -22,8 +22,7 @@ struct Arena {
 };
 
 // TODO(ss): actually write this, allow giving a backing buffer
-Arena arena_create_backing(void *backing_buffer, isize reserve_size, Arena_Flags flags);
-Arena arena_create(isize reserve_size, Arena_Flags flags);
+Arena arena_make(isize reserve_size, Arena_Flags flags);
 void arena_free(Arena *arena);
 void *arena_alloc(Arena *arena, isize size, isize alignment);
 void arena_pop_to(Arena *arena, isize offset);

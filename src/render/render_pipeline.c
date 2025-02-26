@@ -21,8 +21,8 @@ translation_local Pipeline_Config default_pipeline_config(void);
 translation_local Shader_Code read_shader_file(Arena *arena, const char *file_path);
 translation_local VkShaderModule create_shader_module(Shader_Code code, VkDevice device);
 
-RND_Pipeline rnd_pipeline_create(RND_Context *rc, const char *vert_shader_path,
-                                 const char *frag_shader_path, const Pipeline_Config *config) {
+RND_Pipeline rnd_pipeline_make(RND_Context *rc, const char *vert_shader_path,
+                               const char *frag_shader_path, const Pipeline_Config *config) {
   // Use a default if none passed in
   Pipeline_Config pl_config = config == NULL ? default_pipeline_config() : *config;
 

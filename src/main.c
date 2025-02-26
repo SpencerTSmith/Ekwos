@@ -77,21 +77,21 @@ int main(int argc, char **argv) {
   Game game = {0};
   game_init(&game, argc, argv);
 
-  RND_Pipeline mesh_pipeline = rnd_pipeline_create(&game.render_context, "shaders/vert.vert.spv",
-                                                   "shaders/frag.frag.spv", NULL);
+  RND_Pipeline mesh_pipeline = rnd_pipeline_make(&game.render_context, "shaders/vert.vert.spv",
+                                                 "shaders/frag.frag.spv", NULL);
 
   for (u32 i = 0; i < ENTITY_MAX_NUM; i++) {
     Entity *entity = NULL;
     if (i % 2 == 0) {
-      entity = entity_create(&game.entity_pool, &game.render_context, &game.asset_manager,
-                             ENTITY_FLAG_DEFAULT, vec3(0.f, 0.f, -2.f), vec3(0.f, 0.f, 0.f),
-                             vec3(1.f, 1.f, 1.f), vec3(0.f, 0.f, 0.f), "assets/smooth_vase.obj");
+      entity = entity_make(&game.entity_pool, &game.render_context, &game.asset_manager,
+                           ENTITY_FLAG_DEFAULT, vec3(0.f, 0.f, -2.f), vec3(0.f, 0.f, 0.f),
+                           vec3(1.f, 1.f, 1.f), vec3(0.f, 0.f, 0.f), "assets/smooth_vase.obj");
       entity->position = vec3_add(entity->position, vec3(-2.f * i, 2.f * i, -1.f * i));
       entity->scale = vec3(5.f, 5.f, 5.f);
     } else {
-      entity = entity_create(&game.entity_pool, &game.render_context, &game.asset_manager,
-                             ENTITY_FLAG_DEFAULT, vec3(0.f, 0.f, -2.f), vec3(0.f, 0.f, 0.f),
-                             vec3(1.f, 1.f, 1.f), vec3(0.f, 0.f, 0.f), NULL);
+      entity = entity_make(&game.entity_pool, &game.render_context, &game.asset_manager,
+                           ENTITY_FLAG_DEFAULT, vec3(0.f, 0.f, -2.f), vec3(0.f, 0.f, 0.f),
+                           vec3(1.f, 1.f, 1.f), vec3(0.f, 0.f, 0.f), NULL);
       entity->position = vec3_add(entity->position, vec3(2.f * i, -2.f * i, -1.f * i));
     }
 
@@ -102,12 +102,12 @@ int main(int argc, char **argv) {
   }
 
   // Testing purposes
-  entity_create(&game.entity_pool, &game.render_context, &game.asset_manager, ENTITY_FLAG_DEFAULT,
-                vec3(0.f, 4.f, -2.f), vec3(0.f, 0.f, 0.f), vec3(1.f, 1.f, 1.f), vec3(0.f, 0.f, 0.f),
-                "assets/sphere.obj");
-  entity_create(&game.entity_pool, &game.render_context, &game.asset_manager, ENTITY_FLAG_DEFAULT,
-                vec3(0.f, 0.f, -2.f), vec3(0.f, 0.f, 0.f), vec3(1.f, 1.f, 1.f), vec3(0.f, 0.f, 0.f),
-                "assets/sphere.obj");
+  entity_make(&game.entity_pool, &game.render_context, &game.asset_manager, ENTITY_FLAG_DEFAULT,
+              vec3(0.f, 4.f, -2.f), vec3(0.f, 0.f, 0.f), vec3(1.f, 1.f, 1.f), vec3(0.f, 0.f, 0.f),
+              "assets/sphere.obj");
+  entity_make(&game.entity_pool, &game.render_context, &game.asset_manager, ENTITY_FLAG_DEFAULT,
+              vec3(0.f, 0.f, -2.f), vec3(0.f, 0.f, 0.f), vec3(1.f, 1.f, 1.f), vec3(0.f, 0.f, 0.f),
+              "assets/sphere.obj");
 
   u64 last_frame_time = get_time_ms();
   char fps_display[256];

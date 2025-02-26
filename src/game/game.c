@@ -10,9 +10,9 @@ void game_init(Game *game, u32 argc, char **argv) {
   rnd_context_init(&game->render_context, &game->window);
 
   // Create our persistent arena (Long term state, probably for the whole lifetime of the game)
-  game->persistent_arena = arena_create(1024 * 256, ARENA_FLAG_DEFAULTS);
+  game->persistent_arena = arena_make(1024 * 256, ARENA_FLAG_DEFAULTS);
 
-  game->entity_pool = entity_pool_create(ENTITY_MAX_NUM);
+  game->entity_pool = entity_pool_make(ENTITY_MAX_NUM);
 
   // Initialize the game's asset manager
   ass_manager_init(&game->persistent_arena, &game->asset_manager);

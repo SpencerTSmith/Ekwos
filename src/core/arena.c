@@ -6,7 +6,7 @@
 #include <malloc.h>
 #include <stdlib.h>
 
-Arena arena_create(isize reserve_size, Arena_Flags flags) {
+Arena arena_make(isize reserve_size, Arena_Flags flags) {
   Arena arena = {0};
 
   // NOTE(ss): this will return page-aligned memory (obviously) so I don't think it is
