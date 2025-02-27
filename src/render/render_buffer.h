@@ -46,5 +46,6 @@ RND_Buffer rnd_buffer_make_index(RND_Context *rc, u32 *indices, u32 index_count)
 
 // TODO(ss):
 RND_Buffer rnd_buffer_make_uniform(void);
+void rnd_buffer_write_uniform(RND_Buffer *buffer);
 
 #endif // RENDER_BUFFER_H

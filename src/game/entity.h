@@ -22,10 +22,11 @@ typedef enum Entity_Flags {
 
 typedef struct Entity Entity;
 struct Entity {
-  u64 id;
+  u64 id; // As stated below this acts as padding as well for when a pointer is held here instead
+
   // HACK(ss): Storing this down here because pool allocator just stores the free list directly in
   // the buffer meaning that this needs to not be overwritten by the node pointer, this is
-  // absolutely terrible design, but it works
+  // probably terrible design, but it works
   Entity_Flags flags;
 
   // Transforms

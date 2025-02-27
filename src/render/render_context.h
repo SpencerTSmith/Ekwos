@@ -2,6 +2,7 @@
 #define RENDER_CONTEXT_H
 
 #include "core/common.h"
+#include "core/linear_algebra.h"
 #include "core/window.h"
 
 #include "render/render_allocator.h"
@@ -18,6 +19,12 @@ enum RND_Context_Constants {
   RENDER_CONTEXT_MAX_SURFACE_FORMATS = 16, // no idea for this, made of 2 enums, lots of elems
   RENDER_CONTEXT_ATTACHMENT_COUNT = 2,
   RENDER_CONTEXT_STAGING_SIZE = MB(64),
+};
+
+typedef struct RND_Global_UBO RND_Global_UBO;
+struct RND_Global_UBO {
+  mat4 projection_view;
+  vec3 light_direction;
 };
 
 // Just in case we want easy pointers

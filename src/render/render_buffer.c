@@ -61,3 +61,11 @@ RND_Buffer rnd_buffer_make_index(RND_Context *rc, u32 *indices, u32 index_count)
 
   return idx_buf;
 }
+
+RND_Buffer rnd_buffer_make_uniform(void);
+void rnd_buffer_write_uniform(RND_Buffer *buffer) {
+  if (buffer->type != RND_BUFFER_UNIFORM) {
+    LOG_ERROR("Tried to write uniform to non-uniform buffer");
+    return;
+  }
+}

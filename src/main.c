@@ -82,21 +82,27 @@ int main(int argc, char **argv) {
 
   for (u32 i = 0; i < ENTITY_MAX_NUM; i++) {
     Entity *entity = NULL;
-    if (i % 2 == 0) {
+    if (i % 3 == 0) {
       entity = entity_make(&game.entity_pool, &game.render_context, &game.asset_manager,
                            ENTITY_FLAG_DEFAULT, vec3(0.f, 0.f, -2.f), vec3(0.f, 0.f, 0.f),
                            vec3(1.f, 1.f, 1.f), vec3(0.f, 0.f, 0.f), "assets/smooth_vase.obj");
       entity->position = vec3_add(entity->position, vec3(-2.f * i, 2.f * i, -1.f * i));
       entity->scale = vec3(5.f, 5.f, 5.f);
-    } else {
+    } else if (i % 3 == 1) {
       entity = entity_make(&game.entity_pool, &game.render_context, &game.asset_manager,
                            ENTITY_FLAG_DEFAULT, vec3(0.f, 0.f, -2.f), vec3(0.f, 0.f, 0.f),
                            vec3(1.f, 1.f, 1.f), vec3(0.f, 0.f, 0.f), NULL);
       entity->position = vec3_add(entity->position, vec3(2.f * i, -2.f * i, -1.f * i));
+    } else if (i % 3 == 2) {
+      entity = entity_make(&game.entity_pool, &game.render_context, &game.asset_manager,
+                           ENTITY_FLAG_DEFAULT, vec3(0.f, 0.f, -2.f), vec3(0.f, 0.f, 0.f),
+                           vec3(1.f, 1.f, 1.f), vec3(0.f, 0.f, 0.f), "assets/flat_vase.obj");
+      entity->position = vec3_add(entity->position, vec3(0.f, 2.f * i, -1.f * i));
+      entity->scale = vec3(5.f, 5.f, 5.f);
     }
 
     // Testing purposes
-    if (i == 0 || i == 1 || i == 2 || i == 3) {
+    if (i == 0 || i == 1 || i == 2 || i == 3 || i == 10 || i == 11) {
       entity_free(&game.entity_pool, entity);
     }
   }
@@ -144,7 +150,7 @@ int main(int argc, char **argv) {
           continue;
         }
 
-        entities[i].rotation.x += 0.10f * PI * game.dt;
+        // entities[i].rotation.x += 0.10f * PI * game.dt;
         entities[i].rotation.y += 0.10f * PI * game.dt;
         entities[i].rotation.z += 0.10f * PI * game.dt;
       }
