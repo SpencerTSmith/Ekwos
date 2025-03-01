@@ -33,7 +33,9 @@ typedef struct RND_Vertex RND_Vertex;
 // There should be multiple allocators? The allocator interface so far kind of assumes there might
 // be more by having to explicitly pass one in
 
-// General purpose api
+// General purpose api (Mostly a nice wrapper around allocating and uploading data) -----------
+
+// items argument can be NULL if you don't wish to write anything yet and only want to allocate
 RND_Buffer rnd_buffer_make(RND_Context *rc, void *items, VkDeviceSize item_size, u32 item_count,
                            VkBufferUsageFlags usage, VkMemoryPropertyFlags memory_properties,
                            VkDeviceSize min_alignment);
@@ -45,7 +47,7 @@ RND_Buffer rnd_buffer_make_vertex(RND_Context *rc, RND_Vertex *vertices, u32 ver
 RND_Buffer rnd_buffer_make_index(RND_Context *rc, u32 *indices, u32 index_count);
 
 // TODO(ss):
-RND_Buffer rnd_buffer_make_uniform(void);
+RND_Buffer rnd_buffer_make_uniform(RND_Context *rc, RND_Vertex *vertices, u32 vert_count);
 void rnd_buffer_write_uniform(RND_Buffer *buffer);
 
 #endif // RENDER_BUFFER_H

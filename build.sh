@@ -28,18 +28,18 @@ needs_rebuild() {
 	local source_file=$1
 	local object_file=$2
 
-	# Object doesn't exist yet
+	# Object doesn't exist yet, rebuild
 	if [[ ! -f "${object_file}" ]]; then
-		return 1
+		return 0
 	fi
 
-	# Object is newer
-	if [[ ! "${source_file}" -nt "${object_file}" ]]; then
-		return 1
+	# Source is newer, rebuild
+	if [[ "${source_file}" -nt "${object_file}" ]]; then
+		return 0
 	fi
 
-	# Need to rebuild
-	return 0
+	# No need to rebuild
+	return 1
 }
 
 for SHADER in ${SHADER_SRCS}; do

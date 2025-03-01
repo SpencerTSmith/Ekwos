@@ -13,8 +13,7 @@
 translation_local const char *const enabled_validation_layers[] = {"VK_LAYER_KHRONOS_validation"};
 translation_local const bool enable_val_layers = true;
 #else
-translation_local const char *const enabled_validation_layers[] = NULL;
-translation_local const u32 num_enable_validation_layers = 0;
+translation_local const char *const enabled_validation_layers[] = {NULL};
 translation_local const bool enable_val_layers = false;
 #endif // DEBUG defined
 
