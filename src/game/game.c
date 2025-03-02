@@ -22,8 +22,6 @@ void game_init(Game *game, u32 argc, char **argv) {
   game->camera.move_speed = 10.f;
 
   // Default Camera Settings
-  camera_set_perspective(&game->camera, RADIANS(90.f), (f32)game->window.w / game->window.h, .1f,
-                         10.f);
   camera_set_direction(&game->camera, vec3(0.f, 0.f, 0.f), vec3(0.0f, 0.f, -1.f),
                        vec3(0.f, 1.f, 0.f));
 

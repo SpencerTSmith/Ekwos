@@ -85,35 +85,41 @@ int main(int argc, char **argv) {
     if (i % 3 == 0) {
       entity = entity_make(&game.entity_pool, &game.render_context, &game.asset_manager,
                            ENTITY_FLAG_DEFAULT, vec3(0.f, 0.f, -2.f), vec3(0.f, 0.f, 0.f),
-                           vec3(1.f, 1.f, 1.f), vec3(0.f, 0.f, 0.f), "assets/smooth_vase.obj");
+                           vec3(1.f, 1.f, 1.f), "assets/smooth_vase.obj");
       entity->position = vec3_add(entity->position, vec3(-2.f * i, 2.f * i, -1.f * i));
       entity->scale = vec3(5.f, 5.f, 5.f);
     } else if (i % 3 == 1) {
       entity = entity_make(&game.entity_pool, &game.render_context, &game.asset_manager,
                            ENTITY_FLAG_DEFAULT, vec3(0.f, 0.f, -2.f), vec3(0.f, 0.f, 0.f),
-                           vec3(1.f, 1.f, 1.f), vec3(0.f, 0.f, 0.f), NULL);
+                           vec3(1.f, 1.f, 1.f), NULL);
       entity->position = vec3_add(entity->position, vec3(2.f * i, -2.f * i, -1.f * i));
     } else if (i % 3 == 2) {
       entity = entity_make(&game.entity_pool, &game.render_context, &game.asset_manager,
                            ENTITY_FLAG_DEFAULT, vec3(0.f, 0.f, -2.f), vec3(0.f, 0.f, 0.f),
-                           vec3(1.f, 1.f, 1.f), vec3(0.f, 0.f, 0.f), "assets/flat_vase.obj");
+                           vec3(1.f, 1.f, 1.f), "assets/flat_vase.obj");
       entity->position = vec3_add(entity->position, vec3(0.f, 2.f * i, -1.f * i));
       entity->scale = vec3(5.f, 5.f, 5.f);
     }
 
     // Testing purposes
-    if (i == 0 || i == 1 || i == 2 || i == 3 || i == 10 || i == 11) {
+    if ((i <= 5) || (i >= 10 && i <= 15)) {
       entity_free(&game.entity_pool, entity);
     }
   }
 
   // Testing purposes
   entity_make(&game.entity_pool, &game.render_context, &game.asset_manager, ENTITY_FLAG_DEFAULT,
-              vec3(0.f, 4.f, -2.f), vec3(0.f, 0.f, 0.f), vec3(1.f, 1.f, 1.f), vec3(0.f, 0.f, 0.f),
-              "assets/sphere.obj");
+              vec3(0.f, 4.f, -2.f), vec3(0.f, 0.f, 0.f), vec3(1.f, 1.f, 1.f), "assets/f22.obj");
   entity_make(&game.entity_pool, &game.render_context, &game.asset_manager, ENTITY_FLAG_DEFAULT,
-              vec3(0.f, 0.f, -2.f), vec3(0.f, 0.f, 0.f), vec3(1.f, 1.f, 1.f), vec3(0.f, 0.f, 0.f),
-              "assets/sphere.obj");
+              vec3(0.f, 0.f, -2.f), vec3(0.f, 0.f, 0.f), vec3(1.f, 1.f, 1.f), "assets/sphere.obj");
+  entity_make(&game.entity_pool, &game.render_context, &game.asset_manager, ENTITY_FLAG_DEFAULT,
+              vec3(0.f, -4.f, -2.f), vec3(0.f, 0.f, 0.f), vec3(1.f, 1.f, 1.f), "assets/crab.obj");
+  entity_make(&game.entity_pool, &game.render_context, &game.asset_manager, ENTITY_FLAG_DEFAULT,
+              vec3(4.f, -4.f, -5.f), vec3(0.f, 0.f, 0.f), vec3(1.f, 1.f, 1.f),
+              "assets/colored_cube.obj");
+  entity_make(&game.entity_pool, &game.render_context, &game.asset_manager, ENTITY_FLAG_DEFAULT,
+              vec3(4.f, -4.f, -5.f), vec3(0.f, 0.f, 0.f), vec3(1.f, 1.f, 1.f),
+              "assets/colored_cube.obj");
 
   u64 last_frame_time = get_time_ms();
   char fps_display[256];
@@ -159,9 +165,10 @@ int main(int argc, char **argv) {
     rnd_begin_frame(&game.render_context, &game.window);
     {
       f32 aspect = rnd_swap_aspect_ratio(&game.render_context);
-      camera_set_perspective(&game.camera, RADIANS(90.0f), aspect, .1f, 1000.f);
 
-      mat4 proj_view = mat4_mul(game.camera.projection, game.camera.view);
+      mat4 projection = camera_get_perspective(&game.camera, RADIANS(90.0f), aspect, .1f, 1000.f);
+
+      mat4 proj_view = mat4_mul(projection, game.camera.view);
       rnd_pipeline_bind(&game.render_context, &mesh_pipeline);
 
       u32 entities_end = 0;

@@ -16,7 +16,7 @@ void entity_pool_free(Entity_Pool *pool) {
 }
 
 Entity *entity_make(Entity_Pool *ep, RND_Context *rc, ASS_Manager *am, Entity_Flags flags,
-                    vec3 position, vec3 rotation, vec3 scale, vec3 color, char *mesh_file) {
+                    vec3 position, vec3 rotation, vec3 scale, char *mesh_file) {
 
   Entity *entity = pool_alloc(&ep->pool);
 
@@ -26,7 +26,6 @@ Entity *entity_make(Entity_Pool *ep, RND_Context *rc, ASS_Manager *am, Entity_Fl
       .position = position,
       .rotation = rotation,
       .scale = scale,
-      .color = color,
       .mesh_asset = ass_load_mesh_obj(am, rc, mesh_file),
   };
 

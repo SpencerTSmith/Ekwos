@@ -3,14 +3,19 @@ Exploration of game engine design, focusing primarily on simple and no/minimal d
 ## Build and Run
 Ensure Vulkan support, and has GLFW (only dependency) as a system library.
 ```bash
-cmake -B build && cmake --build build
+./build.sh
 ```
 Probably only working on Linux, haven't tested on any systems besides my desktop and laptop both running Linux. As well, none of my custom assets are currently packaged with the repo. Running as it is will result in a default cube mesh being loaded for all entities.
 ```bash
-cd build
+cd bin
 ./ekwos -w [window-width] -h [window-height] -f [max fps]
 ```
 Need to run the game from the build folder, as the compiled shaders need to be in the same folder as the executable.
+
+One liner for building and running
+```bash
+./build.sh && (cd bin && ./ekwos)
+```
 
 ## Short Term TODOs
 - [x] Entity Pool
@@ -50,6 +55,9 @@ Need to run the game from the build folder, as the compiled shaders need to be i
 - [ ] Audio
 - [ ] Transition off Cmake
     - [ ] Not planning on having a ton of dependencies, can make this simpler?
+- [ ] Look into nice Vulkan 1.3 features
+    - [ ] Dynamic rendering
+    - [ ] Timeline semaphore
 
 ## Fully Complete
 - [x] Vulkan Context Setup
