@@ -53,8 +53,8 @@ One liner for building and running
 
 ## Long Term TODOs
 - [ ] Audio
-- [ ] Transition off Cmake
-    - [ ] Not planning on having a ton of dependencies, can make this simpler?
+- [x] Transition off Cmake
+    - [x] Not planning on having a ton of dependencies, can make this simpler?
 - [ ] Look into nice Vulkan 1.3 features
     - [ ] Dynamic rendering
     - [ ] Timeline semaphore
