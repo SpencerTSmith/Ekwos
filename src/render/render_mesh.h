@@ -15,13 +15,6 @@ struct RND_Vertex {
   vec2 uv;
 };
 
-// Remember alignment shit
-typedef struct RND_Push_Constants RND_Push_Constants;
-struct RND_Push_Constants {
-  mat4 clip_transform;
-  mat4 normal_matrix; // For some reason only works when its a mat4?!
-};
-
 typedef struct RND_Mesh RND_Mesh;
 struct RND_Mesh {
   RND_Buffer vertex_buffer;

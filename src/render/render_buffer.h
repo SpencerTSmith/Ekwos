@@ -1,7 +1,9 @@
 #ifndef RENDER_BUFFER_H
 #define RENDER_BUFFER_H
 
-#include "render/render_context.h"
+#include "render/render_common.h"
+
+typedef struct RND_Context RND_Context;
 
 // Going with the singular type, with enum... is this a good idea?
 typedef enum RND_Buffer_Type {
@@ -20,7 +22,11 @@ struct RND_Buffer {
 
   u32 item_count;
   VkDeviceSize item_size;
-  VkDeviceSize alignment;
+  VkDeviceSize aligned_size;
+  VkDeviceSize buffer_size;
+
+  // Only used if uniform really
+  void *base_mapped;
 
   VkBufferUsageFlags usages;
   VkMemoryPropertyFlags memory_properties;
@@ -29,7 +35,7 @@ struct RND_Buffer {
 // Forward declaration for no recursive includes, sigh
 typedef struct RND_Vertex RND_Vertex;
 
-// TODO(ss): Is it a good idea to pass the allocator in as well? I wonder if in future
+// TODO(ss): Is it a good idea to pass the allocator/uploader in as well? I wonder if in future
 // There should be multiple allocators? The allocator interface so far kind of assumes there might
 // be more by having to explicitly pass one in
 
@@ -46,8 +52,8 @@ void rnd_buffer_free(RND_Context *rc, RND_Buffer *buffer);
 RND_Buffer rnd_buffer_make_vertex(RND_Context *rc, RND_Vertex *vertices, u32 vert_count);
 RND_Buffer rnd_buffer_make_index(RND_Context *rc, u32 *indices, u32 index_count);
 
-// TODO(ss):
-RND_Buffer rnd_buffer_make_uniform(RND_Context *rc, RND_Vertex *vertices, u32 vert_count);
+// TODO(ss): This will not upload anything yet, only returning a mapped uniform buffer
+RND_Buffer rnd_buffer_make_uniform(RND_Context *rc, VkDeviceSize per_frame_size, u32 frame_count);
 void rnd_buffer_write_uniform(RND_Buffer *buffer);
 
 #endif // RENDER_BUFFER_H

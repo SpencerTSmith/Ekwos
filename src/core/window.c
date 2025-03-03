@@ -3,8 +3,6 @@
 #include <stdlib.h>
 
 #include "core/log.h"
-#include "render/render_common.h"
-#include "render/render_context.h"
 
 translation_local void framebuffer_resize_callback(GLFWwindow *window, int width, int height);
 

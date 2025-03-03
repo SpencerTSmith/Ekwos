@@ -11,6 +11,7 @@ void game_init(Game *game, u32 argc, char **argv) {
 
   // Create our persistent arena (Long term state, probably for the whole lifetime of the game)
   game->persistent_arena = arena_make(1024 * 256, ARENA_FLAG_DEFAULTS);
+  game->frame_arena = arena_make(1024 * 256, ARENA_FLAG_DEFAULTS);
 
   game->entity_pool = entity_pool_make(ENTITY_MAX_NUM);
 
@@ -31,8 +32,9 @@ void game_init(Game *game, u32 argc, char **argv) {
 void game_free(Game *game) {
   ass_manager_free(&game->asset_manager, &game->render_context);
   entity_pool_free(&game->entity_pool);
+  arena_free(&game->frame_arena);
+  arena_free(&game->persistent_arena);
   rnd_context_free(&game->render_context);
   window_free(&game->window);
-  arena_free(&game->persistent_arena);
   ZERO_STRUCT(game);
 }

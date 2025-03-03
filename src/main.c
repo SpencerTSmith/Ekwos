@@ -80,7 +80,7 @@ int main(int argc, char **argv) {
   RND_Pipeline mesh_pipeline = rnd_pipeline_make(&game.render_context, "shaders/vert.vert.spv",
                                                  "shaders/frag.frag.spv", NULL);
 
-  for (u32 i = 0; i < ENTITY_MAX_NUM; i++) {
+  for (u32 i = 0; i < ENTITY_MAX_NUM / 2; i++) {
     Entity *entity = NULL;
     if (i % 3 == 0) {
       entity = entity_make(&game.entity_pool, &game.render_context, &game.asset_manager,
@@ -132,20 +132,20 @@ int main(int argc, char **argv) {
       }
 
       // New dt after sleeping
-      game.dt = (get_time_ms() - last_frame_time) / 1000.0;
+      game.dt_s = (get_time_ms() - last_frame_time) / 1000.0;
 
-      game.fps = 1.0 / game.dt;
+      game.fps = 1.0 / game.dt_s;
 
       // TODO(ss): Font rendering so we can just render it in game
       snprintf(fps_display, sizeof(fps_display), "%s FPS: %.2f, Frame Time: %.6fs",
-               game.window.name, game.fps, game.dt);
+               game.window.name, game.fps, game.dt_s);
       glfwSetWindowTitle(game.window.handle, fps_display);
 
       game.frame_count += 1;
       last_frame_time = get_time_ms();
     }
 
-    process_input(&game.window, &game.camera, game.dt);
+    process_input(&game.window, &game.camera, game.dt_s);
 
     // Update Logic
     {
@@ -157,8 +157,8 @@ int main(int argc, char **argv) {
         }
 
         // entities[i].rotation.x += 0.10f * PI * game.dt;
-        entities[i].rotation.y += 0.10f * PI * game.dt;
-        entities[i].rotation.z += 0.10f * PI * game.dt;
+        entities[i].rotation.y += 0.10f * PI * game.dt_s;
+        entities[i].rotation.z += 0.10f * PI * game.dt_s;
       }
     }
 
@@ -184,7 +184,7 @@ int main(int argc, char **argv) {
             .clip_transform = clip_transform,
             .normal_matrix = entity_normal_matrix(&entities[i]),
         };
-        rnd_push_constants(&game.render_context, &mesh_pipeline, push);
+        rnd_pipeline_push_constants(&game.render_context, &mesh_pipeline, push);
 
         rnd_mesh_bind(&game.render_context, entities[i].mesh_asset->data);
         rnd_mesh_draw(&game.render_context, entities[i].mesh_asset->data);

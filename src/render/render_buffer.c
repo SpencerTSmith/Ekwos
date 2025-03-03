@@ -12,22 +12,26 @@ RND_Buffer rnd_buffer_make(RND_Context *rc, void *items, VkDeviceSize item_size,
       .item_count = item_count,
       .usages = usage,
       .memory_properties = memory_properties,
-      .alignment = min_alignment,
       .type = RND_BUFFER_UNKOWN,
   };
+  buf.aligned_size = ALIGN_ROUND_UP(buf.item_size, min_alignment);
 
-  VkDeviceSize buffer_size = item_size * item_count;
+  buf.buffer_size = buf.aligned_size * buf.item_count;
 
   VkBufferCreateInfo buffer_info = {0};
   buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
-  buffer_info.size = buffer_size;
+  buffer_info.size = buf.buffer_size;
   buffer_info.usage = usage;
   buffer_info.sharingMode = VK_SHARING_MODE_EXCLUSIVE;
 
   rnd_alloc_buffer(&rc->allocator, buffer_info, memory_properties, &buf.buffer, &buf.memory);
   if (memory_properties & VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT &&
       usage & VK_BUFFER_USAGE_TRANSFER_DST_BIT && items != NULL)
-    rnd_upload_buffer(&rc->uploader, items, buffer_size, buf.buffer);
+    rnd_upload_buffer(&rc->uploader, items, buf.buffer_size, buf.buffer);
+
+  LOG_DEBUG("Allocated and uploaded buffer with size: %lu, item count: %u, item size: %lu, aligned "
+            "size: %lu",
+            buf.buffer_size, buf.item_count, buf.item_size, buf.aligned_size);
 
   return buf;
 }
@@ -35,6 +39,8 @@ RND_Buffer rnd_buffer_make(RND_Context *rc, void *items, VkDeviceSize item_size,
 void rnd_buffer_free(RND_Context *rc, RND_Buffer *buffer) {
   if (buffer->item_count > 0 && buffer->buffer != VK_NULL_HANDLE &&
       buffer->memory != VK_NULL_HANDLE) {
+    if (buffer->type == RND_BUFFER_UNIFORM)
+      vkUnmapMemory(rc->logical, buffer->memory);
     vkDestroyBuffer(rc->logical, buffer->buffer, NULL);
     vkFreeMemory(rc->logical, buffer->memory, NULL);
   } else {
@@ -45,27 +51,38 @@ void rnd_buffer_free(RND_Context *rc, RND_Buffer *buffer) {
 }
 
 RND_Buffer rnd_buffer_make_vertex(RND_Context *rc, RND_Vertex *vertices, u32 vert_count) {
+  // No alignment requirement
   RND_Buffer vert_buf =
       rnd_buffer_make(rc, vertices, sizeof(vertices[0]), vert_count,
                       VK_BUFFER_USAGE_VERTEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-                      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, alignof(vertices[0]));
+                      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 1);
   vert_buf.type = RND_BUFFER_VERTEX;
+  LOG_DEBUG("Above buffer was vertex");
 
   return vert_buf;
 }
 
 RND_Buffer rnd_buffer_make_index(RND_Context *rc, u32 *indices, u32 index_count) {
+  // No alignment requirement
   RND_Buffer idx_buf =
       rnd_buffer_make(rc, indices, sizeof(indices[0]), index_count,
                       VK_BUFFER_USAGE_INDEX_BUFFER_BIT | VK_BUFFER_USAGE_TRANSFER_DST_BIT,
-                      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, alignof(indices[0]));
+                      VK_MEMORY_PROPERTY_DEVICE_LOCAL_BIT, 1);
   idx_buf.type = RND_BUFFER_INDEX;
+  LOG_DEBUG("Above buffer was indices");
 
   return idx_buf;
 }
 
-RND_Buffer rnd_buffer_make_uniform(RND_Context *rc, RND_Vertex *vertices, u32 vert_count) {
-  RND_Buffer uni_buf;
+RND_Buffer rnd_buffer_make_uniform(RND_Context *rc, VkDeviceSize per_frame_size, u32 frame_count) {
+  RND_Buffer uni_buf =
+      rnd_buffer_make(rc, NULL, per_frame_size, frame_count, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+  uni_buf.type = RND_BUFFER_UNIFORM;
+  VK_CHECK_ERROR(
+      vkMapMemory(rc->logical, uni_buf.memory, 0, uni_buf.buffer_size, 0, &uni_buf.base_mapped),
+      "Unable to map memory for Uniform Buffer");
+  LOG_DEBUG("Above buffer was uniform");
 
   return uni_buf;
 }

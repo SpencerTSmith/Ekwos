@@ -128,6 +128,7 @@ void rnd_pipeline_free(RND_Context *rc, RND_Pipeline *pl) {
   vkDestroyPipelineLayout(rc->logical, pl->layout, NULL);
   vkDestroyPipeline(rc->logical, pl->handle, NULL);
   ZERO_STRUCT(pl);
+
   LOG_DEBUG("Render Pipeline resources destroyed");
 }
 
@@ -135,7 +136,7 @@ void rnd_pipeline_bind(RND_Context *rc, RND_Pipeline *pl) {
   vkCmdBindPipeline(rnd_get_current_cmd(rc), VK_PIPELINE_BIND_POINT_GRAPHICS, pl->handle);
 }
 
-void rnd_push_constants(RND_Context *rc, RND_Pipeline *pl, RND_Push_Constants push) {
+void rnd_pipeline_push_constants(RND_Context *rc, RND_Pipeline *pl, RND_Push_Constants push) {
   vkCmdPushConstants(rnd_get_current_cmd(rc), pl->layout,
                      VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0,
                      sizeof(RND_Push_Constants), &push);

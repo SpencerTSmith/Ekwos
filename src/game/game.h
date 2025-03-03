@@ -26,12 +26,13 @@ struct Game {
   Entity_Pool entity_pool;
 
   Arena persistent_arena;
+  Arena frame_arena;
 
   Camera camera;
 
   f64 target_frame_time_ms;
   f64 fps;
-  f64 dt;
+  f64 dt_s;
   u64 frame_count;
 };
 

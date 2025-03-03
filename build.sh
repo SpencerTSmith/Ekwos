@@ -20,6 +20,13 @@ LDFLAGS="-lglfw -lvulkan -lm"
 
 OBJ_FILES=()
 
+# Check if full rebuild is requested
+FULL_REBUILD=1
+if [[ "$#" -gt 0 && "$1" == "--full" ]]; then
+	FULL_REBUILD=0
+	echo "Full rebuild..."
+fi
+
 mkdir -p "${BIN_DIR}"
 mkdir -p "${OUTPUT_SHADER_DIR}"
 mkdir -p "${OBJ_DIR}"
@@ -27,6 +34,10 @@ mkdir -p "${OBJ_DIR}"
 needs_rebuild() {
 	local source_file=$1
 	local object_file=$2
+
+	if [[ ${FULL_REBUILD} ]]; then
+		return 0
+	fi
 
 	# Object doesn't exist yet, rebuild
 	if [[ ! -f "${object_file}" ]]; then

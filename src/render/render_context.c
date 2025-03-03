@@ -29,9 +29,9 @@ translation_local VkFormat possible_depth_formats[] = {
 typedef struct Swap_Chain_Info Swap_Chain_Info;
 struct Swap_Chain_Info {
   VkSurfaceCapabilitiesKHR capabilities;
-  VkSurfaceFormatKHR surface_formats[RENDER_CONTEXT_MAX_SURFACE_FORMATS];
+  VkSurfaceFormatKHR surface_formats[RND_CONTEXT_MAX_SURFACE_FORMATS];
   u32 surface_format_count;
-  VkPresentModeKHR present_modes[RENDER_CONTEXT_MAX_PRESENT_MODES];
+  VkPresentModeKHR present_modes[RND_CONTEXT_MAX_PRESENT_MODES];
   u32 present_mode_count;
 };
 
@@ -72,6 +72,7 @@ void rnd_context_init(RND_Context *rc, Window *window) {
 }
 
 void rnd_context_free(RND_Context *rc) {
+  vkDeviceWaitIdle(rc->logical);
   if (rc->instance != VK_NULL_HANDLE) {
     destroy_swap_chain(rc, rc->swap.handle);
     rnd_uploader_free(rc, &rc->uploader);
@@ -557,7 +558,7 @@ translation_local void create_logical_device(RND_Context *rc) {
 
   // Logical device needs an array of queue create infos
   u64 num_queue_creates = 0;
-  VkDeviceQueueCreateInfo queue_creates[RENDER_CONTEXT_MAX_QUEUE_NUM];
+  VkDeviceQueueCreateInfo queue_creates[RND_CONTEXT_MAX_QUEUE_NUM];
 
   VkDeviceQueueCreateInfo graphic_create = {0};
   graphic_create.sType = VK_STRUCTURE_TYPE_DEVICE_QUEUE_CREATE_INFO;
@@ -732,9 +733,9 @@ translation_local void create_swap_chain(RND_Context *rc, Window *window) {
   rc->swap.clear_depth = (VkClearDepthStencilValue){.depth = 1.0f, .stencil = 0};
 
   // Suggested to use at least one more, if possible
-  rc->swap.target_count = MIN(info.capabilities.minImageCount + 1, RENDER_CONTEXT_MAX_SWAP_IMAGES);
+  rc->swap.target_count = MIN(info.capabilities.minImageCount + 1, RND_CONTEXT_MAX_SWAP_IMAGES);
   if (info.capabilities.maxImageCount > 0) {
-    rc->swap.target_count = MIN(RENDER_CONTEXT_MAX_SWAP_IMAGES, info.capabilities.maxImageCount);
+    rc->swap.target_count = MIN(RND_CONTEXT_MAX_SWAP_IMAGES, info.capabilities.maxImageCount);
   }
 
   // If we are recreating
@@ -755,8 +756,8 @@ translation_local void create_swap_chain(RND_Context *rc, Window *window) {
   // Set to share images if the queues are different... for now
   if (rc->graphic_index != rc->present_index) {
     create_info.imageSharingMode = VK_SHARING_MODE_CONCURRENT;
-    u32 indices[RENDER_CONTEXT_MAX_QUEUE_NUM] = {rc->graphic_index, rc->present_index};
-    create_info.queueFamilyIndexCount = RENDER_CONTEXT_MAX_QUEUE_NUM;
+    u32 indices[RND_CONTEXT_MAX_QUEUE_NUM] = {rc->graphic_index, rc->present_index};
+    create_info.queueFamilyIndexCount = RND_CONTEXT_MAX_QUEUE_NUM;
     create_info.pQueueFamilyIndices = indices;
   } else {
     create_info.imageSharingMode = VK_SHARING_MODE_EXCLUSIVE;
@@ -876,8 +877,8 @@ translation_local void create_target_resources(RND_Context *rc) {
   LOG_DEBUG("Swap chain using %u images", rc->swap.target_count);
 
   // Grab handles to the swap images
-  VkImage temp_image_array[RENDER_CONTEXT_MAX_SWAP_IMAGES] = {0};
-  if (rc->swap.target_count > 0 && rc->swap.target_count <= RENDER_CONTEXT_MAX_SWAP_IMAGES) {
+  VkImage temp_image_array[RND_CONTEXT_MAX_SWAP_IMAGES] = {0};
+  if (rc->swap.target_count > 0 && rc->swap.target_count <= RND_CONTEXT_MAX_SWAP_IMAGES) {
     vkGetSwapchainImagesKHR(rc->logical, rc->swap.handle, &rc->swap.target_count, temp_image_array);
   }
 
@@ -980,7 +981,7 @@ translation_local void create_frame_resources(RND_Context *rc) {
   LOG_DEBUG("Created command pool");
 
   // TODO(ss): some time of configuration or checks on this number
-  rc->swap.frames_in_flight = RENDER_CONTEXT_MAX_FRAMES_IN_FLIGHT;
+  rc->swap.frames_in_flight = RND_CONTEXT_MAX_FRAMES_IN_FLIGHT;
 
   VkCommandBufferAllocateInfo cba = {0};
   cba.sType = VK_STRUCTURE_TYPE_COMMAND_BUFFER_ALLOCATE_INFO;
@@ -988,7 +989,7 @@ translation_local void create_frame_resources(RND_Context *rc) {
   cba.level = VK_COMMAND_BUFFER_LEVEL_PRIMARY;
   cba.commandBufferCount = rc->swap.frames_in_flight;
 
-  VkCommandBuffer temp_command_buffer_array[RENDER_CONTEXT_MAX_FRAMES_IN_FLIGHT];
+  VkCommandBuffer temp_command_buffer_array[RND_CONTEXT_MAX_FRAMES_IN_FLIGHT];
   VK_CHECK_FATAL(vkAllocateCommandBuffers(rc->logical, &cba, temp_command_buffer_array),
                  EXT_VK_COMMAND_BUFFER, "Failed to allocate command buffer");
   for (u32 i = 0; i < rc->swap.frames_in_flight; i++) {

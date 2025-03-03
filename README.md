@@ -26,6 +26,7 @@ One liner for building and running
     - [ ] More sophisticated synchronization
         - [ ] Semaphore?
         - [ ] Fence?
+    - [ ] Move this to its own thread
 - [x] GPU Memory Allocator
     - [x] Basics
     - [ ] Frame Bump Allocator

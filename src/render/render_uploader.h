@@ -19,11 +19,15 @@ struct RND_Uploader {
   VkBuffer staging_buffer;
   VkDeviceMemory staging_memory;
 
+  // Remains mapped
+  void *base_mapped;
+
   VkQueue transfer_q;
   u32 transfer_index;
   VkSemaphore transfer_finished_sem;
 };
 
+// Staging buffer remains mapped throughout lifetime of uploader
 RND_Uploader rnd_uploader_create(RND_Context *rc);
 void rnd_uploader_free(RND_Context *rc, RND_Uploader *uploader);
 

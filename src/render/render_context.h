@@ -12,18 +12,19 @@
 #include <stdbool.h>
 
 enum RND_Context_Constants {
-  RENDER_CONTEXT_MAX_SWAP_IMAGES = 3,
-  RENDER_CONTEXT_MAX_FRAMES_IN_FLIGHT = 2,
-  RENDER_CONTEXT_MAX_QUEUE_NUM = 2,
-  RENDER_CONTEXT_MAX_PRESENT_MODES = 16,   // This could maybe change? I counted 7 in the enum
-  RENDER_CONTEXT_MAX_SURFACE_FORMATS = 16, // no idea for this, made of 2 enums, lots of elems
-  RENDER_CONTEXT_ATTACHMENT_COUNT = 2,
-  RENDER_CONTEXT_STAGING_SIZE = MB(64),
+  RND_CONTEXT_MAX_SWAP_IMAGES = 3,
+  RND_CONTEXT_MAX_FRAMES_IN_FLIGHT = 2,
+  RND_CONTEXT_MAX_QUEUE_NUM = 2,
+  RND_CONTEXT_MAX_PRESENT_MODES = 16,   // This could maybe change? I counted 7 in the enum
+  RND_CONTEXT_MAX_SURFACE_FORMATS = 16, // no idea for this, made of 2 enums, lots of elems
+  RND_CONTEXT_ATTACHMENT_COUNT = 2,
+  RND_CONTEXT_STAGING_SIZE = MB(64),
 };
 
 typedef struct RND_Global_UBO RND_Global_UBO;
 struct RND_Global_UBO {
-  mat4 projection_view;
+  mat4 projection;
+  mat4 view;
   vec3 light_direction;
 };
 
@@ -71,7 +72,7 @@ struct RND_Context {
       VkImage depth_image;
       VkImageView depth_image_view;
       VkDeviceMemory depth_memory;
-    } targets[RENDER_CONTEXT_MAX_SWAP_IMAGES];
+    } targets[RND_CONTEXT_MAX_SWAP_IMAGES];
     u32 current_target_idx;
     u32 target_count;
 
@@ -81,7 +82,7 @@ struct RND_Context {
       VkSemaphore image_available_sem;
       VkSemaphore render_finished_sem;
       VkFence in_flight_fence;
-    } frames[RENDER_CONTEXT_MAX_FRAMES_IN_FLIGHT];
+    } frames[RND_CONTEXT_MAX_FRAMES_IN_FLIGHT];
     u32 current_frame_idx;
     u32 frames_in_flight;
   } swap;
