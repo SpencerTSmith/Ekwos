@@ -134,7 +134,7 @@ int main(int argc, char **argv) {
       }
 
       // New dt after sleeping
-      game.dt_s = (get_time_ns() - last_frame_time) / 1e9;
+      game.dt_s = (get_time_ns() - last_frame_time) / (double)NSEC_PER_SEC;
 
       game.fps = 1.0 / game.dt_s;
 

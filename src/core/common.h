@@ -19,6 +19,7 @@ typedef uint8_t u8;
 typedef double f64;
 typedef float f32;
 
+// Credit to Ginger Bill, these are apt names
 typedef size_t usize;
 typedef ptrdiff_t isize;
 
@@ -56,6 +57,13 @@ typedef i8 b8;
 #define GB(n) (1024 * MB(n))
 
 #define RGB_I2F(fl) ((fl) / 255.f)
+
+#define THOUSAND(n) (1000 * (n))
+#define MILLION(n) (1000 * THOUSAND(n))
+#define BILLION(n) (1000 * MILLION(n))
+
+#define NSEC_PER_SEC BILLION(1)
+#define MSEC_PER_SEC THOUSAND(1)
 
 // These should be cross platform in c17
 f64 get_time_s(void);
