@@ -13,8 +13,6 @@
 #include "render/render_mesh.h"
 #include "render/render_pipeline.h"
 
-#include <stdio.h>
-
 // TODO(ss); move the calculation of movment vectors out of here and into the update...
 // it may be cleaner to instead just save any nessecary information into camera object and calculate
 // all at once that will make it simpler to get consisten velocities even when moving diagonally
@@ -123,10 +121,10 @@ int main(int argc, char **argv) {
               vec3(4.f, -4.f, -5.f), vec3(0.f, 0.f, 0.f), vec3(1.f, 1.f, 1.f),
               "assets/colored_cube.obj");
 
-  u64 last_frame_time = get_time_ms();
-  char fps_display[256];
-
+  // First frame time
+  u64 last_frame_time = get_time_ns();
   while (!window_should_close(&game.window)) {
+    // Tick rate stuff
     {
       u64 sleep_time = game.target_frame_time_ns - (get_time_ns() - last_frame_time);
       if (sleep_time < game.target_frame_time_ns) {
@@ -139,11 +137,10 @@ int main(int argc, char **argv) {
       game.fps = 1.0 / game.dt_s;
 
       // TODO(ss): Font rendering so we can just render it in game
-      snprintf(fps_display, sizeof(fps_display), "%s FPS: %.2f, Frame Time: %.6fs",
-               game.window.name, game.fps, game.dt_s);
-      glfwSetWindowTitle(game.window.handle, fps_display);
+      if (game.frame_count % (u64)game.fps == 0)
+        window_update_title_fps_dt(&game.window, game.fps, game.dt_s);
 
-      game.frame_count += 1;
+      game.frame_count++;
       last_frame_time = get_time_ns();
     }
 

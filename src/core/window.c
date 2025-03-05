@@ -1,12 +1,13 @@
 #include "window.h"
 
+#include <stdio.h>
 #include <stdlib.h>
 
 #include "core/log.h"
 
 translation_local void framebuffer_resize_callback(GLFWwindow *window, int width, int height);
 
-void window_init(Window *window, char *name, u32 width, u32 height) {
+void window_init(Window *window, char *title, u32 width, u32 height) {
   if (!glfwInit()) {
     LOG_FATAL("GLFW failed to initialize", EXT_GLFW_INIT);
   }
@@ -18,7 +19,7 @@ void window_init(Window *window, char *name, u32 width, u32 height) {
   glfwWindowHint(GLFW_CLIENT_API, GLFW_NO_API);
   glfwWindowHint(GLFW_RESIZABLE, GLFW_TRUE);
 
-  window->handle = glfwCreateWindow(width, height, name, NULL, NULL);
+  window->handle = glfwCreateWindow(width, height, title, NULL, NULL);
   if (window->handle == NULL) {
     LOG_FATAL("Failed to create GLFW window", EXT_GLFW_WINDOW_CREATION);
   }
@@ -35,12 +36,21 @@ void window_init(Window *window, char *name, u32 width, u32 height) {
   window->w = width;
   window->h = height;
   window->resized = false;
-  window->name = name;
+  strcpy(window->title, title);
 }
 
 void window_free(Window *window) {
   glfwDestroyWindow(window->handle);
   glfwTerminate();
+}
+
+void window_set_title(Window *window, char *title) { glfwSetWindowTitle(window->handle, title); }
+
+void window_update_title_fps_dt(Window *window, f64 fps, f64 dt) {
+  char fps_display[256] = "";
+  snprintf(fps_display, sizeof(fps_display), "%s FPS: %.2f, Frame Time: %.6fs", window->title, fps,
+           dt);
+  window_set_title(window, fps_display);
 }
 
 void window_poll_events(void) { glfwPollEvents(); }
