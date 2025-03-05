@@ -2,7 +2,7 @@
 
 #include "core/log.h"
 
-const vec3 camera_up = vec3(0.f, 1.f, 0.f);
+const vec3 CAMERA_UP = vec3(0.f, 1.f, 0.f);
 
 mat4 camera_get_orthographic(Camera *camera, f32 left, f32 right, f32 bottom, f32 top, f32 near,
                              f32 far) {
@@ -22,7 +22,7 @@ mat4 camera_get_view(Camera *camera) {
   };
   forward = vec3_norm0(forward);
 
-  mat4 view = mat4_look_direction(camera->position, forward, camera_up);
+  mat4 view = mat4_look_direction(camera->position, forward, CAMERA_UP);
   return view;
 }
 
@@ -35,8 +35,8 @@ void camera_get_directions(Camera *camera, vec3 *out_foreward, vec3 *out_up, vec
   forward = vec3_norm0(forward);
 
   *out_foreward = forward;
-  *out_up = camera_up;
-  *out_right = vec3_cross(forward, camera_up);
+  *out_up = CAMERA_UP;
+  *out_right = vec3_cross(forward, CAMERA_UP);
 }
 
 // void camera_set_direction(Camera *camera, vec3 position, vec3 direction, vec3 up) {

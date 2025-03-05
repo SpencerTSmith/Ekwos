@@ -8,6 +8,7 @@
  * need to separate these into specific translations units and do the whole conditionally compiling
  * thing, we may */
 
-void os_sleep_ms(u32 milliseconds);
+void os_sleep_ms(u64 milliseconds);
+void os_sleep_ns(u64 nanoseconds);
 
 #endif // OS_H

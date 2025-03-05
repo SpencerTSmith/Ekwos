@@ -22,6 +22,8 @@
 // with it
 void process_input(Window *window, Camera *camera, f64 dt) {
   window_poll_events();
+
+  // Hold ctrl to
   f64 new_cursor_x, new_cursor_y;
   glfwGetCursorPos(window->handle, &new_cursor_x, &new_cursor_y);
 
@@ -42,7 +44,6 @@ void process_input(Window *window, Camera *camera, f64 dt) {
   vec3 camera_forward;
   vec3 camera_up;
   vec3 camera_right;
-
   camera_get_directions(camera, &camera_forward, &camera_up, &camera_right);
 
   vec3 input_direction = {0};
@@ -127,13 +128,13 @@ int main(int argc, char **argv) {
 
   while (!window_should_close(&game.window)) {
     {
-      u64 sleep_time = (u64)(game.target_frame_time_ms - (get_time_ms() - last_frame_time));
-      if (sleep_time > 0 && sleep_time < game.target_frame_time_ms) {
-        os_sleep_ms(sleep_time);
+      u64 sleep_time = game.target_frame_time_ns - (get_time_ns() - last_frame_time);
+      if (sleep_time < game.target_frame_time_ns) {
+        os_sleep_ns(sleep_time);
       }
 
       // New dt after sleeping
-      game.dt_s = (get_time_ms() - last_frame_time) / 1000.0;
+      game.dt_s = (get_time_ns() - last_frame_time) / 1e9;
 
       game.fps = 1.0 / game.dt_s;
 
@@ -143,7 +144,7 @@ int main(int argc, char **argv) {
       glfwSetWindowTitle(game.window.handle, fps_display);
 
       game.frame_count += 1;
-      last_frame_time = get_time_ms();
+      last_frame_time = get_time_ns();
     }
 
     process_input(&game.window, &game.camera, game.dt_s);

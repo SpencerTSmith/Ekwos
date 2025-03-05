@@ -60,5 +60,6 @@ typedef i8 b8;
 // These should be cross platform in c17
 f64 get_time_s(void);
 u64 get_time_ms(void);
+u64 get_time_ns(void);
 
 #endif // COMMON_H

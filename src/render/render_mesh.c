@@ -3,7 +3,7 @@
 #include "core/log.h"
 #include "render/render_context.h"
 
-const VkVertexInputBindingDescription g_rnd_vertex_binding_descs[RND_VERTEX_BINDINGS_NUM] = {
+const VkVertexInputBindingDescription RND_VERTEX_BINDING_DESCRIPTIONS[RND_VERTEX_BINDINGS_NUM] = {
     {
         .binding = 0,
         .stride = sizeof(RND_Vertex),
@@ -11,31 +11,32 @@ const VkVertexInputBindingDescription g_rnd_vertex_binding_descs[RND_VERTEX_BIND
     },
 };
 
-const VkVertexInputAttributeDescription g_rnd_vertex_attrib_descs[RND_VERTEX_ATTRIBUTES_NUM] = {
-    {
-        .binding = 0,
-        .location = 0,
-        .format = VK_FORMAT_R32G32B32_SFLOAT,
-        .offset = offsetof(RND_Vertex, position),
-    },
-    {
-        .binding = 0,
-        .location = 1,
-        .format = VK_FORMAT_R32G32B32_SFLOAT,
-        .offset = offsetof(RND_Vertex, color),
-    },
-    {
-        .binding = 0,
-        .location = 2,
-        .format = VK_FORMAT_R32G32B32_SFLOAT,
-        .offset = offsetof(RND_Vertex, normal),
-    },
-    {
-        .binding = 0,
-        .location = 3,
-        .format = VK_FORMAT_R32G32_SFLOAT,
-        .offset = offsetof(RND_Vertex, uv),
-    },
+const VkVertexInputAttributeDescription
+    RND_VERTEX_ATTRIBUTE_DESCRIPTIONS[RND_VERTEX_ATTRIBUTES_NUM] = {
+        {
+            .binding = 0,
+            .location = 0,
+            .format = VK_FORMAT_R32G32B32_SFLOAT,
+            .offset = offsetof(RND_Vertex, position),
+        },
+        {
+            .binding = 0,
+            .location = 1,
+            .format = VK_FORMAT_R32G32B32_SFLOAT,
+            .offset = offsetof(RND_Vertex, color),
+        },
+        {
+            .binding = 0,
+            .location = 2,
+            .format = VK_FORMAT_R32G32B32_SFLOAT,
+            .offset = offsetof(RND_Vertex, normal),
+        },
+        {
+            .binding = 0,
+            .location = 3,
+            .format = VK_FORMAT_R32G32_SFLOAT,
+            .offset = offsetof(RND_Vertex, uv),
+        },
 };
 
 void rnd_mesh_init(RND_Context *rc, RND_Mesh *mesh, RND_Vertex *verts, u32 vert_count, u32 *indices,

@@ -30,7 +30,7 @@ struct Game {
 
   Camera camera;
 
-  f64 target_frame_time_ms;
+  u64 target_frame_time_ns;
   f64 fps;
   f64 dt_s;
   u64 frame_count;

@@ -27,7 +27,7 @@ void game_init(Game *game, u32 argc, char **argv) {
   // camera_set_direction(&game->camera, vec3(0.f, 0.f, 0.f), vec3(0.0f, 0.f, -1.f),
   //                      vec3(0.f, 1.f, 0.f));
 
-  game->target_frame_time_ms = (1000.0 / config.fps_limit);
+  game->target_frame_time_ns = (1e9 / config.fps_limit);
 }
 
 void game_free(Game *game) {

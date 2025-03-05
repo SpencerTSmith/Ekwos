@@ -4,7 +4,7 @@
 #include "core/linear_algebra.h"
 
 // No roll for the forseeable future so this is (0.f, 1.f, 0.f)
-extern const vec3 camera_up;
+extern const vec3 CAMERA_UP;
 
 typedef struct Camera Camera;
 struct Camera {

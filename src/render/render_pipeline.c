@@ -51,9 +51,9 @@ RND_Pipeline rnd_pipeline_make(RND_Context *rc, const char *vert_shader_path,
   VkPipelineVertexInputStateCreateInfo vertex_input_info = {0};
   vertex_input_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
   vertex_input_info.vertexAttributeDescriptionCount = RND_VERTEX_ATTRIBUTES_NUM;
-  vertex_input_info.pVertexAttributeDescriptions = g_rnd_vertex_attrib_descs;
+  vertex_input_info.pVertexAttributeDescriptions = RND_VERTEX_ATTRIBUTE_DESCRIPTIONS;
   vertex_input_info.vertexBindingDescriptionCount = RND_VERTEX_BINDINGS_NUM;
-  vertex_input_info.pVertexBindingDescriptions = g_rnd_vertex_binding_descs;
+  vertex_input_info.pVertexBindingDescriptions = RND_VERTEX_BINDING_DESCRIPTIONS;
 
   VkPipelineColorBlendStateCreateInfo color_blend_info = {0};
   color_blend_info.sType = VK_STRUCTURE_TYPE_PIPELINE_COLOR_BLEND_STATE_CREATE_INFO;
