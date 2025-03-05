@@ -25,44 +25,43 @@ void process_input(Window *window, Camera *camera, f64 dt) {
   f64 new_cursor_x, new_cursor_y;
   glfwGetCursorPos(window->handle, &new_cursor_x, &new_cursor_y);
 
-  f64 x_offset = camera->sensitivity * (new_cursor_x - window->cursor_x);
-  f64 y_offset = camera->sensitivity * (new_cursor_y - window->cursor_y);
+  f64 x_offset = new_cursor_x - window->cursor_x;
+  f64 y_offset = new_cursor_y - window->cursor_y;
+
+  camera->yaw += camera->sensitivity * (x_offset)*dt;
+  camera->pitch += camera->sensitivity * (y_offset)*dt;
+  camera->pitch = CLAMP(camera->pitch, -89.f, 89.f);
 
   window->cursor_x = new_cursor_x;
   window->cursor_y = new_cursor_y;
 
-  camera->yaw += x_offset;
-  camera->pitch += y_offset;
-  camera->pitch = CLAMP(camera->pitch, -89.f, 89.f);
-
-  vec3 forward;
-  forward.x = -cosf(RADIANS(camera->yaw)) * cosf(RADIANS(camera->pitch));
-  forward.y = -sinf(RADIANS(camera->pitch));
-  forward.z = -sinf(RADIANS(camera->yaw)) * cosf(RADIANS(camera->pitch));
-  forward = vec3_norm(forward);
-
-  camera_set_direction(camera, camera->position, forward, vec3(0.0f, 1.0f, 0.0f));
   if (glfwGetKey(window->handle, GLFW_KEY_ESCAPE) == GLFW_PRESS)
     glfwSetWindowShouldClose(window->handle, true);
 
+  vec3 camera_forward;
+  vec3 camera_up;
+  vec3 camera_right;
+
+  camera_get_directions(camera, &camera_forward, &camera_up, &camera_right);
+
   vec3 input_direction = {0};
-  // Z
+  // Z, forward
   if (glfwGetKey(window->handle, GLFW_KEY_W) == GLFW_PRESS)
-    input_direction = vec3_add(input_direction, camera->forward);
+    input_direction = vec3_add(input_direction, camera_forward);
   if (glfwGetKey(window->handle, GLFW_KEY_S) == GLFW_PRESS)
-    input_direction = vec3_sub(input_direction, camera->forward);
+    input_direction = vec3_sub(input_direction, camera_forward);
 
-  // X
+  // X, strafe
   if (glfwGetKey(window->handle, GLFW_KEY_D) == GLFW_PRESS)
-    input_direction = vec3_add(input_direction, camera->right);
+    input_direction = vec3_add(input_direction, camera_right);
   if (glfwGetKey(window->handle, GLFW_KEY_A) == GLFW_PRESS)
-    input_direction = vec3_sub(input_direction, camera->right);
+    input_direction = vec3_sub(input_direction, camera_right);
 
-  // Y
+  // Y, vertical
   if (glfwGetKey(window->handle, GLFW_KEY_SPACE) == GLFW_PRESS)
-    input_direction = vec3_add(input_direction, camera->up);
+    input_direction = vec3_add(input_direction, camera_up);
   if (glfwGetKey(window->handle, GLFW_KEY_LEFT_CONTROL) == GLFW_PRESS)
-    input_direction = vec3_sub(input_direction, camera->up);
+    input_direction = vec3_sub(input_direction, camera_up);
 
   input_direction = vec3_norm0(input_direction);
 
@@ -70,6 +69,7 @@ void process_input(Window *window, Camera *camera, f64 dt) {
   camera->position = vec3_add(camera->position, camera_velocity);
 }
 
+// MAIN!!!
 int main(int argc, char **argv) {
   Thread_Context main_tctx;
   thread_context_init(&main_tctx);
@@ -167,8 +167,10 @@ int main(int argc, char **argv) {
       f32 aspect = rnd_swap_aspect_ratio(&game.render_context);
 
       mat4 projection = camera_get_perspective(&game.camera, RADIANS(90.0f), aspect, .1f, 1000.f);
+      mat4 view = camera_get_view(&game.camera);
 
-      mat4 proj_view = mat4_mul(projection, game.camera.view);
+      mat4 proj_view = mat4_mul(projection, view);
+
       rnd_pipeline_bind(&game.render_context, &mesh_pipeline);
 
       u32 entities_end = 0;

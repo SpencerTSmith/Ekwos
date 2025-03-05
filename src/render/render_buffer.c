@@ -39,8 +39,10 @@ RND_Buffer rnd_buffer_make(RND_Context *rc, void *items, VkDeviceSize item_size,
 void rnd_buffer_free(RND_Context *rc, RND_Buffer *buffer) {
   if (buffer->item_count > 0 && buffer->buffer != VK_NULL_HANDLE &&
       buffer->memory != VK_NULL_HANDLE) {
-    if (buffer->type == RND_BUFFER_UNIFORM)
+
+    if (buffer->type == RND_BUFFER_UNIFORM || buffer->type == RND_BUFFER_STAGING)
       vkUnmapMemory(rc->logical, buffer->memory);
+
     vkDestroyBuffer(rc->logical, buffer->buffer, NULL);
     vkFreeMemory(rc->logical, buffer->memory, NULL);
   } else {
@@ -74,10 +76,11 @@ RND_Buffer rnd_buffer_make_index(RND_Context *rc, u32 *indices, u32 index_count)
   return idx_buf;
 }
 
-RND_Buffer rnd_buffer_make_uniform(RND_Context *rc, VkDeviceSize per_frame_size, u32 frame_count) {
-  RND_Buffer uni_buf =
-      rnd_buffer_make(rc, NULL, per_frame_size, frame_count, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-                      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT, VK_MEMORY_PROPERTY_HOST_COHERENT_BIT);
+RND_Buffer rnd_buffer_make_global_uniform(RND_Context *rc, VkDeviceSize per_frame_size,
+                                          u32 frame_count) {
+  RND_Buffer uni_buf = rnd_buffer_make(
+      rc, NULL, per_frame_size, frame_count, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 1);
   uni_buf.type = RND_BUFFER_UNIFORM;
   VK_CHECK_ERROR(
       vkMapMemory(rc->logical, uni_buf.memory, 0, uni_buf.buffer_size, 0, &uni_buf.base_mapped),

@@ -10,6 +10,7 @@ typedef enum RND_Buffer_Type {
   RND_BUFFER_VERTEX,
   RND_BUFFER_INDEX,
   RND_BUFFER_UNIFORM,
+  RND_BUFFER_STAGING,
   RND_BUFFER_UNKOWN,
   RND_BUFFER_COUNT,
 } RND_Buffer_Type;
@@ -25,7 +26,7 @@ struct RND_Buffer {
   VkDeviceSize aligned_size;
   VkDeviceSize buffer_size;
 
-  // Only used if uniform really
+  // Only used if uniform or staging, this will be null if not mapped
   void *base_mapped;
 
   VkBufferUsageFlags usages;
@@ -53,7 +54,8 @@ RND_Buffer rnd_buffer_make_vertex(RND_Context *rc, RND_Vertex *vertices, u32 ver
 RND_Buffer rnd_buffer_make_index(RND_Context *rc, u32 *indices, u32 index_count);
 
 // TODO(ss): This will not upload anything yet, only returning a mapped uniform buffer
-RND_Buffer rnd_buffer_make_uniform(RND_Context *rc, VkDeviceSize per_frame_size, u32 frame_count);
+RND_Buffer rnd_buffer_make_global_uniform(RND_Context *rc, VkDeviceSize per_frame_size,
+                                          u32 frame_count);
 void rnd_buffer_write_uniform(RND_Buffer *buffer);
 
 #endif // RENDER_BUFFER_H
