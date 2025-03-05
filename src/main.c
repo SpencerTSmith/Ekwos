@@ -28,8 +28,9 @@ void process_input(Window *window, Camera *camera, f64 dt) {
   f64 x_offset = new_cursor_x - window->cursor_x;
   f64 y_offset = new_cursor_y - window->cursor_y;
 
-  camera->yaw += camera->sensitivity * (x_offset)*dt;
-  camera->pitch += camera->sensitivity * (y_offset)*dt;
+  // No dt, remember this is not a rate but a direct distance
+  camera->yaw += camera->sensitivity * x_offset;
+  camera->pitch += camera->sensitivity * y_offset;
   camera->pitch = CLAMP(camera->pitch, -89.f, 89.f);
 
   window->cursor_x = new_cursor_x;

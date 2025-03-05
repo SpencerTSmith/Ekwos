@@ -20,7 +20,7 @@ void game_init(Game *game, u32 argc, char **argv) {
 
   // Default Camera Settings
   game->camera = (Camera){
-      .sensitivity = 10.f,
+      .sensitivity = .2f,
       .move_speed = 10.f,
   };
 
