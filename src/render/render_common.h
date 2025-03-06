@@ -9,6 +9,8 @@
 
 #include <stdlib.h>
 
+typedef VkDeviceSize RND_size;
+
 // Taken from Vulkan Samples, with couple modifications , the fatal version will exit with specified
 // code for you
 #define VK_CHECK_FATAL(x, exit_code, message, ...)                                                 \

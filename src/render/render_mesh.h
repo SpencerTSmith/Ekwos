@@ -22,13 +22,13 @@ struct RND_Mesh {
 };
 
 enum RND_Mesh_Constants {
-  RND_VERTEX_BINDINGS_NUM = 1,
-  RND_VERTEX_ATTRIBUTES_NUM = 4,
+  RND_VERTEX_BINDINGS_COUNT = 1,
+  RND_VERTEX_ATTRIBUTES_COUNT = 4,
 };
 extern const VkVertexInputBindingDescription
-    RND_VERTEX_BINDING_DESCRIPTIONS[RND_VERTEX_BINDINGS_NUM];
+    RND_VERTEX_BINDING_DESCRIPTIONS[RND_VERTEX_BINDINGS_COUNT];
 extern const VkVertexInputAttributeDescription
-    RND_VERTEX_ATTRIBUTE_DESCRIPTIONS[RND_VERTEX_ATTRIBUTES_NUM];
+    RND_VERTEX_ATTRIBUTE_DESCRIPTIONS[RND_VERTEX_ATTRIBUTES_COUNT];
 
 void rnd_mesh_init(RND_Context *rc, RND_Mesh *mesh, RND_Vertex *vertices, u32 vert_count,
                    u32 *indices, u32 index_count);

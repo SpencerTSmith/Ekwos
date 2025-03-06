@@ -77,49 +77,52 @@ int main(int argc, char **argv) {
   Game game = {0};
   game_init(&game, argc, argv);
 
-  RND_Pipeline mesh_pipeline = rnd_pipeline_make(&game.render_context, "shaders/vert.vert.spv",
-                                                 "shaders/frag.frag.spv", NULL);
+  RND_Buffer global_uniform_buffer = rnd_buffer_make_GUBO(
+      &game.render_context, sizeof(RND_Global_UBO), game.render_context.swap.frames_in_flight);
 
-  for (u32 i = 0; i < ENTITY_MAX_NUM / 2; i++) {
-    Entity *entity = NULL;
-    if (i % 3 == 0) {
-      entity = entity_make(&game.entity_pool, &game.render_context, &game.asset_manager,
-                           ENTITY_FLAG_DEFAULT, vec3(0.f, 0.f, -2.f), vec3(0.f, 0.f, 0.f),
-                           vec3(1.f, 1.f, 1.f), "assets/smooth_vase.obj");
-      entity->position = vec3_add(entity->position, vec3(-2.f * i, 2.f * i, -1.f * i));
-      entity->scale = vec3(5.f, 5.f, 5.f);
-    } else if (i % 3 == 1) {
-      entity = entity_make(&game.entity_pool, &game.render_context, &game.asset_manager,
-                           ENTITY_FLAG_DEFAULT, vec3(0.f, 0.f, -2.f), vec3(0.f, 0.f, 0.f),
-                           vec3(1.f, 1.f, 1.f), NULL);
-      entity->position = vec3_add(entity->position, vec3(2.f * i, -2.f * i, -1.f * i));
-    } else if (i % 3 == 2) {
-      entity = entity_make(&game.entity_pool, &game.render_context, &game.asset_manager,
-                           ENTITY_FLAG_DEFAULT, vec3(0.f, 0.f, -2.f), vec3(0.f, 0.f, 0.f),
-                           vec3(1.f, 1.f, 1.f), "assets/flat_vase.obj");
-      entity->position = vec3_add(entity->position, vec3(0.f, 2.f * i, -1.f * i));
-      entity->scale = vec3(5.f, 5.f, 5.f);
+  {
+    for (u32 i = 0; i < ENTITY_MAX_NUM / 2; i++) {
+      Entity *entity = NULL;
+      if (i % 3 == 0) {
+        entity = entity_make(&game.entity_pool, &game.render_context, &game.asset_manager,
+                             ENTITY_FLAG_DEFAULT, vec3(0.f, 0.f, -2.f), vec3(0.f, 0.f, 0.f),
+                             vec3(1.f, 1.f, 1.f), "assets/smooth_vase.obj");
+        entity->position = vec3_add(entity->position, vec3(-2.f * i, 2.f * i, -1.f * i));
+        entity->scale = vec3(5.f, 5.f, 5.f);
+      } else if (i % 3 == 1) {
+        entity = entity_make(&game.entity_pool, &game.render_context, &game.asset_manager,
+                             ENTITY_FLAG_DEFAULT, vec3(0.f, 0.f, -2.f), vec3(0.f, 0.f, 0.f),
+                             vec3(1.f, 1.f, 1.f), NULL);
+        entity->position = vec3_add(entity->position, vec3(2.f * i, -2.f * i, -1.f * i));
+      } else if (i % 3 == 2) {
+        entity = entity_make(&game.entity_pool, &game.render_context, &game.asset_manager,
+                             ENTITY_FLAG_DEFAULT, vec3(0.f, 0.f, -2.f), vec3(0.f, 0.f, 0.f),
+                             vec3(1.f, 1.f, 1.f), "assets/flat_vase.obj");
+        entity->position = vec3_add(entity->position, vec3(0.f, 2.f * i, -1.f * i));
+        entity->scale = vec3(5.f, 5.f, 5.f);
+      }
+
+      // Testing purposes
+      if ((i <= 5) || (i >= 10 && i <= 15)) {
+        entity_free(&game.entity_pool, entity);
+      }
     }
 
     // Testing purposes
-    if ((i <= 5) || (i >= 10 && i <= 15)) {
-      entity_free(&game.entity_pool, entity);
-    }
+    entity_make(&game.entity_pool, &game.render_context, &game.asset_manager, ENTITY_FLAG_DEFAULT,
+                vec3(0.f, 4.f, -2.f), vec3(0.f, 0.f, 0.f), vec3(1.f, 1.f, 1.f), "assets/f22.obj");
+    entity_make(&game.entity_pool, &game.render_context, &game.asset_manager, ENTITY_FLAG_DEFAULT,
+                vec3(0.f, 0.f, -2.f), vec3(0.f, 0.f, 0.f), vec3(1.f, 1.f, 1.f),
+                "assets/sphere.obj");
+    entity_make(&game.entity_pool, &game.render_context, &game.asset_manager, ENTITY_FLAG_DEFAULT,
+                vec3(0.f, -4.f, -2.f), vec3(0.f, 0.f, 0.f), vec3(1.f, 1.f, 1.f), "assets/crab.obj");
+    entity_make(&game.entity_pool, &game.render_context, &game.asset_manager, ENTITY_FLAG_DEFAULT,
+                vec3(4.f, -4.f, -5.f), vec3(0.f, 0.f, 0.f), vec3(1.f, 1.f, 1.f),
+                "assets/colored_cube.obj");
+    entity_make(&game.entity_pool, &game.render_context, &game.asset_manager, ENTITY_FLAG_DEFAULT,
+                vec3(4.f, -4.f, -5.f), vec3(0.f, 0.f, 0.f), vec3(1.f, 1.f, 1.f),
+                "assets/colored_cube.obj");
   }
-
-  // Testing purposes
-  entity_make(&game.entity_pool, &game.render_context, &game.asset_manager, ENTITY_FLAG_DEFAULT,
-              vec3(0.f, 4.f, -2.f), vec3(0.f, 0.f, 0.f), vec3(1.f, 1.f, 1.f), "assets/f22.obj");
-  entity_make(&game.entity_pool, &game.render_context, &game.asset_manager, ENTITY_FLAG_DEFAULT,
-              vec3(0.f, 0.f, -2.f), vec3(0.f, 0.f, 0.f), vec3(1.f, 1.f, 1.f), "assets/sphere.obj");
-  entity_make(&game.entity_pool, &game.render_context, &game.asset_manager, ENTITY_FLAG_DEFAULT,
-              vec3(0.f, -4.f, -2.f), vec3(0.f, 0.f, 0.f), vec3(1.f, 1.f, 1.f), "assets/crab.obj");
-  entity_make(&game.entity_pool, &game.render_context, &game.asset_manager, ENTITY_FLAG_DEFAULT,
-              vec3(4.f, -4.f, -5.f), vec3(0.f, 0.f, 0.f), vec3(1.f, 1.f, 1.f),
-              "assets/colored_cube.obj");
-  entity_make(&game.entity_pool, &game.render_context, &game.asset_manager, ENTITY_FLAG_DEFAULT,
-              vec3(4.f, -4.f, -5.f), vec3(0.f, 0.f, 0.f), vec3(1.f, 1.f, 1.f),
-              "assets/colored_cube.obj");
 
   // First frame time
   u64 last_frame_time = get_time_ns();
@@ -165,12 +168,17 @@ int main(int argc, char **argv) {
     {
       f32 aspect = rnd_swap_aspect_ratio(&game.render_context);
 
-      mat4 projection = camera_get_perspective(&game.camera, RADIANS(90.0f), aspect, .1f, 1000.f);
-      mat4 view = camera_get_view(&game.camera);
+      RND_Global_UBO ubo = {
+          .projection = camera_get_perspective(&game.camera, RADIANS(90.0f), aspect, .1f, 1000.f),
+          .view = camera_get_view(&game.camera),
+          .global_light_direction = vec3(1.f, 1.f, 1.f),
+      };
+      rnd_buffer_write_item_index(&global_uniform_buffer, &ubo,
+                                  game.render_context.swap.current_frame_idx);
 
-      mat4 proj_view = mat4_mul(projection, view);
+      mat4 proj_view = mat4_mul(ubo.projection, ubo.view);
 
-      rnd_pipeline_bind(&game.render_context, &mesh_pipeline);
+      rnd_pipeline_bind(&game.render_context, &game.render_context.pipelines[RND_PIPELINE_MESH]);
 
       u32 entities_end = 0;
       Entity *entities = (Entity *)pool_as_array(&game.entity_pool.pool, &entities_end);
@@ -178,25 +186,28 @@ int main(int argc, char **argv) {
         if (entities[i].flags == ENTITY_FLAG_INVALID) {
           continue;
         }
-        mat4 model_transform = entity_model_transform(&entities[i]);
+        mat4 model_transform = entity_model_mat4(&entities[i]);
         mat4 clip_transform = mat4_mul(proj_view, model_transform);
 
         RND_Push_Constants push = {
             .clip_transform = clip_transform,
-            .normal_matrix = entity_normal_matrix(&entities[i]),
+            .normal_matrix = entity_normal_mat4(&entities[i]),
         };
-        rnd_pipeline_push_constants(&game.render_context, &mesh_pipeline, push);
+        rnd_pipeline_push_constants(&game.render_context,
+                                    &game.render_context.pipelines[RND_PIPELINE_MESH], push);
 
         rnd_mesh_bind(&game.render_context, entities[i].mesh_asset->data);
         rnd_mesh_draw(&game.render_context, entities[i].mesh_asset->data);
       }
     }
     rnd_end_frame(&game.render_context);
+
+    arena_clear(&game.frame_arena);
   }
 
   vkDeviceWaitIdle(game.render_context.logical);
 
-  rnd_pipeline_free(&game.render_context, &mesh_pipeline);
+  rnd_buffer_free(&game.render_context, &global_uniform_buffer);
 
   game_free(&game);
 

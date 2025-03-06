@@ -12,8 +12,10 @@ enum ASS_Manager_Constants {
 };
 
 typedef enum ASS_Type {
+  ASS_TYPE_UNKOWN,
   ASS_TYPE_MESH,
   ASS_TYPE_TEXTURE,
+  ASS_TYPE_COUNT,
 } ASS_Type;
 
 typedef struct ASS_Manager ASS_Manager;
@@ -26,9 +28,10 @@ struct ASS_Manager {
 
 typedef struct ASS_Entry ASS_Entry;
 struct ASS_Entry {
-  i32 id;
+  u32 id;
   u32 reference_count;
 
+  // Other way?
   char name[128];
 
   ASS_Type type;
@@ -38,7 +41,7 @@ struct ASS_Entry {
 // TODO(ss): Would be nice to use handles instead
 typedef struct ASS_Handle ASS_Handle;
 struct ASS_Handle {
-  i32 id;
+  u32 id;
   ASS_Type type;
 };
 
@@ -57,6 +60,6 @@ ASS_Entry *ass_load_mesh_obj(ASS_Manager *asset_manager, RND_Context *render_con
 ASS_Entry *ass_load_mesh_gtlf(ASS_Manager *asset_manager, RND_Context *render_context,
                               char *file_name);
 
-void ass_free_entry(ASS_Entry *asset_entry);
+void ass_free_entry(ASS_Manager *manager, RND_Context *render_context, ASS_Entry *asset_entry);
 
 #endif // ASSET_MANAGER_H

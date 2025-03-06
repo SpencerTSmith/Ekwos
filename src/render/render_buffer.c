@@ -4,9 +4,9 @@
 
 #include "render/render_mesh.h"
 
-RND_Buffer rnd_buffer_make(RND_Context *rc, void *items, VkDeviceSize item_size, u32 item_count,
+RND_Buffer rnd_buffer_make(RND_Context *rc, void *items, RND_size item_size, u32 item_count,
                            VkBufferUsageFlags usage, VkMemoryPropertyFlags memory_properties,
-                           VkDeviceSize min_alignment) {
+                           RND_size min_alignment) {
   RND_Buffer buf = {
       .item_size = item_size,
       .item_count = item_count,
@@ -14,9 +14,9 @@ RND_Buffer rnd_buffer_make(RND_Context *rc, void *items, VkDeviceSize item_size,
       .memory_properties = memory_properties,
       .type = RND_BUFFER_UNKOWN,
   };
-  buf.aligned_size = ALIGN_ROUND_UP(buf.item_size, min_alignment);
+  buf.aligned_item_size = ALIGN_ROUND_UP(buf.item_size, min_alignment);
 
-  buf.buffer_size = buf.aligned_size * buf.item_count;
+  buf.buffer_size = buf.aligned_item_size * buf.item_count;
 
   VkBufferCreateInfo buffer_info = {0};
   buffer_info.sType = VK_STRUCTURE_TYPE_BUFFER_CREATE_INFO;
@@ -31,7 +31,7 @@ RND_Buffer rnd_buffer_make(RND_Context *rc, void *items, VkDeviceSize item_size,
 
   LOG_DEBUG("Allocated and uploaded buffer with size: %lu, item count: %u, item size: %lu, aligned "
             "size: %lu",
-            buf.buffer_size, buf.item_count, buf.item_size, buf.aligned_size);
+            buf.buffer_size, buf.item_count, buf.item_size, buf.aligned_item_size);
 
   return buf;
 }
@@ -76,11 +76,14 @@ RND_Buffer rnd_buffer_make_index(RND_Context *rc, u32 *indices, u32 index_count)
   return idx_buf;
 }
 
-RND_Buffer rnd_buffer_make_global_uniform(RND_Context *rc, VkDeviceSize per_frame_size,
-                                          u32 frame_count) {
-  RND_Buffer uni_buf = rnd_buffer_make(
-      rc, NULL, per_frame_size, frame_count, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
-      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT, 1);
+RND_Buffer rnd_buffer_make_GUBO(RND_Context *rc, RND_size per_frame_size, u32 frame_count) {
+  VkPhysicalDeviceProperties props = {0};
+  vkGetPhysicalDeviceProperties(rc->physical, &props);
+
+  RND_Buffer uni_buf =
+      rnd_buffer_make(rc, NULL, per_frame_size, frame_count, VK_BUFFER_USAGE_UNIFORM_BUFFER_BIT,
+                      VK_MEMORY_PROPERTY_HOST_VISIBLE_BIT | VK_MEMORY_PROPERTY_HOST_COHERENT_BIT,
+                      props.limits.minUniformBufferOffsetAlignment);
   uni_buf.type = RND_BUFFER_UNIFORM;
   VK_CHECK_ERROR(
       vkMapMemory(rc->logical, uni_buf.memory, 0, uni_buf.buffer_size, 0, &uni_buf.base_mapped),
@@ -90,9 +93,17 @@ RND_Buffer rnd_buffer_make_global_uniform(RND_Context *rc, VkDeviceSize per_fram
   return uni_buf;
 }
 
-void rnd_buffer_write_uniform(RND_Buffer *buffer) {
-  if (buffer->type != RND_BUFFER_UNIFORM) {
-    LOG_ERROR("Tried to write uniform to non-uniform buffer");
-    return;
-  }
+void rnd_buffer_write_offset(RND_Buffer *buffer, void *data, RND_size size, RND_size offset) {
+  ASSERT(buffer->base_mapped != NULL, "Tried to write to non-memory-mapped RND_Buffer");
+
+  RND_size true_offset = (RND_size)buffer->base_mapped + offset;
+  memcpy((void *)true_offset, data, size);
+}
+
+void rnd_buffer_write_item_index(RND_Buffer *buffer, void *item, RND_size index) {
+  ASSERT(buffer->aligned_item_size != 0,
+         "Tried to write to RND_Buffer index when aligned size is 0");
+
+  RND_size offset = index * buffer->aligned_item_size;
+  rnd_buffer_write_offset(buffer, item, buffer->item_size, offset);
 }

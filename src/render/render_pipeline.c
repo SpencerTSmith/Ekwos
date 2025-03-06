@@ -2,6 +2,8 @@
 
 #include "core/log.h"
 #include "core/thread_context.h"
+
+#include "render/render_context.h"
 #include "render/render_mesh.h"
 
 #include <errno.h>
@@ -50,9 +52,9 @@ RND_Pipeline rnd_pipeline_make(RND_Context *rc, const char *vert_shader_path,
 
   VkPipelineVertexInputStateCreateInfo vertex_input_info = {0};
   vertex_input_info.sType = VK_STRUCTURE_TYPE_PIPELINE_VERTEX_INPUT_STATE_CREATE_INFO;
-  vertex_input_info.vertexAttributeDescriptionCount = RND_VERTEX_ATTRIBUTES_NUM;
+  vertex_input_info.vertexAttributeDescriptionCount = RND_VERTEX_ATTRIBUTES_COUNT;
   vertex_input_info.pVertexAttributeDescriptions = RND_VERTEX_ATTRIBUTE_DESCRIPTIONS;
-  vertex_input_info.vertexBindingDescriptionCount = RND_VERTEX_BINDINGS_NUM;
+  vertex_input_info.vertexBindingDescriptionCount = RND_VERTEX_BINDINGS_COUNT;
   vertex_input_info.pVertexBindingDescriptions = RND_VERTEX_BINDING_DESCRIPTIONS;
 
   VkPipelineColorBlendStateCreateInfo color_blend_info = {0};
@@ -133,11 +135,11 @@ void rnd_pipeline_free(RND_Context *rc, RND_Pipeline *pl) {
 }
 
 void rnd_pipeline_bind(RND_Context *rc, RND_Pipeline *pl) {
-  vkCmdBindPipeline(rnd_get_current_cmd(rc), VK_PIPELINE_BIND_POINT_GRAPHICS, pl->handle);
+  vkCmdBindPipeline(rnd_get_current_draw_cmd(rc), VK_PIPELINE_BIND_POINT_GRAPHICS, pl->handle);
 }
 
 void rnd_pipeline_push_constants(RND_Context *rc, RND_Pipeline *pl, RND_Push_Constants push) {
-  vkCmdPushConstants(rnd_get_current_cmd(rc), pl->layout,
+  vkCmdPushConstants(rnd_get_current_draw_cmd(rc), pl->layout,
                      VK_SHADER_STAGE_VERTEX_BIT | VK_SHADER_STAGE_FRAGMENT_BIT, 0,
                      sizeof(RND_Push_Constants), &push);
 }

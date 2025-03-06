@@ -35,7 +35,7 @@ Entity *entity_make(Entity_Pool *ep, RND_Context *rc, ASS_Manager *am, Entity_Fl
   return entity;
 }
 
-mat4 entity_model_transform(const Entity *entity) {
+mat4 entity_model_mat4(const Entity *entity) {
   // mat4 transform = mat4_mul(mat4_translation(entity->position),
   //                           mat4_mul(mat4_rotation_y(entity->rotation.y),
   //                                    mat4_mul(mat4_rotation_x(entity->rotation.x),
@@ -80,7 +80,7 @@ mat4 entity_model_transform(const Entity *entity) {
   return transform;
 }
 
-mat4 entity_normal_matrix(const Entity *entity) {
+mat4 entity_normal_mat4(const Entity *entity) {
   // Taken algebra from Brendan Galea, couldn't be bothered, tait bryan angles, Y, X, Z
   f32 sinx = sinf(entity->rotation.x);
   f32 cosx = cosf(entity->rotation.x);

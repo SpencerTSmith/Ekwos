@@ -11,7 +11,7 @@
 typedef struct Entity_Pool Entity_Pool;
 struct Entity_Pool {
   Pool pool;
-  i32 next_entity_id;
+  u64 next_entity_id;
 };
 
 // In future we might want 64 bits for flags
@@ -25,8 +25,8 @@ struct Entity {
   u64 id; // As stated below this acts as padding as well for when a pointer is held here instead
 
   // HACK(ss): Storing this down here because pool allocator just stores the free list directly in
-  // the buffer meaning that this needs to not be overwritten by the node pointer, this is
-  // probably terrible design, but it works
+  // the buffer meaning that this needs to not be overwritten by the node pointer, this might be
+  // terrible(genius) design, but it works
   Entity_Flags flags;
 
   // Transforms
@@ -48,8 +48,8 @@ Entity *entity_make(Entity_Pool *ep, RND_Context *rc, ASS_Manager *am, Entity_Fl
                     vec3 position, vec3 rotation, vec3 scale, char *mesh_file);
 void entity_free(Entity_Pool *entity_pool, Entity *entity);
 
-mat4 entity_model_transform(const Entity *entity);
+mat4 entity_model_mat4(const Entity *entity);
 // Inverse transpose of the model transform
-mat4 entity_normal_matrix(const Entity *entity);
+mat4 entity_normal_mat4(const Entity *entity);
 
 #endif // ENTITY_H

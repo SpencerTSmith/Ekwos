@@ -7,6 +7,7 @@
 
 #include "render/render_allocator.h"
 #include "render/render_common.h"
+#include "render/render_pipeline.h"
 #include "render/render_uploader.h"
 
 #include <stdbool.h>
@@ -25,7 +26,7 @@ typedef struct RND_Global_UBO RND_Global_UBO;
 struct RND_Global_UBO {
   mat4 projection;
   mat4 view;
-  vec3 light_direction;
+  vec3 global_light_direction;
 };
 
 // Just in case we want easy pointers
@@ -78,7 +79,7 @@ struct RND_Context {
 
     VkCommandPool command_pool;
     struct RND_Swap_Frame {
-      VkCommandBuffer command_buffer;
+      VkCommandBuffer draw_command_buffer;
       VkSemaphore image_available_sem;
       VkSemaphore render_finished_sem;
       VkFence in_flight_fence;
@@ -86,6 +87,9 @@ struct RND_Context {
     u32 current_frame_idx;
     u32 frames_in_flight;
   } swap;
+
+  // TODO(ss): Hashmap?
+  RND_Pipeline pipelines[RND_PIPELINE_COUNT];
 };
 
 // TODO(spencer): Vulkan allows you to specify your own memory allocation function...
@@ -103,7 +107,8 @@ u32 rnd_swap_height(const RND_Context *render_context);
 u32 rnd_swap_width(const RND_Context *render_context);
 f32 rnd_swap_aspect_ratio(const RND_Context *render_context);
 
-const RND_Swap_Frame *rnd_get_current_frame(const RND_Context *rc);
-VkCommandBuffer rnd_get_current_cmd(const RND_Context *rc);
+const RND_Swap_Frame *rnd_get_current_frame_info(const RND_Context *rc);
+u32 rnd_get_current_frame_idx(const RND_Context *rc);
+VkCommandBuffer rnd_get_current_draw_cmd(const RND_Context *rc);
 
 #endif // RENDER_CONTEXT_H

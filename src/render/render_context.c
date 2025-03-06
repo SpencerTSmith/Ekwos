@@ -68,11 +68,19 @@ void rnd_context_init(RND_Context *rc, Window *window) {
 
   create_swap_chain(rc, window);
 
+  rc->pipelines[RND_PIPELINE_MESH] =
+      rnd_pipeline_make(rc, "shaders/simple.vert.spv", "shaders/simple.frag.spv", NULL);
+
   LOG_DEBUG("Render Context resources initialized");
 }
 
 void rnd_context_free(RND_Context *rc) {
   vkDeviceWaitIdle(rc->logical);
+
+  for (u32 i = 0; i < RND_PIPELINE_COUNT; i++) {
+    rnd_pipeline_free(rc, &rc->pipelines[i]);
+  }
+
   if (rc->instance != VK_NULL_HANDLE) {
     destroy_swap_chain(rc, rc->swap.handle);
     rnd_uploader_free(rc, &rc->uploader);
@@ -123,11 +131,11 @@ void rnd_begin_frame(RND_Context *rc, Window *window) {
   }
   LOG_INFO("Acquired next image, %u, from swap chain", rc->swap.current_target_idx);
 
-  VK_CHECK_ERROR(vkResetFences(rc->logical, 1, &rnd_get_current_frame(rc)->in_flight_fence),
+  VK_CHECK_ERROR(vkResetFences(rc->logical, 1, &rnd_get_current_frame_info(rc)->in_flight_fence),
                  "Failed to reset in flight fence %u", current_frame);
   LOG_INFO("Waited for and reset in flight fence %u", current_frame);
 
-  VK_CHECK_ERROR(vkResetCommandBuffer(rnd_get_current_cmd(rc), 0),
+  VK_CHECK_ERROR(vkResetCommandBuffer(rnd_get_current_draw_cmd(rc), 0),
                  "Failed to reset command buffer %u", current_frame);
 
   // Ok now ready to start the next frame
@@ -136,7 +144,7 @@ void rnd_begin_frame(RND_Context *rc, Window *window) {
   begin_info.flags =
       VK_COMMAND_BUFFER_USAGE_ONE_TIME_SUBMIT_BIT; // we rerecord every frame, check this
 
-  VK_CHECK_ERROR(vkBeginCommandBuffer(rnd_get_current_cmd(rc), &begin_info),
+  VK_CHECK_ERROR(vkBeginCommandBuffer(rnd_get_current_draw_cmd(rc), &begin_info),
                  "Failed to begin command buffer %u recording", current_frame);
   LOG_INFO("Began command buffer %u recording", current_frame);
 
@@ -154,7 +162,7 @@ void rnd_begin_frame(RND_Context *rc, Window *window) {
   render_pass_info.clearValueCount = STATIC_ARRAY_COUNT(clear_values);
   render_pass_info.pClearValues = clear_values;
 
-  vkCmdBeginRenderPass(rnd_get_current_cmd(rc), &render_pass_info, VK_SUBPASS_CONTENTS_INLINE);
+  vkCmdBeginRenderPass(rnd_get_current_draw_cmd(rc), &render_pass_info, VK_SUBPASS_CONTENTS_INLINE);
 
   // Dynamic State!
   VkViewport viewport = {
@@ -170,30 +178,30 @@ void rnd_begin_frame(RND_Context *rc, Window *window) {
       .extent = rc->swap.extent,
   };
 
-  vkCmdSetViewport(rnd_get_current_cmd(rc), 0, 1, &viewport);
-  vkCmdSetScissor(rnd_get_current_cmd(rc), 0, 1, &scissor);
+  vkCmdSetViewport(rnd_get_current_draw_cmd(rc), 0, 1, &viewport);
+  vkCmdSetScissor(rnd_get_current_draw_cmd(rc), 0, 1, &scissor);
   LOG_INFO("Began render pass");
 }
 
 void rnd_end_frame(RND_Context *rc) {
   u32 current_frame = rc->swap.current_frame_idx;
 
-  vkCmdEndRenderPass(rnd_get_current_cmd(rc));
+  vkCmdEndRenderPass(rnd_get_current_draw_cmd(rc));
   LOG_INFO("Ended render_pass");
 
-  VK_CHECK_ERROR(vkEndCommandBuffer(rnd_get_current_cmd(rc)),
+  VK_CHECK_ERROR(vkEndCommandBuffer(rnd_get_current_draw_cmd(rc)),
                  "Failed to end command buffer %u recording", current_frame);
   LOG_INFO("Ended command buffer %u recording", current_frame);
 
   // VkSemaphore wait_semaphores[] = {rnd_get_current_frame(rc)->image_available_sem,
   //                                  rc->uploader.transfer_finished_sem};
-  VkSemaphore wait_semaphores[] = {rnd_get_current_frame(rc)->image_available_sem};
-  VkSemaphore signal_semaphores[] = {rnd_get_current_frame(rc)->render_finished_sem};
+  VkSemaphore wait_semaphores[] = {rnd_get_current_frame_info(rc)->image_available_sem};
+  VkSemaphore signal_semaphores[] = {rnd_get_current_frame_info(rc)->render_finished_sem};
 
   // NOTE(ss): Maybe this one? VK_PIPELINE_STAGE_2_TOP_OF_PIPE_BIT
   VkPipelineStageFlags wait_stages[] = {VK_PIPELINE_STAGE_COLOR_ATTACHMENT_OUTPUT_BIT};
 
-  VkCommandBuffer cmd = rnd_get_current_cmd(rc);
+  VkCommandBuffer cmd = rnd_get_current_draw_cmd(rc);
   VkSubmitInfo submit_info = {0};
   submit_info.sType = VK_STRUCTURE_TYPE_SUBMIT_INFO;
   submit_info.commandBufferCount = 1;
@@ -205,9 +213,9 @@ void rnd_end_frame(RND_Context *rc) {
   submit_info.pSignalSemaphores = signal_semaphores;
 
   // Give it the fence so we know when it's safe to reuse that command buffer
-  VK_CHECK_ERROR(
-      vkQueueSubmit(rc->graphic_q, 1, &submit_info, rnd_get_current_frame(rc)->in_flight_fence),
-      "Failed to submit command buffer %u to graphics queue ", current_frame);
+  VK_CHECK_ERROR(vkQueueSubmit(rc->graphic_q, 1, &submit_info,
+                               rnd_get_current_frame_info(rc)->in_flight_fence),
+                 "Failed to submit command buffer %u to graphics queue ", current_frame);
   LOG_INFO("Submitted command buffer to graphics queue");
 
   VkPresentInfoKHR present_info = {0};
@@ -233,25 +241,27 @@ f32 rnd_swap_aspect_ratio(const RND_Context *rc) {
   return (f32)rc->swap.extent.width / rc->swap.extent.height;
 }
 
-const RND_Swap_Frame *rnd_get_current_frame(const RND_Context *rc) {
+const RND_Swap_Frame *rnd_get_current_frame_info(const RND_Context *rc) {
   return &rc->swap.frames[rc->swap.current_frame_idx];
 }
 
-VkCommandBuffer rnd_get_current_cmd(const RND_Context *rc) {
-  return rnd_get_current_frame(rc)->command_buffer;
+u32 rnd_get_current_frame_idx(const RND_Context *rc) { return rc->swap.current_frame_idx; }
+
+VkCommandBuffer rnd_get_current_draw_cmd(const RND_Context *rc) {
+  return rnd_get_current_frame_info(rc)->draw_command_buffer;
 }
 
 translation_local VkResult acquire_next_image(RND_Context *rc) {
   u32 current_frame = rc->swap.current_frame_idx;
 
-  VK_CHECK_ERROR(vkWaitForFences(rc->logical, 1, &rnd_get_current_frame(rc)->in_flight_fence,
+  VK_CHECK_ERROR(vkWaitForFences(rc->logical, 1, &rnd_get_current_frame_info(rc)->in_flight_fence,
                                  VK_TRUE, UINT64_MAX),
                  "Failed to wait on in flight fence %u", current_frame);
 
   // Which IMAGE... ie the actual framebuffer is ready to be drawn into
   // This is seperate than per frame resources we keep track of
   VkResult result = vkAcquireNextImageKHR(rc->logical, rc->swap.handle, UINT64_MAX,
-                                          rnd_get_current_frame(rc)->image_available_sem,
+                                          rnd_get_current_frame_info(rc)->image_available_sem,
                                           VK_NULL_HANDLE, &rc->swap.current_target_idx);
   return result;
 }
@@ -993,7 +1003,7 @@ translation_local void create_frame_resources(RND_Context *rc) {
   VK_CHECK_FATAL(vkAllocateCommandBuffers(rc->logical, &cba, temp_command_buffer_array),
                  EXT_VK_COMMAND_BUFFER, "Failed to allocate command buffer");
   for (u32 i = 0; i < rc->swap.frames_in_flight; i++) {
-    rc->swap.frames[i].command_buffer = temp_command_buffer_array[i];
+    rc->swap.frames[i].draw_command_buffer = temp_command_buffer_array[i];
   }
 
   LOG_DEBUG("Allocated command buffers");

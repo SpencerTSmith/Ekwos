@@ -1,9 +1,10 @@
 #include "render/render_mesh.h"
 
 #include "core/log.h"
+
 #include "render/render_context.h"
 
-const VkVertexInputBindingDescription RND_VERTEX_BINDING_DESCRIPTIONS[RND_VERTEX_BINDINGS_NUM] = {
+const VkVertexInputBindingDescription RND_VERTEX_BINDING_DESCRIPTIONS[RND_VERTEX_BINDINGS_COUNT] = {
     {
         .binding = 0,
         .stride = sizeof(RND_Vertex),
@@ -12,7 +13,7 @@ const VkVertexInputBindingDescription RND_VERTEX_BINDING_DESCRIPTIONS[RND_VERTEX
 };
 
 const VkVertexInputAttributeDescription
-    RND_VERTEX_ATTRIBUTE_DESCRIPTIONS[RND_VERTEX_ATTRIBUTES_NUM] = {
+    RND_VERTEX_ATTRIBUTE_DESCRIPTIONS[RND_VERTEX_ATTRIBUTES_COUNT] = {
         {
             .binding = 0,
             .location = 0,
@@ -53,23 +54,23 @@ void rnd_mesh_bind(RND_Context *rc, RND_Mesh *mesh) {
   ASSERT(mesh->vertex_buffer.buffer != VK_NULL_HANDLE && mesh->vertex_buffer.item_count > 0,
          "Tried to bind vertex buffer with no allocated vertices");
   VkBuffer buffers[] = {mesh->vertex_buffer.buffer};
-  VkDeviceSize offsets[] = {0};
-  vkCmdBindVertexBuffers(rnd_get_current_cmd(rc), 0, 1, buffers, offsets);
+  RND_size offsets[] = {0};
+  vkCmdBindVertexBuffers(rnd_get_current_draw_cmd(rc), 0, 1, buffers, offsets);
 
   // TODO(ss): Probably not good to have this branch, just always used indexed meshes?
   if (mesh->index_buffer.buffer != VK_NULL_HANDLE && mesh->index_buffer.item_count > 0) {
-    vkCmdBindIndexBuffer(rnd_get_current_cmd(rc), mesh->index_buffer.buffer, 0,
+    vkCmdBindIndexBuffer(rnd_get_current_draw_cmd(rc), mesh->index_buffer.buffer, 0,
                          VK_INDEX_TYPE_UINT32);
   }
 }
 
 void rnd_mesh_draw(RND_Context *rc, RND_Mesh *mesh) {
   if (mesh->index_buffer.buffer != VK_NULL_HANDLE && mesh->index_buffer.item_count > 0) {
-    vkCmdDrawIndexed(rnd_get_current_cmd(rc), mesh->index_buffer.item_count, 1, 0, 0, 0);
+    vkCmdDrawIndexed(rnd_get_current_draw_cmd(rc), mesh->index_buffer.item_count, 1, 0, 0, 0);
   } else {
     ASSERT(mesh->vertex_buffer.buffer != VK_NULL_HANDLE && mesh->vertex_buffer.item_count > 0,
            "Tried to draw vertex buffer with no allocated vertices");
-    vkCmdDraw(rnd_get_current_cmd(rc), mesh->vertex_buffer.item_count, 1, 0, 0);
+    vkCmdDraw(rnd_get_current_draw_cmd(rc), mesh->vertex_buffer.item_count, 1, 0, 0);
   }
 }
 

@@ -15,14 +15,58 @@ void ass_manager_init(Arena *arena, ASS_Manager *ass) {
 }
 
 void ass_manager_free(ASS_Manager *ass, RND_Context *rc) {
+  // Free meshes
   u32 mesh_last = 0;
   RND_Mesh *meshes = pool_as_array(&ass->mesh_pool, &mesh_last);
   for (u32 i = 0; i < mesh_last; i++) {
     rnd_mesh_free(rc, &meshes[i]);
   }
-  pool_free(&ass->entry_pool);
-
   pool_free(&ass->mesh_pool);
+
+  // Free asset table
+  pool_free(&ass->entry_pool);
+}
+
+void ass_free_entry(ASS_Manager *manager, RND_Context *render_context, ASS_Entry *asset_entry) {
+  switch (asset_entry->type) {
+  case ASS_TYPE_UNKOWN:
+    LOG_ERROR("Tried to free asset entry of unkown type");
+    break;
+
+    // No special logic for either so use fallthrough for now
+  case ASS_TYPE_MESH:
+  case ASS_TYPE_TEXTURE:
+    asset_entry->reference_count--;
+    break;
+
+  case ASS_TYPE_COUNT:
+    LOG_ERROR("Tried to free asset entry of unkown type");
+    break;
+  }
+
+  ASSERT(asset_entry->data != NULL, "Tried to free unallocated asset");
+  if (asset_entry->reference_count <= 0) {
+    switch (asset_entry->type) {
+    case ASS_TYPE_UNKOWN:
+      LOG_ERROR("Tried to free asset entry of unkown type");
+      break;
+
+    case ASS_TYPE_MESH:
+      rnd_mesh_free(render_context, asset_entry->data);
+      pool_pop(&manager->mesh_pool, asset_entry->data);
+      asset_entry->reference_count--;
+      break;
+
+    case ASS_TYPE_TEXTURE:
+      break;
+
+    case ASS_TYPE_COUNT:
+      LOG_ERROR("Tried to free asset entry of unkown type");
+      break;
+    }
+
+    pool_pop(&manager->entry_pool, asset_entry);
+  }
 }
 
 // Check if we've already loaded this file
@@ -31,6 +75,7 @@ ASS_Entry *ass_find_existing(ASS_Manager *ass, char *name) {
 
   // TODO(ss): This is not going to scale, probably need hash table
   if (name != NULL) {
+
     u32 entries_last = 0;
     ASS_Entry *entries = pool_as_array(&ass->entry_pool, &entries_last);
     for (u32 i = 0; i < entries_last; i++) {

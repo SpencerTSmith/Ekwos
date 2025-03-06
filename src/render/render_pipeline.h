@@ -2,7 +2,14 @@
 #define PIPELINE_H
 
 #include "core/common.h"
-#include "render/render_context.h"
+#include "core/linear_algebra.h"
+
+#include "render/render_common.h"
+
+enum RND_Pipeline_Type {
+  RND_PIPELINE_MESH,
+  RND_PIPELINE_COUNT,
+};
 
 typedef struct RND_Pipeline RND_Pipeline;
 struct RND_Pipeline {
@@ -32,6 +39,8 @@ struct RND_Push_Constants {
   mat4 clip_transform;
   mat4 normal_matrix; // For some reason only works when its a mat4?!
 };
+
+typedef struct RND_Context RND_Context;
 
 // Will use a default configuration if NULL passed in for config parameter
 RND_Pipeline rnd_pipeline_make(RND_Context *rc, const char *vert_shader_path,
