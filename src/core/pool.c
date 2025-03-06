@@ -38,10 +38,16 @@ void *pool_alloc(Pool *pool) {
 
 void pool_pop(Pool *pool, void *ptr) {
   void *pool_base = pool->arena.base_ptr;
-  void *pool_filled = pool->arena.base_ptr + pool->arena.offset;
+  void *pool_filled = pool->arena.base_ptr + pool->arena.next_offset;
   ASSERT(ptr >= pool_base && ptr <= pool_filled, "Tried to pop pool element outside of pool");
 
   ZERO_SIZE(ptr, pool->block_size);
+
+  // Does this work? verify
+  isize last_block_offset = pool->block_last_index * pool->block_size;
+  void *last_block_ptr = (void *)(last_block_offset + (isize)pool->arena.base_ptr);
+  if (last_block_ptr == ptr)
+    pool->block_last_index--;
 
   // Add this to the start of linked list
   Pool_Block *new_free = (Pool_Block *)ptr;

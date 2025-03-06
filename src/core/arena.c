@@ -18,7 +18,7 @@ Arena arena_make(isize reserve_size, Arena_Flags flags) {
   }
 
   arena.capacity = reserve_size;
-  arena.offset = 0;
+  arena.next_offset = 0;
   arena.flags = flags;
 
   return arena;
@@ -32,7 +32,7 @@ void arena_free(Arena *arena) {
 void *arena_alloc(Arena *arena, isize size, isize alignment) {
   ASSERT(arena->base_ptr != NULL, "Arena memory is null");
 
-  isize aligned_offset = ALIGN_ROUND_UP(arena->offset, alignment);
+  isize aligned_offset = ALIGN_ROUND_UP(arena->next_offset, alignment);
 
   // Do we need a bigger buffer?
   if (aligned_offset + size > arena->capacity) {
@@ -49,24 +49,25 @@ void *arena_alloc(Arena *arena, isize size, isize alignment) {
   ZERO_SIZE(ptr, size); // make sure memory is zeroed out
 
   // now move the offset
-  arena->offset = aligned_offset + size;
+  arena->next_offset = aligned_offset + size;
 
   return ptr;
 }
 
 void arena_pop_to(Arena *arena, isize offset) {
-  ASSERT(offset < arena->offset, "Failed to pop arena allocation, more than currently allocated");
+  ASSERT(offset < arena->next_offset,
+         "Failed to pop arena allocation, more than currently allocated");
 
   // Should we zero out the memory?
-  arena->offset = offset;
+  arena->next_offset = offset;
 }
 
-void arena_pop(Arena *arena, isize size) { arena_pop_to(arena, arena->offset - size); }
+void arena_pop(Arena *arena, isize size) { arena_pop_to(arena, arena->next_offset - size); }
 
-void arena_clear(Arena *arena) { arena->offset = 0; }
+void arena_clear(Arena *arena) { arena->next_offset = 0; }
 
 Scratch scratch_begin(Arena *arena) {
-  Scratch scratch = {.arena = arena, .offset_save = arena->offset};
+  Scratch scratch = {.arena = arena, .offset_save = arena->next_offset};
   return scratch;
 }
 

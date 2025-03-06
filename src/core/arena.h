@@ -17,7 +17,7 @@ typedef struct Arena Arena;
 struct Arena {
   u8 *base_ptr;
   isize capacity;
-  isize offset;
+  isize next_offset;
   Arena_Flags flags;
 };
 
