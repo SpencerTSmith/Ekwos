@@ -21,7 +21,7 @@ struct Pool {
 
   // We need to keep track of the last occupied index if we want to make sure to loop through all
   // elements in a pool, but do we want do do this??
-  u32 block_last_index;
+  u32 block_last;
 };
 
 Pool pool_make(u64 block_count, u64 block_size, u64 block_alignment);

@@ -18,6 +18,8 @@ void ass_manager_free(ASS_Manager *ass, RND_Context *rc) {
   // Free meshes
   u32 mesh_last = 0;
   RND_Mesh *meshes = pool_as_array(&ass->mesh_pool, &mesh_last);
+  u32 entry_last = 0;
+  ASS_Entry *entries = pool_as_array(&ass->entry_pool, &entry_last);
   for (u32 i = 0; i < mesh_last; i++) {
     rnd_mesh_free(rc, &meshes[i]);
   }

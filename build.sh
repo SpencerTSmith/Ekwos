@@ -35,7 +35,13 @@ needs_rebuild() {
 	local source_file=$1
 	local object_file=$2
 
-	if [[ ${FULL_REBUILD} ]]; then
+	# if [[ 1 ]]; then
+	# 	echo "bro"
+	# 	return 0
+	# fi
+
+	if [[ ${FULL_REBUILD} == 0 ]]; then
+		echo "bro"
 		return 0
 	fi
 

@@ -86,14 +86,14 @@ int main(int argc, char **argv) {
       if (i % 3 == 0) {
         entity = entity_make(&game.entity_pool, &game.render_context, &game.asset_manager,
                              ENTITY_FLAG_DEFAULT, vec3(0.f, 0.f, -2.f), vec3(0.f, 0.f, 0.f),
-                             vec3(1.f, 1.f, 1.f), "assets/smooth_vase.obj");
-        entity->position = vec3_add(entity->position, vec3(-2.f * i, 2.f * i, -1.f * i));
-        entity->scale = vec3(5.f, 5.f, 5.f);
+                             vec3(1.f, 1.f, 1.f), NULL);
+        entity->position = vec3_add(entity->position, vec3(2.f * i, -2.f * i, -1.f * i));
       } else if (i % 3 == 1) {
         entity = entity_make(&game.entity_pool, &game.render_context, &game.asset_manager,
                              ENTITY_FLAG_DEFAULT, vec3(0.f, 0.f, -2.f), vec3(0.f, 0.f, 0.f),
-                             vec3(1.f, 1.f, 1.f), NULL);
-        entity->position = vec3_add(entity->position, vec3(2.f * i, -2.f * i, -1.f * i));
+                             vec3(1.f, 1.f, 1.f), "assets/smooth_vase.obj");
+        entity->position = vec3_add(entity->position, vec3(-2.f * i, 2.f * i, -1.f * i));
+        entity->scale = vec3(5.f, 5.f, 5.f);
       } else if (i % 3 == 2) {
         entity = entity_make(&game.entity_pool, &game.render_context, &game.asset_manager,
                              ENTITY_FLAG_DEFAULT, vec3(0.f, 0.f, -2.f), vec3(0.f, 0.f, 0.f),
