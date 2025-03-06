@@ -120,7 +120,10 @@ mat4 entity_normal_mat4(const Entity *entity) {
   return normal;
 }
 
-void entity_free(Entity_Pool *entity_pool, Entity *entity) {
+void entity_free(Entity_Pool *entity_pool, RND_Context *render_context, ASS_Manager *asset_manager,
+                 Entity *entity) {
+  LOG_DEBUG("Entity %u has been called to free", entity->id);
+  ass_free_entry(asset_manager, render_context, entity->mesh_asset);
   pool_pop(&entity_pool->pool, entity);
   entity->flags = ENTITY_FLAG_INVALID; // This feels icky to do this
 }

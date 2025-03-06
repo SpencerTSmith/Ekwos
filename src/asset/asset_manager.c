@@ -37,6 +37,8 @@ void ass_free_entry(ASS_Manager *manager, RND_Context *render_context, ASS_Entry
   case ASS_TYPE_MESH:
   case ASS_TYPE_TEXTURE:
     asset_entry->reference_count--;
+    LOG_DEBUG("Asset (%s) has had a free: reference count = %u", asset_entry->name,
+              asset_entry->reference_count);
     break;
 
   case ASS_TYPE_COUNT:
@@ -54,7 +56,7 @@ void ass_free_entry(ASS_Manager *manager, RND_Context *render_context, ASS_Entry
     case ASS_TYPE_MESH:
       rnd_mesh_free(render_context, asset_entry->data);
       pool_pop(&manager->mesh_pool, asset_entry->data);
-      asset_entry->reference_count--;
+      LOG_DEBUG("Asset (%s) has no more references, freeing pool spot", asset_entry->name);
       break;
 
     case ASS_TYPE_TEXTURE:

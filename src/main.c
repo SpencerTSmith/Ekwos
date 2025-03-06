@@ -81,7 +81,7 @@ int main(int argc, char **argv) {
       &game.render_context, sizeof(RND_Global_UBO), game.render_context.swap.frames_in_flight);
 
   {
-    for (u32 i = 0; i < ENTITY_MAX_NUM / 2; i++) {
+    for (u32 i = 0; i < ENTITY_MAX_NUM; i++) {
       Entity *entity = NULL;
       if (i % 3 == 0) {
         entity = entity_make(&game.entity_pool, &game.render_context, &game.asset_manager,
@@ -104,7 +104,7 @@ int main(int argc, char **argv) {
 
       // Testing purposes
       if ((i <= 5) || (i >= 10 && i <= 15)) {
-        entity_free(&game.entity_pool, entity);
+        entity_free(&game.entity_pool, &game.render_context, &game.asset_manager, entity);
       }
     }
 
@@ -122,6 +122,11 @@ int main(int argc, char **argv) {
     entity_make(&game.entity_pool, &game.render_context, &game.asset_manager, ENTITY_FLAG_DEFAULT,
                 vec3(4.f, -4.f, -5.f), vec3(0.f, 0.f, 0.f), vec3(1.f, 1.f, 1.f),
                 "assets/colored_cube.obj");
+
+    Entity *to_free = entity_make(&game.entity_pool, &game.render_context, &game.asset_manager,
+                                  ENTITY_FLAG_DEFAULT, vec3(4.f, -4.f, -5.f), vec3(0.f, 0.f, 0.f),
+                                  vec3(1.f, 1.f, 1.f), "assets/f117.obj");
+    entity_free(&game.entity_pool, &game.render_context, &game.asset_manager, to_free);
   }
 
   // First frame time
