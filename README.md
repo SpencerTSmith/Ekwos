@@ -19,7 +19,7 @@ One liner for building and running
 
 ## Demo
 This will probably not be updated frequently, please check the later "Fully Complete" or build and run yourself to see a full demo
-[![Demo](https://img.youtube.com/vi/aZmN974jDbM?si=JkzaCRzUJ1VNN7NM/0.jpg)](https://youtube.com/aZmN974jDbM?si=JkzaCRzUJ1VNN7NM)
+[![Demo](https://img.youtube.com/vi/aZmN974jDbM?si=JkzaCRzUJ1VNN7NM/0.jpg)](https://youtube.com/watch?v=aZmN974jDbM?si=JkzaCRzUJ1VNN7NM)
 
 ## Short Term TODOs
 - [x] Entity Pool
