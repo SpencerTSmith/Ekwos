@@ -48,7 +48,6 @@ void ass_free_entry(ASS_Manager *manager, RND_Context *render_context, ASS_Entry
     break;
   }
 
-  ASSERT(asset_entry->data != NULL, "Tried to free unallocated asset");
   if (asset_entry->reference_count <= 0) {
     switch (asset_entry->type) {
     case ASS_TYPE_UNKOWN:
@@ -56,8 +55,9 @@ void ass_free_entry(ASS_Manager *manager, RND_Context *render_context, ASS_Entry
       break;
 
     case ASS_TYPE_MESH:
-      rnd_mesh_free(render_context, asset_entry->data);
-      pool_pop(&manager->mesh_pool, asset_entry->data);
+      ASSERT(asset_entry->mesh_data != NULL, "Tried to free unallocated asset");
+      rnd_mesh_free(render_context, asset_entry->mesh_data);
+      pool_pop(&manager->mesh_pool, asset_entry->mesh_data);
       LOG_DEBUG("Asset (%s) has no more references, freeing pool spot", asset_entry->name);
       break;
 
@@ -122,7 +122,7 @@ ASS_Entry *ass_load_mesh_obj(ASS_Manager *ass, RND_Context *rc, char *file_name)
     RND_Mesh *mesh = pool_alloc(&ass->mesh_pool);
     rnd_mesh_default_cube(rc, mesh);
     ASS_Entry *entry = pool_alloc(&ass->entry_pool);
-    entry->data = mesh;
+    entry->mesh_data = mesh;
     entry->reference_count++;
     entry->type = ASS_TYPE_MESH;
     entry->id = 0;
@@ -239,7 +239,7 @@ ASS_Entry *ass_load_mesh_obj(ASS_Manager *ass, RND_Context *rc, char *file_name)
 
   // Create a new asset entry
   ASS_Entry *entry = pool_alloc(&ass->entry_pool);
-  entry->data = mesh;
+  entry->mesh_data = mesh;
   entry->reference_count++;
   entry->type = ASS_TYPE_MESH;
   entry->id = 0;

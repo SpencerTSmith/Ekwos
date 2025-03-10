@@ -39,7 +39,7 @@ typedef i8 b8;
 #define MIN(first, second) ((first) > (second) ? (second) : (first))
 
 // adds the alignment and then masks the lower bits to get the next (higher) multiple of that
-// alignment... binary math
+// alignment... binary math, only works on powers of 2 I believe?
 #define ALIGN_ROUND_UP(x, b) (((x) + (b) - 1) & (~((b) - 1)))
 
 #define PI 3.14159265358979323846

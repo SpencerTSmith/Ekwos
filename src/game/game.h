@@ -17,16 +17,14 @@ enum Game_Constants {
 
 typedef struct Game Game;
 struct Game {
-  Config config;
-
   Window window;
   RND_Context render_context;
   ASS_Manager asset_manager;
 
-  Entity_Pool entity_pool;
-
   Arena persistent_arena;
   Arena frame_arena;
+
+  Entity_Pool entity_pool;
 
   Camera camera;
 

@@ -35,6 +35,11 @@ Entity *entity_make(Entity_Pool *ep, RND_Context *rc, ASS_Manager *am, Entity_Fl
   return entity;
 }
 
+Entity *entity_get(Entity_Pool *ep, Entity_ID id) {
+  Entity *entities = pool_as_array_type(&ep->pool, NULL, Entity);
+  return &entities[id + ENTITY_ID_OFFSET];
+}
+
 mat4 entity_model_mat4(const Entity *entity) {
   // mat4 transform = mat4_mul(mat4_translation(entity->position),
   //                           mat4_mul(mat4_rotation_y(entity->rotation.y),
@@ -124,6 +129,8 @@ void entity_free(Entity_Pool *entity_pool, RND_Context *render_context, ASS_Mana
                  Entity *entity) {
   LOG_DEBUG("Entity %u has been called to free", entity->id);
   ass_free_entry(asset_manager, render_context, entity->mesh_asset);
+
   pool_pop(&entity_pool->pool, entity);
+
   entity->flags = ENTITY_FLAG_INVALID; // This feels icky to do this
 }

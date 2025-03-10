@@ -11,6 +11,7 @@
 enum Window_Constants {
   WINDOW_DEFAULT_WIDTH = 1200,
   WINDOW_DEFAULT_HEIGHT = 900,
+  WINDOW_MAX_TITLE_LENGTH = 256,
 };
 
 typedef struct Window Window;
@@ -23,7 +24,7 @@ struct Window {
   };
 
   GLFWwindow *handle;
-  char title[256];
+  char title[WINDOW_MAX_TITLE_LENGTH];
   bool resized;
 
   f64 cursor_x, cursor_y;

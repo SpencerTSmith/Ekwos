@@ -1,5 +1,7 @@
 #include "game/game.h"
 
+#include "game/args.h"
+
 void game_init(Game *game, u32 argc, char **argv) {
   Config config = arg_parse(argc, argv);
 

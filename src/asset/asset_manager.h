@@ -3,12 +3,14 @@
 
 #include "core/pool.h"
 #include "render/render_context.h"
+#include "render/render_mesh.h"
 
 enum ASS_Manager_Constants {
   ASS_INVALID_ITEM_ID = -1,
-  ASS_MAX_ENTRIES = 40,
-  ASS_MAX_MESHES = 20,
-  ASS_MAX_TEXTURES = 20,
+  ASS_MAX_ENTRIES = 64,
+  ASS_MAX_MESHES = 32,
+  ASS_MAX_TEXTURES = 32,
+  ASS_MAX_FILE_NAME = 128,
 };
 
 typedef enum ASS_Type {
@@ -32,10 +34,16 @@ struct ASS_Entry {
   u32 reference_count;
 
   // Other way?
-  char name[128];
+  char name[ASS_MAX_FILE_NAME];
 
+  // Tagged union for different asset types
   ASS_Type type;
-  void *data;
+  union {
+    RND_Mesh *mesh_data;
+    // Textures, sounds, etc
+  };
+
+  void *next_in_hash;
 };
 
 // TODO(ss): Would be nice to use handles instead

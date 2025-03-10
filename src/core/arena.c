@@ -11,9 +11,9 @@ Arena arena_make(isize reserve_size, Arena_Flags flags) {
 
   // NOTE(ss): this will return page-aligned memory (obviously) so I don't think it is
   // nessecary to make sure that the alignment suffices
-  arena.base_ptr = calloc(reserve_size, 1);
+  arena.base = calloc(reserve_size, 1);
 
-  if (arena.base_ptr == NULL) {
+  if (arena.base == NULL) {
     LOG_FATAL("Failed to allocate arena memory", EXT_ARENA_ALLOCATION);
   }
 
@@ -25,12 +25,25 @@ Arena arena_make(isize reserve_size, Arena_Flags flags) {
 }
 
 void arena_free(Arena *arena) {
-  free(arena->base_ptr);
+  if (!(arena->flags & ARENA_FLAG_BACKING))
+    free(arena->base);
+
   ZERO_STRUCT(arena);
 }
 
+Arena arena_make_backing(void *backing, isize size) {
+  Arena arena = {0};
+
+  arena.base = (u8 *)backing;
+  arena.capacity = size;
+  arena.next_offset = 0;
+  arena.flags = ARENA_FLAG_BACKING;
+
+  return arena;
+}
+
 void *arena_alloc(Arena *arena, isize size, isize alignment) {
-  ASSERT(arena->base_ptr != NULL, "Arena memory is null");
+  ASSERT(arena->base != NULL, "Arena memory is null");
 
   isize aligned_offset = ALIGN_ROUND_UP(arena->next_offset, alignment);
 
@@ -45,7 +58,7 @@ void *arena_alloc(Arena *arena, isize size, isize alignment) {
     exit(EXT_ARENA_SIZE);
   }
 
-  void *ptr = arena->base_ptr + aligned_offset;
+  void *ptr = arena->base + aligned_offset;
   ZERO_SIZE(ptr, size); // make sure memory is zeroed out
 
   // now move the offset

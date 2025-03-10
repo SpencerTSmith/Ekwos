@@ -81,7 +81,7 @@ int main(int argc, char **argv) {
       &game.render_context, sizeof(RND_Global_UBO), game.render_context.swap.frames_in_flight);
 
   {
-    for (u32 i = 0; i < ENTITY_MAX_NUM / 10; i++) {
+    for (u32 i = 0; i < ENTITY_MAX_NUM; i++) {
       Entity *entity = NULL;
       if (i % 3 == 0) {
         entity = entity_make(&game.entity_pool, &game.render_context, &game.asset_manager,
@@ -164,7 +164,7 @@ int main(int argc, char **argv) {
           continue;
         }
 
-        // entities[i].rotation.x += 0.10f * PI * game.dt;
+        entities[i].rotation.x += 0.10f * PI * game.dt_s;
         entities[i].rotation.y += 0.10f * PI * game.dt_s;
         entities[i].rotation.z += 0.10f * PI * game.dt_s;
       }
@@ -192,6 +192,7 @@ int main(int argc, char **argv) {
         if (entities[i].flags == ENTITY_FLAG_INVALID) {
           continue;
         }
+
         mat4 model_transform = entity_model_mat4(&entities[i]);
         mat4 clip_transform = mat4_mul(proj_view, model_transform);
 
@@ -199,11 +200,12 @@ int main(int argc, char **argv) {
             .clip_transform = clip_transform,
             .normal_matrix = entity_normal_mat4(&entities[i]),
         };
+
         rnd_pipeline_push_constants(&game.render_context,
                                     &game.render_context.pipelines[RND_PIPELINE_MESH], push);
 
-        rnd_mesh_bind(&game.render_context, entities[i].mesh_asset->data);
-        rnd_mesh_draw(&game.render_context, entities[i].mesh_asset->data);
+        rnd_mesh_bind(&game.render_context, entities[i].mesh_asset->mesh_data);
+        rnd_mesh_draw(&game.render_context, entities[i].mesh_asset->mesh_data);
       }
     }
     rnd_end_frame(&game.render_context);

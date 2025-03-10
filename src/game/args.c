@@ -3,7 +3,6 @@
 #include "core/log.h"
 
 #include "game/game.h"
-#include "render/render_context.h"
 
 #include "core/window.h"
 
@@ -14,17 +13,18 @@ translation_local const char *arg_strings[] = {"--window-width", "--window-heigh
 translation_local const char *arg_short_strings[] = {"-w", "-h", "-f"};
 
 Argument arg_from_string(char *arg) {
+  Argument argument = ARG_INVALID;
   if (strcmp(arg, arg_strings[ARG_WINDOW_WIDTH]) == 0 ||
       strcmp(arg, arg_short_strings[ARG_WINDOW_WIDTH]) == 0)
-    return ARG_WINDOW_WIDTH;
-  if (strcmp(arg, arg_strings[ARG_WINDOW_HEIGHT]) == 0 ||
-      strcmp(arg, arg_short_strings[ARG_WINDOW_HEIGHT]) == 0)
-    return ARG_WINDOW_HEIGHT;
-  if (strcmp(arg, arg_strings[ARG_FPS_LIMIT]) == 0 ||
-      strcmp(arg, arg_short_strings[ARG_FPS_LIMIT]) == 0)
-    return ARG_FPS_LIMIT;
+    argument = ARG_WINDOW_WIDTH;
+  else if (strcmp(arg, arg_strings[ARG_WINDOW_HEIGHT]) == 0 ||
+           strcmp(arg, arg_short_strings[ARG_WINDOW_HEIGHT]) == 0)
+    argument = ARG_WINDOW_HEIGHT;
+  else if (strcmp(arg, arg_strings[ARG_FPS_LIMIT]) == 0 ||
+           strcmp(arg, arg_short_strings[ARG_FPS_LIMIT]) == 0)
+    argument = ARG_FPS_LIMIT;
 
-  return ARG_INVALID;
+  return argument;
 }
 
 Config arg_parse(u32 argc, char **argv) {
@@ -41,6 +41,9 @@ Config arg_parse(u32 argc, char **argv) {
   for (u32 i = 1; i < argc; i++) {
     Argument arg = arg_from_string(argv[i]);
     switch (arg) {
+    case ARG_INVALID:
+      LOG_ERROR("Unkown argument: \"%s\"", argv[i]);
+      break;
     case ARG_WINDOW_WIDTH:
       if (i + 1 >= argc) {
         LOG_ERROR("Please include a value for %s or %s", arg_strings[ARG_WINDOW_WIDTH],
@@ -79,8 +82,10 @@ Config arg_parse(u32 argc, char **argv) {
       i++;
 
       break;
-    case ARG_INVALID:
+
+    case ARG_MAX:
       LOG_ERROR("Unkown argument: \"%s\"", argv[i]);
+      break;
     }
   }
 

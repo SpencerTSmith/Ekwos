@@ -21,10 +21,15 @@ struct Pool {
 
   // We need to keep track of the last occupied index if we want to make sure to loop through all
   // elements in a pool, but do we want do do this??
-  u32 block_last;
+  isize block_last_occupied;
 };
 
-Pool pool_make(u64 block_count, u64 block_size, u64 block_alignment);
+// Allocates it's own memory
+Pool pool_make(isize block_count, isize block_size, isize block_alignment);
+
+// TODO(ss):
+Pool pool_make_backing(void *backing, isize block_count, isize block_size, isize block_alignment);
+
 void pool_free(Pool *pool);
 
 void *pool_alloc(Pool *pool);
@@ -35,5 +40,7 @@ void pool_pop(Pool *pool, void *ptr);
 void *pool_as_array(Pool *pool, u32 *out_last_index);
 
 #define pool_make_type(c, T) pool_make(c, sizeof(T), alignof(T))
+
+#define pool_as_array_type(pool_ptr, out_last_ptr, T) (T *)pool_as_array(pool_ptr, out_last_ptr)
 
 #endif // POOL_H
