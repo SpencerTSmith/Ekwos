@@ -17,6 +17,10 @@ One liner for building and running
 ./build.sh && (cd bin && ./ekwos)
 ```
 
+## Demo
+This will probably not be updated frequently, please check the later "Fully Complete" or build and run yourself to see a full demo
+[![Demo](https://img.youtube.com/vi/aZmN974jDbM?si=JkzaCRzUJ1VNN7NM/0.jpg)](https://youtube.com/aZmN974jDbM?si=JkzaCRzUJ1VNN7NM)
+
 ## Short Term TODOs
 - [x] Entity Pool
     - [ ] More elegant solution for checking if an entity is invalid
